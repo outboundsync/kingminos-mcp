@@ -14,5 +14,5 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": false
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "worker-configuration.d.ts"]
 }

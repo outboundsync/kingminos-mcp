@@ -19,6 +19,7 @@ import {
 export interface ToolContext {
   bearer?: string;
   signal?: AbortSignal;
+  apiBaseUrl?: string;
 }
 
 function routerHeaders(meta: {
@@ -59,6 +60,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
   );
 
   const bearerOf = (): string => requireBearer(context.bearer);
+  const requestBaseUrl = context.apiBaseUrl;
 
   server.registerTool(
     "get_providers",
@@ -75,6 +77,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
           path: "/v1/providers",
           bearer: bearerOf(),
           signal: extra.signal,
+          baseUrl: requestBaseUrl,
         });
         return okText(payload);
       } catch (error) {
@@ -98,6 +101,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
           path: "/v1/capabilities",
           bearer: bearerOf(),
           signal: extra.signal,
+          baseUrl: requestBaseUrl,
         });
         return okText(payload);
       } catch (error) {
@@ -125,6 +129,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
           query: { explain: meta.explain, schema: meta.schema },
           headers: routerHeaders(meta),
           signal: extra.signal,
+          baseUrl: requestBaseUrl,
         });
         return okText(payload);
       } catch (error) {
@@ -152,6 +157,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
           query: { explain: meta.explain, schema: meta.schema },
           headers: routerHeaders(meta),
           signal: extra.signal,
+          baseUrl: requestBaseUrl,
         });
         return okText(payload);
       } catch (error) {
@@ -179,6 +185,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
           query: { explain: meta.explain, schema: meta.schema },
           headers: routerHeaders(meta),
           signal: extra.signal,
+          baseUrl: requestBaseUrl,
         });
         return okText(payload);
       } catch (error) {
@@ -206,6 +213,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
           query: { explain: meta.explain, schema: meta.schema },
           headers: routerHeaders(meta),
           signal: extra.signal,
+          baseUrl: requestBaseUrl,
         });
         return okText(payload);
       } catch (error) {
@@ -233,6 +241,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
             explain: args.explain,
             schema: args.schema_version,
           }),
+          baseUrl: requestBaseUrl,
           signal: extra.signal,
         });
         return okText(payload);
@@ -263,6 +272,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
           bearer: bearerOf(),
           body,
           signal: extra.signal,
+          baseUrl: requestBaseUrl,
         });
         return okText(payload);
       } catch (error) {
@@ -286,6 +296,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
           path: encodePath("/v1/credentials/{provider}", { provider: args.provider }),
           bearer: bearerOf(),
           signal: extra.signal,
+          baseUrl: requestBaseUrl,
         });
         return okText(payload);
       } catch (error) {
@@ -311,6 +322,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
           }),
           bearer: bearerOf(),
           signal: extra.signal,
+          baseUrl: requestBaseUrl,
         });
         return okText(payload);
       } catch (error) {

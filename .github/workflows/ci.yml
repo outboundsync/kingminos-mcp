@@ -39,3 +39,6 @@ jobs:
 
       - name: Smoke listTools vs inventory
         run: npm run smoke
+
+      - name: Worker bundle dry-run
+        run: npm run check:worker

@@ -20,6 +20,7 @@ export interface ApiRequestOptions {
   headers?: Record<string, string | undefined>;
   body?: unknown;
   signal?: AbortSignal;
+  baseUrl?: string;
 }
 
 interface ErrorEnvelope {
@@ -70,8 +71,12 @@ function parseRetryAfter(header: string | null): number | undefined {
   return Math.max(0, Math.ceil((when - Date.now()) / 1000));
 }
 
-function joinUrl(path: string, query?: Record<string, string | undefined>): string {
-  const url = new URL(path, `${apiBaseUrl()}/`);
+function joinUrl(
+  path: string,
+  query?: Record<string, string | undefined>,
+  baseUrl?: string,
+): string {
+  const url = new URL(path, `${baseUrl ?? apiBaseUrl()}/`);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined && value.length > 0) {
@@ -125,7 +130,7 @@ async function once(options: ApiRequestOptions): Promise<unknown> {
   }
 
   try {
-    const response = await fetch(joinUrl(options.path, options.query), {
+    const response = await fetch(joinUrl(options.path, options.query, options.baseUrl), {
       method: options.method,
       headers,
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,

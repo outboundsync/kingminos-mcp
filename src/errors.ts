@@ -76,7 +76,7 @@ export function remediationFor(code: ErrorCode, status?: number): string | undef
     case "unauthorized":
       return "Verify or rotate the KingMinos tenant Bearer.";
     case "forbidden":
-      return "The key is valid but lacks this scope (write tools need a capable key; erase_subject needs erase).";
+      return "The key is valid but lacks this scope (write tools need a capable key; delete_subject needs erase).";
     case "bad_request":
       return "Fix the named arguments. Retrying unchanged fails the same way.";
     case "not_found":

@@ -13,8 +13,10 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
+    "check:surfaces": "tsx src/check-surfaces.ts",
     "smoke": "tsx src/smoke.ts",
-    "test": "tsx src/smoke.ts"
+    "test": "tsx --test src/*.test.ts",
+    "ci": "npm run typecheck && npm run check:surfaces && npm test && npm run smoke"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.1",

@@ -1,65 +1,11 @@
 import type { Server } from "node:http";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { LIVE_RESOURCE_ROUTES, PUBLIC_NON_TOOL_PATHS, type HttpMethod } from "./catalog.js";
+import { checkSurfaces, formatCheckResult } from "./check-surfaces.js";
+import { LIVE_RESOURCE_ROUTES } from "./catalog.js";
 import { apiBaseUrl, TENANT_BEARER_ENV } from "./config.js";
 import { createApp } from "./http.js";
 import { registeredToolNames } from "./server.js";
-
-interface LiveOp {
-  method: HttpMethod;
-  path: string;
-}
-
-const RESOURCE_METHODS = new Set<string>(["get", "post", "put", "patch", "delete"]);
-
-function normalizePath(path: string): string {
-  return path.replace(/\{[^}]+\}/g, "{}");
-}
-
-function parseOpenApiOps(yaml: string): LiveOp[] {
-  const ops: LiveOp[] = [];
-  let currentPath: string | undefined;
-  let inPaths = false;
-  for (const rawLine of yaml.split(/\r?\n/)) {
-    if (rawLine.startsWith("paths:")) {
-      inPaths = true;
-      continue;
-    }
-    if (inPaths && rawLine.startsWith("components:")) {
-      break;
-    }
-    if (!inPaths) {
-      continue;
-    }
-    const pathMatch = /^  (\/[^\s:]*):$/.exec(rawLine);
-    if (pathMatch?.[1]) {
-      currentPath = pathMatch[1];
-      continue;
-    }
-    const methodMatch = /^    (get|post|put|patch|delete):$/.exec(rawLine);
-    if (methodMatch?.[1] && currentPath && RESOURCE_METHODS.has(methodMatch[1])) {
-      ops.push({
-        method: methodMatch[1].toUpperCase() as HttpMethod,
-        path: currentPath,
-      });
-    }
-  }
-  return ops;
-}
-
-function keyOf(method: string, path: string): string {
-  return `${method} ${normalizePath(path)}`;
-}
-
-async function fetchLiveOps(): Promise<LiveOp[]> {
-  const url = `${apiBaseUrl()}/openapi.yaml`;
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status}`);
-  }
-  return parseOpenApiOps(await response.text());
-}
 
 async function listToolsOverHttp(baseUrl: string, bearer: string): Promise<string[]> {
   const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp`), {
@@ -99,26 +45,9 @@ async function main(): Promise<void> {
     );
   }
 
-  const liveOps = await fetchLiveOps();
-  const publicSet = new Set<string>(PUBLIC_NON_TOOL_PATHS);
-  const liveResource = liveOps.filter((op) => !publicSet.has(op.path));
-  const liveKeys = new Set(liveResource.map((op) => keyOf(op.method, op.path)));
-  const catalogKeys = new Set(
-    LIVE_RESOURCE_ROUTES.map((route) => keyOf(route.method, route.path)),
-  );
-
-  const missing = [...liveKeys].filter((key) => !catalogKeys.has(key)).sort();
-  const extra = [...catalogKeys].filter((key) => !liveKeys.has(key)).sort();
-  if (missing.length > 0 || extra.length > 0) {
-    throw new Error(
-      [
-        "Tool catalog does not match live KingMinos OpenAPI resource routes.",
-        missing.length > 0 ? `missing tools for: ${missing.join(", ")}` : "",
-        extra.length > 0 ? `extra tools for: ${extra.join(", ")}` : "",
-      ]
-        .filter((line) => line.length > 0)
-        .join("\n"),
-    );
+  const surfaces = await checkSurfaces();
+  if (!surfaces.ok) {
+    throw new Error(formatCheckResult(surfaces));
   }
 
   const { server, baseUrl } = await listen(createApp());
@@ -150,11 +79,17 @@ async function main(): Promise<void> {
         `HTTP tools/list mismatch.\ngot: ${listed.join(", ")}\nexpected: ${expectedNames.join(", ")}`,
       );
     }
+    if (listed.join(",") !== surfaces.expected.join(",")) {
+      throw new Error(
+        `HTTP tools/list drifted from OpenAPI inventory (${surfaces.source}).\ngot: ${listed.join(", ")}\nexpected: ${surfaces.expected.join(", ")}`,
+      );
+    }
 
     process.stdout.write(
       [
         "KingMinos MCP smoke passed.",
         `API: ${apiBaseUrl()}`,
+        `Inventory: ${surfaces.source}`,
         `Tools (${listed.length}): ${listed.join(", ")}`,
         `Tenant Bearer env: ${TENANT_BEARER_ENV}`,
         "",

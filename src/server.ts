@@ -50,9 +50,9 @@ export function createKingMinosServer(context: ToolContext): McpServer {
       instructions: [
         `${PRODUCT_NAME} wraps the live enrichment API at https://api.kingminos.com.`,
         "Call get_capabilities before the first resolve so routing defaults are current.",
-        "LeadMagic is the only house-key vendor. ZoomInfo, Findymail, Wiza, AI Ark, and BuiltWith are BYOK via put_credential.",
+        "LeadMagic is the only house-key vendor. ZoomInfo, Findymail, Wiza, AI Ark, and BuiltWith are BYOK via put_credentials.",
         "Websearch is house-only and cannot be stored.",
-        "Confirm with the user before put_credential, delete_credential, or erase_subject.",
+        "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
         "Say SFDC, never SF. Branch automations on answer.outcome / es_decision — business misses stay HTTP 200.",
       ].join(" "),
     },
@@ -107,7 +107,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
   );
 
   server.registerTool(
-    "resolve_company",
+    "company_resolve",
     {
       description:
         "POST /v1/company/resolve — resolve a company from email, domain, or website (dry-run envelope). Name-only input is no_decision / no_domain. Default path is auto. A LeadMagic-only or websearch-only hit is resolved_without_primary_id — do not stamp a ZoomInfo id unless es_decision is hit and result.zoominfo_company_id is present. ZoomInfo / Findymail / Wiza / AI Ark need BYOK; LeadMagic is house-keyed. Does not write SFDC.",
@@ -134,7 +134,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
   );
 
   server.registerTool(
-    "decide_company_domain",
+    "company_domain",
     {
       description:
         "POST /v1/company/domain — decide what the CRM domain field should say and whether it is safe to write. Outcomes: verified | corrected | discovered | rejected | unverified | no_decision. Write-safe stamps live on result.account_primary_domain + additional_domains. coverage needs BuiltWith BYOK. Does not write SFDC.",
@@ -161,7 +161,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
   );
 
   server.registerTool(
-    "decide_company_hierarchy",
+    "company_hierarchy",
     {
       description:
         "POST /v1/company/hierarchy — decide corporate family (immediate / ultimate parent + capped subsidiaries). Outcomes: subsidiary | ultimate_parent | no_decision. Never standalone. speed is Wikidata only (0 credits); balance/accuracy use ZoomInfo BYOK. coverage is invalid_routing. Does not write SFDC.",
@@ -188,7 +188,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
   );
 
   server.registerTool(
-    "verify_employment",
+    "person_verify_employment",
     {
       description:
         "POST /v1/person/verify-employment — pre-flight whether to send to this person. Default path is balance (LeadMagic email validate + optional paid LinkedIn lookup). speed is LeadMagic validate only. accuracy adds AI Ark (BYOK). Findymail is a BYOK Layer-1 alternate only when routing.only selects it — never stacked after LeadMagic. Outcomes: high_confidence_send | low_confidence_send | low_confidence_block | high_confidence_block | no_decision. Does not write SFDC.",
@@ -243,7 +243,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
   );
 
   server.registerTool(
-    "put_credential",
+    "put_credentials",
     {
       description:
         "PUT /v1/credentials/{provider} — upsert tenant Your Keys (ciphertext). ZoomInfo body is { clientId, clientSecret }. Other vendors use { apiKey }. Response never echoes the raw key. LeadMagic is the only house-key vendor; putting a LeadMagic key is optional. ZoomInfo, Findymail, Wiza, AI Ark, and BuiltWith are BYOK. Websearch cannot be stored. Confirm with the user first.",
@@ -272,7 +272,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
   );
 
   server.registerTool(
-    "delete_credential",
+    "delete_credentials",
     {
       description:
         "DELETE /v1/credentials/{provider} — revoke tenant Your Keys for that vendor. Sets revoked_at on the live row. 404 when no live row. Response never includes the raw key. Confirm with the user first.",
@@ -295,7 +295,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
   );
 
   server.registerTool(
-    "erase_subject",
+    "delete_subject",
     {
       description:
         "DELETE /v1/subjects/{subject_key} — tenant-scoped erasure (entities, identifiers, runs subtree, matching raw objects). Ledger is kept. Requires the erase key scope. Idempotent: unknown subjects return zeros. Confirm with the user first.",

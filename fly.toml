@@ -1,3 +1,5 @@
+# Local Node / container fallback only. Production is Cloudflare Worker
+# kingminos-mcp-prod via wrangler.jsonc — not this Fly app.
 app = "kingminos-mcp"
 primary_region = "iad"
 

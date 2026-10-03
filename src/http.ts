@@ -1,131 +1,63 @@
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { Request, Response } from "express";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import express from "express";
-import {
-  allowedHosts,
-  PRODUCT_NAME,
-  publicMcpUrl,
-  SERVICE_NAME,
-  TENANT_BEARER_ENV,
-  tenantBearerFromEnv,
-  VERSION,
-  MCP_PROTOCOL,
-} from "./config.js";
-import { createKingMinosServer } from "./server.js";
+import type { RuntimeEnv } from "./env.js";
+import { handleFetch } from "./fetch.js";
 
-export interface BearerResult {
-  ok: true;
-  token: string;
-}
+export { handleFetch, readTenantBearer } from "./fetch.js";
+export type { BearerFailure, BearerResult } from "./fetch.js";
 
-export interface BearerFailure {
-  ok: false;
-  status: number;
-  body: { error: string; detail: "missing" | "malformed" };
-}
-
-export function readTenantBearer(req: Request): BearerResult | BearerFailure {
-  const header = req.header("authorization");
-  if (header !== undefined && header.length > 0) {
-    const match = /^Bearer\s+(\S+)\s*$/i.exec(header);
-    if (!match?.[1]) {
-      return {
-        ok: false,
-        status: 401,
-        body: { error: "Unauthorized", detail: "malformed" },
-      };
+async function incomingToRequest(req: IncomingMessage): Promise<Request> {
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (value === undefined) {
+      continue;
     }
-    return { ok: true, token: match[1] };
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        headers.append(key, item);
+      }
+    } else {
+      headers.set(key, value);
+    }
   }
-  const fromEnv = tenantBearerFromEnv();
-  if (fromEnv) {
-    return { ok: true, token: fromEnv };
+  const method = (req.method ?? "GET").toUpperCase();
+  const url = `http://${req.headers.host ?? "127.0.0.1"}${req.url ?? "/"}`;
+  if (method === "GET" || method === "HEAD") {
+    return new Request(url, { method, headers });
   }
-  return {
-    ok: false,
-    status: 401,
-    body: { error: "Missing Authorization header", detail: "missing" },
-  };
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+  }
+  return new Request(url, { method, headers, body: Buffer.concat(chunks) });
 }
 
-function hostAllowed(req: Request): boolean {
-  const allow = allowedHosts();
-  if (allow.length === 0) {
-    return true;
-  }
-  const host = (req.header("host") ?? "").split(":")[0]?.toLowerCase() ?? "";
-  return allow.includes(host);
-}
-
-async function handleMcp(req: Request, res: Response): Promise<void> {
-  if (!hostAllowed(req)) {
-    res.status(403).json({ error: "Forbidden host" });
+async function sendNodeResponse(res: ServerResponse, response: Response): Promise<void> {
+  const headers: Record<string, string> = {};
+  response.headers.forEach((value, key) => {
+    headers[key] = value;
+  });
+  res.writeHead(response.status, headers);
+  if (!response.body) {
+    res.end();
     return;
   }
-
-  const bearer = readTenantBearer(req);
-  if (!bearer.ok) {
-    res.status(bearer.status).json({
-      error: bearer.body.error,
-      hint:
-        bearer.body.detail === "malformed"
-          ? "Authorization must be Bearer <token>."
-          : `Send Authorization: Bearer <token> or set ${TENANT_BEARER_ENV}.`,
-    });
-    return;
-  }
-
-  const server = createKingMinosServer({ bearer: bearer.token });
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-  });
-  res.on("close", () => {
-    void transport.close();
-    void server.close();
-  });
-  await server.connect(transport);
-  await transport.handleRequest(req, res, req.body);
+  res.end(Buffer.from(await response.arrayBuffer()));
 }
 
-export function createApp(): express.Express {
+export function createApp(env?: RuntimeEnv): express.Express {
   const app = express();
   app.disable("x-powered-by");
-  app.use(express.json({ limit: "1mb" }));
-
-  app.get("/", (_req, res) => {
-    res.json({
-      name: SERVICE_NAME,
-      product: PRODUCT_NAME,
-      version: VERSION,
-      docs: "https://api.kingminos.com/openapi.yaml",
-      protocol: MCP_PROTOCOL,
+  app.use((req, res) => {
+    void (async () => {
+      const request = await incomingToRequest(req);
+      const response = await handleFetch(request, env);
+      await sendNodeResponse(res, response);
+    })().catch(() => {
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Internal server error" });
+      }
     });
   });
-
-  app.get("/health", (_req, res) => {
-    res.json({ ok: true, service: SERVICE_NAME, version: VERSION });
-  });
-
-  app.get("/.well-known/mcp/server-card.json", (_req, res) => {
-    res.json({
-      serverInfo: { name: PRODUCT_NAME, version: VERSION },
-      endpoint: publicMcpUrl(),
-      transport: "streamable-http",
-      capabilities: { tools: {}, resources: {}, prompts: {} },
-    });
-  });
-
-  app.post("/mcp", (req, res) => {
-    void handleMcp(req, res);
-  });
-
-  app.get("/mcp", (req, res) => {
-    void handleMcp(req, res);
-  });
-
-  app.delete("/mcp", (req, res) => {
-    void handleMcp(req, res);
-  });
-
   return app;
 }

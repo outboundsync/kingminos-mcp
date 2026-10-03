@@ -16,7 +16,10 @@
     "check:surfaces": "tsx src/check-surfaces.ts",
     "smoke": "tsx src/smoke.ts",
     "test": "tsx --test src/*.test.ts",
-    "ci": "npm run typecheck && npm run check:surfaces && npm test && npm run smoke"
+    "check:worker": "wrangler deploy --dry-run",
+    "cf-typegen": "wrangler types --include-runtime false --strict-vars false",
+    "deploy": "wrangler deploy",
+    "ci": "npm run typecheck && npm run check:surfaces && npm test && npm run smoke && npm run check:worker"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.1",
@@ -27,6 +30,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "^22.13.10",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "wrangler": "^4.147.0"
   }
 }

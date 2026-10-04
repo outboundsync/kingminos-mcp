@@ -14,7 +14,7 @@ Production is Cloudflare Worker **`kingminos-mcp-prod`** on the existing Outboun
 npx wrangler deploy
 ```
 
-Production MCP URL: **`https://mcp.kingminos.com/mcp`**. The custom domain `mcp.kingminos.com` is attached in Cloudflare and tracked in `wrangler.jsonc` (`routes` with `custom_domain: true`) so Janus deploys keep the hostname. `workers_dev` stays enabled, so the Worker also answers on its `*.workers.dev` URL.
+Production MCP URL: **`https://mcp.kingminos.com/mcp`**. The custom domain `mcp.kingminos.com` is attached in Cloudflare and tracked in `wrangler.jsonc` (`routes` with `custom_domain: true`) so Janus deploys keep the hostname. `workers_dev` is **false**, so the Worker is not published on `*.workers.dev` (custom domain only).
 
 This Worker must not bind D1 `outboundsync-router`, R2 `outboundsync-router-raw`, or Worker `outboundsync-router`. API base stays `https://api.kingminos.com`.
 

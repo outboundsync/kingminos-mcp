@@ -121,12 +121,14 @@ describe("wrangler production host", () => {
       raw.replace(/^\s*\/\/.*$/gm, ""),
     ) as {
       name?: string;
+      workers_dev?: boolean;
       vars?: Record<string, string>;
       d1_databases?: unknown;
       r2_buckets?: unknown;
       routes?: Array<{ pattern?: string; custom_domain?: boolean }>;
     };
     assert.equal(parsed.name, WORKER_NAME);
+    assert.equal(parsed.workers_dev, false);
     assert.equal(parsed.vars?.KINGMINOS_API_URL, "https://api.kingminos.com");
     assert.equal(parsed.vars?.KINGMINOS_MCP_PUBLIC_URL, DOCUMENTED_PUBLIC_MCP_URL);
     assert.equal(parsed.vars?.KINGMINOS_API_KEY, undefined);

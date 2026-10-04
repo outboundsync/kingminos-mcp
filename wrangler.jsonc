@@ -4,7 +4,7 @@
   "main": "src/worker.ts",
   "compatibility_date": "2026-10-03",
   "compatibility_flags": ["nodejs_compat"],
-  "workers_dev": true,
+  "workers_dev": false,
   // Public MCP URL: https://mcp.kingminos.com/mcp — keep this custom domain in
   // wrangler so Janus deploys retain the hostname already attached in Cloudflare.
   "routes": [

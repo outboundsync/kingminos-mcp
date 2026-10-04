@@ -14,7 +14,7 @@ Production is Cloudflare Worker **`kingminos-mcp-prod`** on the existing Outboun
 npx wrangler deploy
 ```
 
-Documented public hostname: `https://mcp.kingminos.com`. That name is **not attached yet** — do not treat DNS as live. After deploy, the Worker answers on its `workers.dev` URL. Attaching `mcp.kingminos.com` is a separate zone/DNS step (Custom Domain or proxied CNAME). This repo does not put a zone route in `wrangler.jsonc` because the deploy token may not be able to change the zone.
+Production MCP URL: **`https://mcp.kingminos.com/mcp`**. The custom domain `mcp.kingminos.com` is attached in Cloudflare and tracked in `wrangler.jsonc` (`routes` with `custom_domain: true`) so Janus deploys keep the hostname. `workers_dev` stays enabled, so the Worker also answers on its `*.workers.dev` URL.
 
 This Worker must not bind D1 `outboundsync-router`, R2 `outboundsync-router-raw`, or Worker `outboundsync-router`. API base stays `https://api.kingminos.com`.
 
@@ -100,7 +100,7 @@ Local:
 }
 ```
 
-Hosted (after `mcp.kingminos.com` is attached):
+Hosted (production):
 
 ```json
 {

@@ -124,7 +124,7 @@ describe("wrangler production host", () => {
       vars?: Record<string, string>;
       d1_databases?: unknown;
       r2_buckets?: unknown;
-      routes?: unknown;
+      routes?: Array<{ pattern?: string; custom_domain?: boolean }>;
     };
     assert.equal(parsed.name, WORKER_NAME);
     assert.equal(parsed.vars?.KINGMINOS_API_URL, "https://api.kingminos.com");
@@ -132,7 +132,9 @@ describe("wrangler production host", () => {
     assert.equal(parsed.vars?.KINGMINOS_API_KEY, undefined);
     assert.equal(parsed.d1_databases, undefined);
     assert.equal(parsed.r2_buckets, undefined);
-    assert.equal(parsed.routes, undefined);
+    assert.equal(parsed.routes?.length, 1);
+    assert.equal(parsed.routes?.[0]?.pattern, "mcp.kingminos.com");
+    assert.equal(parsed.routes?.[0]?.custom_domain, true);
     assert.doesNotMatch(raw, /outboundsync-router/);
     assert.doesNotMatch(raw, /outboundsync-router-raw/);
     assert.equal(SERVICE_NAME, "kingminos-mcp");

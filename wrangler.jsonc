@@ -5,9 +5,14 @@
   "compatibility_date": "2026-10-03",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
-  // mcp.kingminos.com is the documented public hostname. Do not add a
-  // custom_domain / zone route here — Janus wrangler-deploys this Worker;
-  // DNS attach for mcp.kingminos.com is a separate zone step.
+  // Public MCP URL: https://mcp.kingminos.com/mcp — keep this custom domain in
+  // wrangler so Janus deploys retain the hostname already attached in Cloudflare.
+  "routes": [
+    {
+      "pattern": "mcp.kingminos.com",
+      "custom_domain": true
+    }
+  ],
   "observability": {
     "enabled": true,
     "logs": {

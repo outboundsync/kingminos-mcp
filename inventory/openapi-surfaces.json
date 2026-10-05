@@ -51,7 +51,8 @@
     "gleif",
     "rdap",
     "builtwith",
-    "prospeo"
+    "prospeo",
+    "apollo"
   ],
   "credentialProviders": [
     "zoominfo",
@@ -60,7 +61,8 @@
     "wiza",
     "aiark",
     "builtwith",
-    "prospeo"
+    "prospeo",
+    "apollo"
   ],
   "operations": [
     {

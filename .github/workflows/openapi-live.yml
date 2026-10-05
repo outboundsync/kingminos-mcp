@@ -23,7 +23,12 @@ jobs:
 
       - run: npm ci
 
-      - name: Fail on live OpenAPI drift
+      - name: Fail on live OpenAPI surface drift
         run: npm run check:surfaces:live
+        env:
+          KINGMINOS_OPENAPI_JSON_URL: https://api.kingminos.com/openapi.json
+
+      - name: Fail when live OpenAPI lists a provider MCP Zod lacks
+        run: npm run check:providers:live
         env:
           KINGMINOS_OPENAPI_JSON_URL: https://api.kingminos.com/openapi.json

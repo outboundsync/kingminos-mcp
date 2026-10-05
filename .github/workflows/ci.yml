@@ -39,6 +39,9 @@ jobs:
       - name: Compare advertised tools to the vendored OpenAPI inventory
         run: npm run check:surfaces
 
+      - name: Compare provider enums to the vendored OpenAPI inventory
+        run: npm run check:providers
+
       - name: Contract unit tests (including drift must fail)
         run: npm test
 

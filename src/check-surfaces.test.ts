@@ -12,6 +12,7 @@ import {
 import {
   diffSurfaces,
   inventoryFromOpenApiDocument,
+  mergeOperations,
   parseInventoryDocument,
   readInventoryFile,
   surfacesAligned,
@@ -84,6 +85,15 @@ describe("OpenAPI inventory contract", () => {
     assert.ok(fileInventory.nonToolPathPrefixes.includes("/v1/account"));
     assert.ok(fileInventory.excludedOperationIds.includes("startLogin"));
     assert.ok(fileInventory.excludedOperationIds.includes("getAccount"));
+    assert.ok(
+      fileInventory.excludedOperationIds.includes("patchAccountWorkspace"),
+    );
+    assert.ok(
+      fileInventory.excludedOperationIds.includes("deleteAccountMember"),
+    );
+    assert.ok(
+      fileInventory.excludedOperationIds.includes("deleteAccountInvite"),
+    );
     assert.ok(
       !fileInventory.operations.some((op) => op.path.startsWith("/v1/auth")),
     );
@@ -272,6 +282,41 @@ describe("inventoryFromOpenApiDocument", () => {
     assert.deepEqual(
       parsed.operations.map((op) => op.operationId),
       ["get_providers"],
+    );
+  });
+});
+
+describe("mergeOperations", () => {
+  it("keeps existing order, updates live rows, and appends new routes", () => {
+    const merged = mergeOperations(
+      [
+        {
+          operationId: "get_providers",
+          method: "GET",
+          path: "/v1/providers",
+        },
+        {
+          operationId: "company_resolve",
+          method: "POST",
+          path: "/v1/company/resolve",
+        },
+      ],
+      [
+        {
+          operationId: "company_resolve",
+          method: "POST",
+          path: "/v1/company/resolve",
+        },
+        {
+          operationId: "get_capabilities",
+          method: "GET",
+          path: "/v1/capabilities",
+        },
+      ],
+    );
+    assert.deepEqual(
+      merged.map((op) => op.operationId),
+      ["company_resolve", "get_capabilities"],
     );
   });
 });

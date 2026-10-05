@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import { OPENAPI_FETCH_TIMEOUT_MS, apiBaseUrl } from "./config.js";
 
@@ -10,7 +10,12 @@ export interface SurfaceOperation {
   path: string;
 }
 
-export interface OpenApiInventory {
+export interface ProviderLists {
+  providers: string[];
+  credentialProviders: string[];
+}
+
+export interface OpenApiInventory extends ProviderLists {
   publicNonToolPaths: string[];
   nonToolPathPrefixes: string[];
   excludedOperationIds: string[];
@@ -30,6 +35,15 @@ export interface SurfaceDiff {
   extraRoutes: string[];
 }
 
+export interface ProviderDiff {
+  missingProviderNames: string[];
+  extraProviderNames: string[];
+  missingCredentialProviders: string[];
+  extraCredentialProviders: string[];
+}
+
+export type ProviderCheckMode = "pinned" | "live";
+
 export interface ResolvedInventory {
   source: string;
   inventory: OpenApiInventory;
@@ -39,6 +53,20 @@ const HTTP_METHODS = new Set<string>(["GET", "POST", "PUT", "PATCH", "DELETE"]);
 const DEFAULT_INVENTORY_RELATIVE = "inventory/openapi-surfaces.json";
 const LIVE_OPENAPI_JSON_PATHS = ["/openapi.json", "/v1/openapi.json"] as const;
 const BEARER_SCHEME = "bearer";
+const CREDENTIALS_PROVIDER_PATH = "/v1/credentials/{provider}";
+
+export const INVENTORY_SPEC_URL = "https://api.kingminos.com/openapi.yaml";
+export const INVENTORY_LIVE_OPENAPI_JSON_URL =
+  "https://api.kingminos.com/openapi.json";
+
+export const INVENTORY_SOURCE_BLURB =
+  "KingMinos OpenAPI resource inventory (public contract). Paths verified against live GET https://api.kingminos.com/openapi.json. Tool names are snake_case resource operationIds. Only operations whose effective security includes the bearer scheme are required MCP tools. This file is not application source.";
+
+export const INVENTORY_EXCLUSION_POLICY =
+  "Session/cookie routes under /v1/auth/* and /v1/account/* are permanently out of scope for MCP. MCP authenticates with a tenant Bearer; those routes are app/session surfaces (login, workspaces, members, invites, tokens). nonToolPathPrefixes is the durable deny-list; excludedOperationIds is the reviewed catalog of omitted operationIds. Excluding a route is a reviewed decision, not a silent skip. Do not add account/auth MCP tools.";
+
+export const INVENTORY_PROVIDERS_POLICY =
+  "Pinned KingMinos OpenAPI provider enums for MCP Zod. CI fails when a pinned name is missing from ProviderName (routing.only) or CredentialProvider (put_credentials). Production OpenAPI may lag a merged BYOK provider (e.g. prospeo before the API Worker redeploys); npm run inventory:refresh unions live enums into this pin and never drops names. Live check (--live) is one-way: it fails only when the served spec lists a provider MCP Zod does not have.";
 
 export const INVENTORY_PATH_ENV = "KINGMINOS_OPENAPI_INVENTORY";
 export const OPENAPI_JSON_URL_ENV = "KINGMINOS_OPENAPI_JSON_URL";
@@ -95,6 +123,15 @@ export function surfacesAligned(diff: SurfaceDiff): boolean {
   );
 }
 
+export function providersAligned(diff: ProviderDiff): boolean {
+  return (
+    diff.missingProviderNames.length === 0 &&
+    diff.extraProviderNames.length === 0 &&
+    diff.missingCredentialProviders.length === 0 &&
+    diff.extraCredentialProviders.length === 0
+  );
+}
+
 export function formatSurfaceDiff(diff: SurfaceDiff, source: string): string {
   return [
     "KingMinos MCP tools drifted from the OpenAPI inventory.",
@@ -110,6 +147,27 @@ export function formatSurfaceDiff(diff: SurfaceDiff, source: string): string {
       : "",
     diff.extraRoutes.length > 0
       ? `extra routes: ${diff.extraRoutes.join(", ")}`
+      : "",
+  ]
+    .filter((line) => line.length > 0)
+    .join("\n");
+}
+
+export function formatProviderDiff(diff: ProviderDiff, source: string): string {
+  return [
+    "KingMinos MCP provider enums drifted from the OpenAPI inventory.",
+    `source: ${source}`,
+    diff.missingProviderNames.length > 0
+      ? `missing ProviderName values: ${diff.missingProviderNames.join(", ")}`
+      : "",
+    diff.extraProviderNames.length > 0
+      ? `extra ProviderName values: ${diff.extraProviderNames.join(", ")}`
+      : "",
+    diff.missingCredentialProviders.length > 0
+      ? `missing CredentialProvider values: ${diff.missingCredentialProviders.join(", ")}`
+      : "",
+    diff.extraCredentialProviders.length > 0
+      ? `extra CredentialProvider values: ${diff.extraCredentialProviders.join(", ")}`
       : "",
   ]
     .filter((line) => line.length > 0)
@@ -147,6 +205,92 @@ export function diffSurfaces(
       .filter((key) => !expectedRoutes.has(key))
       .sort(),
   };
+}
+
+function missingValues(
+  advertised: readonly string[],
+  expected: readonly string[],
+): string[] {
+  const have = new Set(advertised);
+  return [...new Set(expected)].filter((value) => !have.has(value)).sort();
+}
+
+function extraValues(
+  advertised: readonly string[],
+  expected: readonly string[],
+): string[] {
+  const want = new Set(expected);
+  return [...new Set(advertised)].filter((value) => !want.has(value)).sort();
+}
+
+export function diffProviders(
+  advertised: ProviderLists,
+  expected: ProviderLists,
+  options: { ignoreExtraAdvertised?: boolean } = {},
+): ProviderDiff {
+  return {
+    missingProviderNames: missingValues(
+      advertised.providers,
+      expected.providers,
+    ),
+    extraProviderNames: options.ignoreExtraAdvertised
+      ? []
+      : extraValues(advertised.providers, expected.providers),
+    missingCredentialProviders: missingValues(
+      advertised.credentialProviders,
+      expected.credentialProviders,
+    ),
+    extraCredentialProviders: options.ignoreExtraAdvertised
+      ? []
+      : extraValues(
+          advertised.credentialProviders,
+          expected.credentialProviders,
+        ),
+  };
+}
+
+export function unionPreserve(
+  base: readonly string[],
+  extra: readonly string[],
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of [...base, ...extra]) {
+    if (seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
+}
+
+export function mergeOperations(
+  existing: readonly SurfaceOperation[],
+  live: readonly SurfaceOperation[],
+): SurfaceOperation[] {
+  const liveByKey = new Map(
+    live.map((op) => [surfaceKey(op.method, op.path), op]),
+  );
+  const out: SurfaceOperation[] = [];
+  const seen = new Set<string>();
+  for (const op of existing) {
+    const key = surfaceKey(op.method, op.path);
+    const updated = liveByKey.get(key);
+    if (!updated) {
+      continue;
+    }
+    out.push(updated);
+    seen.add(key);
+  }
+  for (const op of live) {
+    const key = surfaceKey(op.method, op.path);
+    if (seen.has(key)) {
+      continue;
+    }
+    out.push(op);
+  }
+  return out;
 }
 
 function asHttpMethod(value: string): HttpMethod {
@@ -257,6 +401,8 @@ export function parseInventoryDocument(
     publicNonToolPaths,
     nonToolPathPrefixes,
     excludedOperationIds,
+    providers: stringList(record.providers),
+    credentialProviders: stringList(record.credentialProviders),
     operations,
   };
 }
@@ -343,12 +489,139 @@ export function inventoryFromOpenApiDocument(
     };
   }
 
+  const extracted = providersFromOpenApiDocument(doc);
   return {
     publicNonToolPaths: [...options.publicNonToolPaths],
     nonToolPathPrefixes: [...options.nonToolPathPrefixes],
     excludedOperationIds: [...options.excludedOperationIds],
+    providers: extracted.providers,
+    credentialProviders: extracted.credentialProviders,
     operations: withIds,
   };
+}
+
+function schemaMap(doc: unknown): Record<string, unknown> | undefined {
+  if (!isRecord(doc) || !isRecord(doc.components)) {
+    return undefined;
+  }
+  if (!isRecord(doc.components.schemas)) {
+    return undefined;
+  }
+  return doc.components.schemas;
+}
+
+function stringEnumValues(schema: unknown): string[] {
+  if (!isRecord(schema) || !Array.isArray(schema.enum)) {
+    return [];
+  }
+  return schema.enum.filter((item): item is string => typeof item === "string");
+}
+
+function schemaEnum(doc: unknown, schemaName: string): string[] {
+  const schemas = schemaMap(doc);
+  return schemas ? stringEnumValues(schemas[schemaName]) : [];
+}
+
+function schemaPropertyEnum(
+  doc: unknown,
+  schemaName: string,
+  propertyName: string,
+): string[] {
+  const schemas = schemaMap(doc);
+  const schema = schemas?.[schemaName];
+  if (!isRecord(schema) || !isRecord(schema.properties)) {
+    return [];
+  }
+  return stringEnumValues(schema.properties[propertyName]);
+}
+
+function pathParameterEnum(
+  doc: unknown,
+  path: string,
+  paramName: string,
+): string[] {
+  if (!isRecord(doc) || !isRecord(doc.paths) || !isRecord(doc.paths[path])) {
+    return [];
+  }
+  const item = doc.paths[path];
+  const params = Array.isArray(item.parameters) ? item.parameters : [];
+  for (const param of params) {
+    if (!isRecord(param) || param.name !== paramName) {
+      continue;
+    }
+    const values = stringEnumValues(param.schema);
+    if (values.length > 0) {
+      return values;
+    }
+  }
+  return [];
+}
+
+export function providersFromOpenApiDocument(doc: unknown): ProviderLists {
+  return {
+    providers: schemaEnum(doc, "ProviderName"),
+    credentialProviders: unionPreserve(
+      pathParameterEnum(doc, CREDENTIALS_PROVIDER_PATH, "provider"),
+      unionPreserve(
+        schemaPropertyEnum(doc, "CredentialStoreResponse", "provider"),
+        schemaPropertyEnum(doc, "CredentialRevokeResponse", "provider"),
+      ),
+    ),
+  };
+}
+
+export function excludedOperationIdsFromOpenApiDocument(
+  doc: unknown,
+  prefixes: readonly string[],
+): string[] {
+  if (!isRecord(doc) || !isRecord(doc.paths)) {
+    return [];
+  }
+  const ids: string[] = [];
+  for (const [path, methods] of Object.entries(doc.paths)) {
+    if (!isExcludedPath(path, prefixes) || !isRecord(methods)) {
+      continue;
+    }
+    for (const [method, op] of Object.entries(methods)) {
+      if (!HTTP_METHODS.has(method.toUpperCase()) || !isRecord(op)) {
+        continue;
+      }
+      if (typeof op.operationId === "string" && op.operationId.length > 0) {
+        ids.push(op.operationId);
+      }
+    }
+  }
+  return unionPreserve([], ids);
+}
+
+export function serializeInventoryFile(inventory: OpenApiInventory): string {
+  return `${JSON.stringify(
+    {
+      source: INVENTORY_SOURCE_BLURB,
+      spec: INVENTORY_SPEC_URL,
+      liveOpenApiJson: INVENTORY_LIVE_OPENAPI_JSON_URL,
+      exclusionPolicy: INVENTORY_EXCLUSION_POLICY,
+      providersPolicy: INVENTORY_PROVIDERS_POLICY,
+      publicNonToolPaths: inventory.publicNonToolPaths,
+      nonToolPathPrefixes: inventory.nonToolPathPrefixes,
+      excludedOperationIds: inventory.excludedOperationIds,
+      providers: inventory.providers,
+      credentialProviders: inventory.credentialProviders,
+      operations: inventory.operations,
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+export function writeInventoryFile(
+  filePath: string,
+  inventory: OpenApiInventory,
+): void {
+  const absolute = isAbsolute(filePath)
+    ? filePath
+    : resolve(process.cwd(), filePath);
+  writeFileSync(absolute, serializeInventoryFile(inventory));
 }
 
 async function fetchJson(url: string): Promise<unknown | undefined> {
@@ -420,4 +693,85 @@ export async function resolveLiveInventory(
     );
   }
   return live;
+}
+
+export async function fetchLiveOpenApiDocument(
+  baseUrl: string = apiBaseUrl(),
+): Promise<{ source: string; document: unknown }> {
+  const override = process.env[OPENAPI_JSON_URL_ENV]?.trim();
+  const urls = override
+    ? [override]
+    : LIVE_OPENAPI_JSON_PATHS.map((path) => `${baseUrl}${path}`);
+
+  for (const url of urls) {
+    const doc = await fetchJson(url);
+    if (doc === undefined) {
+      continue;
+    }
+    if (typeof doc === "object" && doc !== null && "paths" in doc) {
+      return { source: url, document: doc };
+    }
+  }
+  throw new Error(
+    `Failed to load live OpenAPI spec. Set ${OPENAPI_JSON_URL_ENV} or serve ${baseUrl}/openapi.json.`,
+  );
+}
+
+export interface RefreshInventoryResult {
+  path: string;
+  source: string;
+  inventory: OpenApiInventory;
+}
+
+/**
+ * Rewrite the pinned inventory from live OpenAPI.
+ * Bearer resource operations replace operations[]. Provider enums and
+ * excludedOperationIds are unioned with the existing pin so a stale
+ * production spec cannot drop names (e.g. prospeo).
+ */
+export async function refreshInventoryFile(
+  cwd: string = process.cwd(),
+): Promise<RefreshInventoryResult> {
+  const overridePath = process.env[INVENTORY_PATH_ENV]?.trim();
+  const filePath = overridePath || defaultInventoryPath(cwd);
+  const existing = readInventoryFile(filePath);
+  const live = await fetchLiveOpenApiDocument();
+  const parsed = inventoryFromOpenApiDocument(live.document, {
+    publicNonToolPaths: existing.publicNonToolPaths,
+    nonToolPathPrefixes: existing.nonToolPathPrefixes,
+    excludedOperationIds: existing.excludedOperationIds,
+  });
+  if ("reason" in parsed) {
+    throw new Error(
+      `Live OpenAPI could not be converted to an inventory: ${parsed.reason}`,
+    );
+  }
+
+  const liveProviders = providersFromOpenApiDocument(live.document);
+  const liveExcluded = excludedOperationIdsFromOpenApiDocument(
+    live.document,
+    existing.nonToolPathPrefixes,
+  );
+  const inventory: OpenApiInventory = {
+    publicNonToolPaths: existing.publicNonToolPaths,
+    nonToolPathPrefixes: existing.nonToolPathPrefixes,
+    excludedOperationIds: unionPreserve(
+      existing.excludedOperationIds,
+      liveExcluded,
+    ),
+    providers: unionPreserve(existing.providers, liveProviders.providers),
+    credentialProviders: unionPreserve(
+      existing.credentialProviders,
+      liveProviders.credentialProviders,
+    ),
+    operations: mergeOperations(
+      existing.operations,
+      parsed.operations.map((op) => ({
+        ...op,
+        operationId: toolNameFromOperationId(op.operationId),
+      })),
+    ),
+  };
+  writeInventoryFile(filePath, inventory);
+  return { path: filePath, source: live.source, inventory };
 }

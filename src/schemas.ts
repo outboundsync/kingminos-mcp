@@ -15,6 +15,7 @@ export const PROVIDER_NAME_VALUES = [
   "rdap",
   "builtwith",
   "prospeo",
+  "apollo",
 ] as const;
 
 /** put_credentials / delete_credentials. Keep in lockstep with inventory credentialProviders[]. */
@@ -26,18 +27,19 @@ export const CREDENTIAL_PROVIDER_VALUES = [
   "aiark",
   "builtwith",
   "prospeo",
+  "apollo",
 ] as const;
 
 export const ProviderName = z
   .enum(PROVIDER_NAME_VALUES)
   .describe(
-    "Stable provider id. LeadMagic is the only house-key vendor. ZoomInfo, Findymail, Wiza, AI Ark, BuiltWith, and Prospeo are BYOK. Websearch is house-only.",
+    "Stable provider id. LeadMagic, Wiza, and Findymail are the approved house-key vendors. ZoomInfo, AI Ark, BuiltWith, Prospeo, and Apollo are BYOK. Websearch is house-only.",
   );
 
 export const CredentialProvider = z
   .enum(CREDENTIAL_PROVIDER_VALUES)
   .describe(
-    "Vendor for tenant Your Keys. Websearch is rejected (house-only). LeadMagic is house-keyed; storing a LeadMagic key is an optional override.",
+    "Vendor for tenant Your Keys. Websearch is rejected (house-only). LeadMagic, Wiza, and Findymail are house-keyed; storing those keys is an optional override.",
   );
 
 export const ExplainMode = z
@@ -367,7 +369,7 @@ export const PutCredentialInput = {
     .string()
     .optional()
     .describe(
-      "API key for leadmagic, findymail, wiza, aiark, builtwith, or prospeo. Alias: api_key. Do not send for zoominfo.",
+      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, or apollo. Alias: api_key. Do not send for zoominfo.",
     ),
   api_key: z
     .string()

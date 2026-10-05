@@ -14,13 +14,22 @@ export const ProviderName = z
     "gleif",
     "rdap",
     "builtwith",
+    "prospeo",
   ])
   .describe(
-    "Stable provider id. LeadMagic is the only house-key vendor. ZoomInfo, Findymail, Wiza, AI Ark, and BuiltWith are BYOK. Websearch is house-only.",
+    "Stable provider id. LeadMagic is the only house-key vendor. ZoomInfo, Findymail, Wiza, AI Ark, BuiltWith, and Prospeo are BYOK. Websearch is house-only.",
   );
 
 export const CredentialProvider = z
-  .enum(["zoominfo", "leadmagic", "findymail", "wiza", "aiark", "builtwith"])
+  .enum([
+    "zoominfo",
+    "leadmagic",
+    "findymail",
+    "wiza",
+    "aiark",
+    "builtwith",
+    "prospeo",
+  ])
   .describe(
     "Vendor for tenant Your Keys. Websearch is rejected (house-only). LeadMagic is house-keyed; storing a LeadMagic key is an optional override.",
   );
@@ -352,7 +361,7 @@ export const PutCredentialInput = {
     .string()
     .optional()
     .describe(
-      "API key for leadmagic, findymail, wiza, aiark, or builtwith. Alias: api_key. Do not send for zoominfo.",
+      "API key for leadmagic, findymail, wiza, aiark, builtwith, or prospeo. Alias: api_key. Do not send for zoominfo.",
     ),
   api_key: z
     .string()

@@ -18,6 +18,8 @@ jobs:
     name: OpenAPI tool contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      KINGMINOS_OPENAPI_INVENTORY: inventory/openapi-surfaces.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -31,7 +33,10 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Compare advertised tools to the KingMinos OpenAPI inventory
+      - name: Lint and format
+        run: npm run lint
+
+      - name: Compare advertised tools to the vendored OpenAPI inventory
         run: npm run check:surfaces
 
       - name: Contract unit tests (including drift must fail)
@@ -39,6 +44,9 @@ jobs:
 
       - name: Smoke listTools vs inventory
         run: npm run smoke
+
+      - name: Build
+        run: npm run build
 
       - name: Worker bundle dry-run
         run: npm run check:worker

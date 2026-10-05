@@ -1,13 +1,15 @@
 import { pathToFileURL } from "node:url";
-import { advertisedOperations, TOOL_NAMES } from "./catalog.js";
+import { TOOL_NAMES, advertisedOperations } from "./catalog.js";
 import {
+  OPENAPI_LIVE_ENV,
+  type ResolvedInventory,
+  type SurfaceDiff,
   diffSurfaces,
   formatSurfaceDiff,
   resolveExpectedInventory,
+  resolveLiveInventory,
   surfacesAligned,
   toolNameFromOperationId,
-  type ResolvedInventory,
-  type SurfaceDiff,
 } from "./openapi-inventory.js";
 
 export interface SurfaceCheckResult {
@@ -18,8 +20,12 @@ export interface SurfaceCheckResult {
   diff: SurfaceDiff;
 }
 
-export async function checkSurfaces(): Promise<SurfaceCheckResult> {
-  const resolved: ResolvedInventory = await resolveExpectedInventory();
+export async function checkSurfaces(
+  options: { live?: boolean } = {},
+): Promise<SurfaceCheckResult> {
+  const resolved: ResolvedInventory = options.live
+    ? await resolveLiveInventory()
+    : await resolveExpectedInventory();
   const advertised = advertisedOperations();
   const expected = resolved.inventory.operations.map((op) => ({
     ...op,
@@ -47,8 +53,12 @@ export function formatCheckResult(result: SurfaceCheckResult): string {
   ].join("\n");
 }
 
+function wantsLive(argv: string[] = process.argv): boolean {
+  return argv.includes("--live") || process.env[OPENAPI_LIVE_ENV] === "1";
+}
+
 async function main(): Promise<void> {
-  const result = await checkSurfaces();
+  const result = await checkSurfaces({ live: wantsLive() });
   if (!result.ok) {
     process.stderr.write(`${formatCheckResult(result)}\n`);
     process.exitCode = 1;
@@ -68,7 +78,7 @@ function isMain(): boolean {
 if (isMain()) {
   main().catch((error: unknown) => {
     process.stderr.write(
-      `${error instanceof Error ? error.stack ?? error.message : String(error)}\n`,
+      `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
     );
     process.exitCode = 1;
   });

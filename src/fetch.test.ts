@@ -3,11 +3,26 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js";
 import { LIVE_RESOURCE_ROUTES } from "./catalog.js";
-import { DOCUMENTED_PUBLIC_MCP_URL, SERVICE_NAME, VERSION } from "./config.js";
-import { handleFetch, healthCard, readTenantBearer, serviceCard } from "./fetch.js";
+import {
+  DOCUMENTED_PUBLIC_MCP_URL,
+  MCP_PROTOCOL,
+  SERVICE_NAME,
+  VERSION,
+} from "./config.js";
+import {
+  MCP_ALLOW_METHODS,
+  handleFetch,
+  healthCard,
+  readTenantBearer,
+  serviceCard,
+} from "./fetch.js";
 
 const WORKER_NAME = "kingminos-mcp-prod";
+const PACKAGE = JSON.parse(readFileSync("package.json", "utf8")) as {
+  version: string;
+};
 
 describe("handleFetch public routes", () => {
   it("serves GET /health", async () => {
@@ -20,9 +35,23 @@ describe("handleFetch public routes", () => {
     const response = await handleFetch(new Request("http://127.0.0.1/"));
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), serviceCard());
+    assert.equal(serviceCard().protocol, LATEST_PROTOCOL_VERSION);
+    assert.equal(MCP_PROTOCOL, LATEST_PROTOCOL_VERSION);
   });
 
-  it("serves GET /.well-known/mcp/server-card.json", async () => {
+  it("serves GET /.well-known/mcp/server-card.json from config, not the client Host", async () => {
+    const response = await handleFetch(
+      new Request("http://evil.example/.well-known/mcp/server-card.json", {
+        headers: { host: "evil.example" },
+      }),
+    );
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as { endpoint?: string };
+    assert.equal(body.endpoint, "http://127.0.0.1:8080/mcp");
+    assert.doesNotMatch(body.endpoint ?? "", /evil\.example/);
+  });
+
+  it("advertises the documented public MCP URL when configured", async () => {
     const response = await handleFetch(
       new Request("http://127.0.0.1/.well-known/mcp/server-card.json"),
       { KINGMINOS_MCP_PUBLIC_URL: DOCUMENTED_PUBLIC_MCP_URL },
@@ -78,19 +107,162 @@ describe("handleFetch public routes", () => {
     );
     assert.equal(response.status, 403);
   });
+
+  it("parses IPv6 Host headers for the allowlist", async () => {
+    const response = await handleFetch(
+      new Request("http://[::1]:8080/mcp", {
+        method: "POST",
+        headers: {
+          host: "[::1]:8080",
+          authorization: "Bearer smoke-list-only",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+      }),
+      { KINGMINOS_MCP_ALLOWED_HOSTS: "[::1]" },
+    );
+    assert.notEqual(response.status, 403);
+  });
+
+  it("rejects a present Origin that is not allowlisted", async () => {
+    const response = await handleFetch(
+      new Request("http://127.0.0.1/mcp", {
+        method: "POST",
+        headers: {
+          origin: "https://evil.example",
+          authorization: "Bearer smoke-list-only",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+      }),
+    );
+    assert.equal(response.status, 403);
+    const body = (await response.json()) as { error?: string };
+    assert.equal(body.error, "Forbidden origin");
+  });
+
+  it("admits production MCP clients that send no Origin", async () => {
+    const response = await handleFetch(
+      new Request("https://mcp.kingminos.com/mcp", {
+        method: "POST",
+        headers: {
+          host: "mcp.kingminos.com",
+          authorization: "Bearer smoke-list-only",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+      }),
+      {},
+      { mode: "worker" },
+    );
+    assert.notEqual(response.status, 403);
+  });
+
+  it("returns 405 with Allow: POST, OPTIONS for GET and DELETE /mcp", async () => {
+    for (const method of ["GET", "DELETE"] as const) {
+      const response = await handleFetch(
+        new Request("http://127.0.0.1/mcp", { method }),
+      );
+      assert.equal(response.status, 405, method);
+      assert.equal(response.headers.get("allow"), MCP_ALLOW_METHODS);
+    }
+    const options = await handleFetch(
+      new Request("http://127.0.0.1/mcp", { method: "OPTIONS" }),
+    );
+    assert.equal(options.status, 204);
+    assert.equal(options.headers.get("allow"), MCP_ALLOW_METHODS);
+  });
+});
+
+describe("Worker-mode env bearer", () => {
+  it("does not use KINGMINOS_API_KEY from process.env when Authorization is absent", async () => {
+    const previous = process.env.KINGMINOS_API_KEY;
+    process.env.KINGMINOS_API_KEY = "leaked-worker-secret";
+    try {
+      const response = await handleFetch(
+        new Request("http://127.0.0.1/mcp", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+        }),
+        { KINGMINOS_API_URL: "https://api.kingminos.com" },
+        { mode: "worker" },
+      );
+      assert.equal(response.status, 401);
+      const text = await response.text();
+      assert.match(text, /Missing Authorization header/);
+      assert.doesNotMatch(text, /leaked-worker-secret/);
+    } finally {
+      if (previous === undefined) {
+        process.env.KINGMINOS_API_KEY = undefined;
+      } else {
+        process.env.KINGMINOS_API_KEY = previous;
+      }
+    }
+  });
+
+  it("strips a bearer passed on the Worker env object", async () => {
+    const response = await handleFetch(
+      new Request("http://127.0.0.1/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+      }),
+      { KINGMINOS_API_KEY: "should-not-count" },
+      { mode: "worker" },
+    );
+    assert.equal(response.status, 401);
+    const text = await response.text();
+    assert.doesNotMatch(text, /should-not-count/);
+  });
+});
+
+describe("Node-mode env bearer", () => {
+  it("does not fall back to env without the opt-in flag", async () => {
+    const response = await handleFetch(
+      new Request("http://127.0.0.1/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+      }),
+      { KINGMINOS_API_KEY: "local-secret" },
+      { mode: "node", loopbackBound: true, allowEnvBearer: false },
+    );
+    assert.equal(response.status, 401);
+  });
+
+  it("does not fall back to env when not bound to loopback", async () => {
+    const response = await handleFetch(
+      new Request("http://127.0.0.1/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+      }),
+      { KINGMINOS_API_KEY: "local-secret" },
+      { mode: "node", loopbackBound: false, allowEnvBearer: true },
+    );
+    assert.equal(response.status, 401);
+  });
 });
 
 describe("Worker fetch MCP surface", () => {
   it("lists the same tools as the OpenAPI catalog over streamable HTTP", async () => {
-    const transport = new StreamableHTTPClientTransport(new URL("http://worker.local/mcp"), {
-      requestInit: {
-        headers: {
-          Authorization: "Bearer smoke-list-only",
+    const transport = new StreamableHTTPClientTransport(
+      new URL("http://127.0.0.1/mcp"),
+      {
+        requestInit: {
+          headers: {
+            Authorization: "Bearer smoke-list-only",
+          },
         },
+        fetch: async (input, init) =>
+          handleFetch(new Request(input, init), {}, { mode: "worker" }),
       },
-      fetch: async (input, init) => handleFetch(new Request(input, init)),
+    );
+    const client = new Client({
+      name: "kingminos-mcp-worker-test",
+      version: "0.0.0",
     });
-    const client = new Client({ name: "kingminos-mcp-worker-test", version: "0.0.0" });
     await client.connect(transport);
     try {
       const listed = await client.listTools();
@@ -114,12 +286,16 @@ describe("readTenantBearer", () => {
   });
 });
 
+describe("version source", () => {
+  it("matches package.json", () => {
+    assert.equal(VERSION, PACKAGE.version);
+  });
+});
+
 describe("wrangler production host", () => {
   it("deploys Worker kingminos-mcp-prod without router bindings or secrets", () => {
     const raw = readFileSync("wrangler.jsonc", "utf8");
-    const parsed = JSON.parse(
-      raw.replace(/^\s*\/\/.*$/gm, ""),
-    ) as {
+    const parsed = JSON.parse(raw.replace(/^\s*\/\/.*$/gm, "")) as {
       name?: string;
       workers_dev?: boolean;
       vars?: Record<string, string>;
@@ -130,7 +306,10 @@ describe("wrangler production host", () => {
     assert.equal(parsed.name, WORKER_NAME);
     assert.equal(parsed.workers_dev, false);
     assert.equal(parsed.vars?.KINGMINOS_API_URL, "https://api.kingminos.com");
-    assert.equal(parsed.vars?.KINGMINOS_MCP_PUBLIC_URL, DOCUMENTED_PUBLIC_MCP_URL);
+    assert.equal(
+      parsed.vars?.KINGMINOS_MCP_PUBLIC_URL,
+      DOCUMENTED_PUBLIC_MCP_URL,
+    );
     assert.equal(parsed.vars?.KINGMINOS_API_KEY, undefined);
     assert.equal(parsed.d1_databases, undefined);
     assert.equal(parsed.r2_buckets, undefined);

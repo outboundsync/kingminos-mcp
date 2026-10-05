@@ -1,20 +1,25 @@
 import type { Server } from "node:http";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { checkSurfaces, formatCheckResult } from "./check-surfaces.js";
 import { LIVE_RESOURCE_ROUTES } from "./catalog.js";
-import { apiBaseUrl, TENANT_BEARER_ENV } from "./config.js";
+import { checkSurfaces, formatCheckResult } from "./check-surfaces.js";
+import { TENANT_BEARER_ENV, apiBaseUrl } from "./config.js";
 import { createApp } from "./http.js";
-import { registeredToolNames } from "./server.js";
 
-async function listToolsOverHttp(baseUrl: string, bearer: string): Promise<string[]> {
-  const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp`), {
-    requestInit: {
-      headers: {
-        Authorization: `Bearer ${bearer}`,
+async function listToolsOverHttp(
+  baseUrl: string,
+  bearer: string,
+): Promise<string[]> {
+  const transport = new StreamableHTTPClientTransport(
+    new URL(`${baseUrl}/mcp`),
+    {
+      requestInit: {
+        headers: {
+          Authorization: `Bearer ${bearer}`,
+        },
       },
     },
-  });
+  );
   const client = new Client({ name: "kingminos-mcp-smoke", version: "0.0.0" });
   await client.connect(transport);
   try {
@@ -25,7 +30,9 @@ async function listToolsOverHttp(baseUrl: string, bearer: string): Promise<strin
   }
 }
 
-async function listen(app: ReturnType<typeof createApp>): Promise<{ server: Server; baseUrl: string }> {
+async function listen(
+  app: ReturnType<typeof createApp>,
+): Promise<{ server: Server; baseUrl: string }> {
   const server = await new Promise<Server>((resolve) => {
     const started = app.listen(0, "127.0.0.1", () => resolve(started));
   });
@@ -37,20 +44,15 @@ async function listen(app: ReturnType<typeof createApp>): Promise<{ server: Serv
 }
 
 async function main(): Promise<void> {
-  const catalogNames = [...registeredToolNames()].sort();
   const expectedNames = LIVE_RESOURCE_ROUTES.map((route) => route.tool).sort();
-  if (catalogNames.join(",") !== expectedNames.join(",")) {
-    throw new Error(
-      `In-process tool list drifted from catalog.\nserver: ${catalogNames.join(", ")}\ncatalog: ${expectedNames.join(", ")}`,
-    );
-  }
-
   const surfaces = await checkSurfaces();
   if (!surfaces.ok) {
     throw new Error(formatCheckResult(surfaces));
   }
 
-  const { server, baseUrl } = await listen(createApp());
+  const { server, baseUrl } = await listen(
+    createApp(undefined, { listenHost: "127.0.0.1" }),
+  );
 
   try {
     const health = await fetch(`${baseUrl}/health`);
@@ -104,7 +106,7 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   process.stderr.write(
-    `${error instanceof Error ? error.stack ?? error.message : String(error)}\n`,
+    `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
   );
   process.exitCode = 1;
 });

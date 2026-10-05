@@ -1,3 +1,5 @@
+import { TENANT_BEARER_ENV } from "./config.js";
+
 export type ErrorCode =
   | "auth_required"
   | "unauthorized"
@@ -8,6 +10,11 @@ export type ErrorCode =
   | "timeout"
   | "upstream_error";
 
+export interface RemediationContext {
+  retried?: boolean;
+  detail?: string;
+}
+
 export interface ToolErrorBody {
   error: {
     code: ErrorCode;
@@ -17,6 +24,7 @@ export interface ToolErrorBody {
     remediation?: string;
     request_id?: string | null;
     detail?: string;
+    retryable: boolean;
   };
 }
 
@@ -49,6 +57,19 @@ export class KingMinosApiError extends Error {
     this.detail = args.detail;
     this.retryable = args.retryable ?? false;
   }
+
+  withRemediation(remediation: string): KingMinosApiError {
+    return new KingMinosApiError({
+      code: this.code,
+      message: this.message,
+      status: this.status,
+      retryAfterSeconds: this.retryAfterSeconds,
+      remediation,
+      requestId: this.requestId,
+      detail: this.detail,
+      retryable: this.retryable,
+    });
+  }
 }
 
 export function errorCodeForStatus(status: number): ErrorCode {
@@ -69,12 +90,19 @@ export function errorCodeForStatus(status: number): ErrorCode {
   }
 }
 
-export function remediationFor(code: ErrorCode, status?: number): string | undefined {
+export function remediationFor(
+  code: ErrorCode,
+  status?: number,
+  extra: RemediationContext = {},
+): string | undefined {
+  const retried = extra.retried === true;
   switch (code) {
     case "auth_required":
-      return `Add Authorization: Bearer <token> or set ${"KINGMINOS_API_KEY"}.`;
+      return `Add Authorization: Bearer <token> or set ${TENANT_BEARER_ENV}.`;
     case "unauthorized":
-      return "Verify or rotate the KingMinos tenant Bearer.";
+      return extra.detail === "mismatch"
+        ? "The tenant Bearer did not match (detail: mismatch). Verify or rotate it."
+        : "Verify or rotate the KingMinos tenant Bearer. 401 detail may be missing, malformed, or mismatch.";
     case "forbidden":
       return "The key is valid but lacks this scope (write tools need a capable key; delete_subject needs erase).";
     case "bad_request":
@@ -82,13 +110,22 @@ export function remediationFor(code: ErrorCode, status?: number): string | undef
     case "not_found":
       return "Confirm the id exists for this tenant. Do not retry a missing route.";
     case "rate_limited":
-      return "Wait retryAfterSeconds, then retry the same Idempotency-Key.";
+      return retried
+        ? "Already retried once after Retry-After. Wait retryAfterSeconds, then retry the same Idempotency-Key."
+        : "Wait retryAfterSeconds, then retry the same Idempotency-Key.";
     case "timeout":
-      return "Treat as unknown, not empty. Retry once or narrow the request.";
+      return retried
+        ? "Already retried once. Treat as unknown, not empty. Retry once more only if the call is a read or has an Idempotency-Key."
+        : "Treat as unknown, not empty. Retry once or narrow the request.";
     case "upstream_error":
-      return status === 504
-        ? "The API already spent its query budget — do not blindly retry the same call."
-        : "Relay the API message. Retry only a 5xx that is not 504, and only for reads.";
+      if (status === 504) {
+        return retried
+          ? "Already retried once. The API already spent its query budget — do not blindly retry the same call."
+          : "The API already spent its query budget — do not blindly retry the same call.";
+      }
+      return retried
+        ? "Already retried once. Relay the API message. Retry only a 5xx that is not 504, and only for reads or idempotent writes."
+        : "Relay the API message. Retry only a 5xx that is not 504, and only for reads or idempotent writes.";
     default: {
       const _exhaustive: never = code;
       return _exhaustive;
@@ -105,9 +142,12 @@ export function toToolErrorBody(error: KingMinosApiError): ToolErrorBody {
       ...(error.retryAfterSeconds !== undefined
         ? { retryAfterSeconds: error.retryAfterSeconds }
         : {}),
-      ...(error.remediation !== undefined ? { remediation: error.remediation } : {}),
+      ...(error.remediation !== undefined
+        ? { remediation: error.remediation }
+        : {}),
       ...(error.requestId !== undefined ? { request_id: error.requestId } : {}),
       ...(error.detail !== undefined ? { detail: error.detail } : {}),
+      retryable: error.retryable,
     },
   };
 }
@@ -128,7 +168,7 @@ export function toolErrorResult(error: unknown): {
     content: [
       {
         type: "text",
-        text: JSON.stringify(toToolErrorBody(mapped), null, 2),
+        text: JSON.stringify(toToolErrorBody(mapped)),
       },
     ],
   };

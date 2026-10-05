@@ -6,6 +6,7 @@ import {
   type SurfaceDiff,
   diffSurfaces,
   formatSurfaceDiff,
+  refreshInventoryFile,
   resolveExpectedInventory,
   resolveLiveInventory,
   surfacesAligned,
@@ -58,6 +59,23 @@ function wantsLive(argv: string[] = process.argv): boolean {
 }
 
 async function main(): Promise<void> {
+  if (process.argv.includes("--refresh")) {
+    const refreshed = await refreshInventoryFile();
+    process.stdout.write(
+      [
+        "Wrote pinned OpenAPI inventory from live spec.",
+        `source: ${refreshed.source}`,
+        `path: ${refreshed.path}`,
+        `tools (${refreshed.inventory.operations.length}): ${refreshed.inventory.operations.map((op) => op.operationId).join(", ")}`,
+        `providers: ${refreshed.inventory.providers.join(", ")}`,
+        `credentialProviders: ${refreshed.inventory.credentialProviders.join(", ")}`,
+        "Account/auth operationIds stay on the deny-list; they are not MCP tools.",
+        "Review the diff, then run npm run check:surfaces && npm run check:providers.",
+        "",
+      ].join("\n"),
+    );
+    return;
+  }
   const result = await checkSurfaces({ live: wantsLive() });
   if (!result.ok) {
     process.stderr.write(`${formatCheckResult(result)}\n`);

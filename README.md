@@ -47,16 +47,28 @@ Dev (tsx, no build):
 npm run dev
 ```
 
-Contract check against the vendored inventory (`inventory/openapi-surfaces.json`). Deterministic; no live network:
+Contract check against the vendored inventory (`inventory/openapi-surfaces.json`). Deterministic; no live network. Default PR CI uses this pin — it does not fetch production OpenAPI.
 
 ```bash
 npm run check:surfaces
+npm run check:providers
 ```
 
-Live OpenAPI drift check (scheduled CI / `workflow_dispatch`, or local). Override the spec URL with `KINGMINOS_OPENAPI_JSON_URL` (default `https://api.kingminos.com/openapi.json`):
+`check:surfaces` compares advertised MCP tools to `operations[]`. `check:providers` compares the Zod `ProviderName` / `CredentialProvider` enums to the pinned `providers[]` / `credentialProviders[]`. A new BYOK id such as `prospeo` fails CI until both Zod enums and the pin list it — that is how `routing.only: ["prospeo"]` and `put_credentials({ provider: "prospeo" })` stay accepted.
+
+`/v1/auth/*` and `/v1/account/*` are intentionally not MCP tools (cookie/session app surfaces). They are denied by `nonToolPathPrefixes` plus the reviewed `excludedOperationIds` catalog. Do not implement those ~24 operations as tools.
+
+Live OpenAPI drift check (scheduled CI / `workflow_dispatch`, or local). Surfaces compare only bearer resource operations after the deny-list — account/auth on the live spec is not a failure. Provider live check is one-way: it fails only when production lists a provider Zod does not have. Production lagging the pin (missing `prospeo`) does not fail. Override the spec URL with `KINGMINOS_OPENAPI_JSON_URL` (default `https://api.kingminos.com/openapi.json`):
 
 ```bash
 npm run check:surfaces:live
+npm run check:providers:live
+```
+
+Refresh the pin from live OpenAPI (network). Unions provider enums and newly seen auth/account operationIds; never drops pinned providers. Review the diff before committing:
+
+```bash
+npm run inventory:refresh
 ```
 
 Application CI can point at its own inventory with `KINGMINOS_OPENAPI_INVENTORY=/path/to/openapi-surfaces.json`. This repo does not vendor KingMinos application source.
@@ -104,8 +116,8 @@ Optional:
 - `KINGMINOS_MCP_ALLOWED_ORIGINS` — extra Origin hostnames for `/mcp`
 - `KINGMINOS_MCP_PUBLIC_URL` — advertised MCP URL on the server card (Worker default `https://mcp.kingminos.com/mcp`). The card never uses the client `Host` header.
 - `KINGMINOS_MCP_ALLOW_ENV_BEARER` — set to `1` to opt in to the local loopback env-bearer fallback
-- `KINGMINOS_OPENAPI_INVENTORY` — path to the file inventory used by `check:surfaces` and PR CI
-- `KINGMINOS_OPENAPI_JSON_URL` — override URL for `check:surfaces:live`
+- `KINGMINOS_OPENAPI_INVENTORY` — path to the file inventory used by `check:surfaces`, `check:providers`, and PR CI
+- `KINGMINOS_OPENAPI_JSON_URL` — override URL for `check:surfaces:live` / `check:providers:live` / `inventory:refresh`
 
 Copy `.env.example` for local names only. Do not commit a filled `.env`. Do not put secrets in Wrangler vars or files.
 

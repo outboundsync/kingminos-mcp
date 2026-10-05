@@ -1,35 +1,41 @@
 import { z } from "zod";
 
+/** routing.only / order / ignore. Keep in lockstep with inventory/openapi-surfaces.json providers[]. */
+export const PROVIDER_NAME_VALUES = [
+  "zoominfo",
+  "leadmagic",
+  "websearch",
+  "findymail",
+  "wiza",
+  "aiark",
+  "dns",
+  "site_probe",
+  "wikidata",
+  "gleif",
+  "rdap",
+  "builtwith",
+  "prospeo",
+] as const;
+
+/** put_credentials / delete_credentials. Keep in lockstep with inventory credentialProviders[]. */
+export const CREDENTIAL_PROVIDER_VALUES = [
+  "zoominfo",
+  "leadmagic",
+  "findymail",
+  "wiza",
+  "aiark",
+  "builtwith",
+  "prospeo",
+] as const;
+
 export const ProviderName = z
-  .enum([
-    "zoominfo",
-    "leadmagic",
-    "websearch",
-    "findymail",
-    "wiza",
-    "aiark",
-    "dns",
-    "site_probe",
-    "wikidata",
-    "gleif",
-    "rdap",
-    "builtwith",
-    "prospeo",
-  ])
+  .enum(PROVIDER_NAME_VALUES)
   .describe(
     "Stable provider id. LeadMagic is the only house-key vendor. ZoomInfo, Findymail, Wiza, AI Ark, BuiltWith, and Prospeo are BYOK. Websearch is house-only.",
   );
 
 export const CredentialProvider = z
-  .enum([
-    "zoominfo",
-    "leadmagic",
-    "findymail",
-    "wiza",
-    "aiark",
-    "builtwith",
-    "prospeo",
-  ])
+  .enum(CREDENTIAL_PROVIDER_VALUES)
   .describe(
     "Vendor for tenant Your Keys. Websearch is rejected (house-only). LeadMagic is house-keyed; storing a LeadMagic key is an optional override.",
   );

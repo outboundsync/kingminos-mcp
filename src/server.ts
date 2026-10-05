@@ -180,7 +180,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   company_resolve: {
     description:
-      "POST /v1/company/resolve — resolve a company from email, domain, or website. Spends credits and writes a run unless dry_run is true (API default is false). Name-only input is no_decision / no_domain. Default path is auto. A LeadMagic-only or websearch-only hit is resolved_without_primary_id — do not stamp a ZoomInfo id unless es_decision is hit and result.zoominfo_company_id is present. ZoomInfo / Findymail / Wiza / AI Ark need BYOK; LeadMagic is house-keyed. Does not write SFDC.",
+      "POST /v1/company/resolve — resolve a company from email, domain, or website. Spends credits and writes a run unless dry_run is true (API default is false). Name-only input is no_decision / no_domain. Default path is auto. A LeadMagic-only or websearch-only hit is resolved_without_primary_id — do not stamp a ZoomInfo id unless es_decision is hit and result.zoominfo_company_id is present. ZoomInfo / Findymail / Wiza / AI Ark / Prospeo need BYOK; LeadMagic is house-keyed. Prospeo is off every default path — force it with routing.only. Does not write SFDC.",
     inputSchema: ResolveCompanyInput,
     annotations: {
       readOnlyHint: false,
@@ -259,7 +259,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "PUT /v1/credentials/{provider} — upsert tenant Your Keys (ciphertext).",
       "ZoomInfo body is { clientId, clientSecret }. Other vendors use { apiKey }.",
       "Response never echoes the raw key. LeadMagic is the only house-key vendor; putting a LeadMagic key is optional.",
-      "ZoomInfo, Findymail, Wiza, AI Ark, and BuiltWith are BYOK. Websearch cannot be stored.",
+      "ZoomInfo, Findymail, Wiza, AI Ark, BuiltWith, and Prospeo are BYOK. Websearch cannot be stored.",
       PUT_CREDENTIALS_WARNING,
       "Confirm with the user first.",
     ].join(" "),
@@ -324,7 +324,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
       instructions: [
         `${PRODUCT_NAME} wraps the live enrichment API at https://api.kingminos.com.`,
         "Call get_capabilities before the first resolve so routing defaults are current.",
-        "LeadMagic is the only house-key vendor. ZoomInfo, Findymail, Wiza, AI Ark, and BuiltWith are BYOK via put_credentials.",
+        "LeadMagic is the only house-key vendor. ZoomInfo, Findymail, Wiza, AI Ark, BuiltWith, and Prospeo are BYOK via put_credentials.",
         "Websearch is house-only and cannot be stored.",
         "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
         PUT_CREDENTIALS_WARNING,

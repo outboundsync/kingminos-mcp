@@ -1,7 +1,8 @@
 {
-  "source": "KingMinos OpenAPI resource inventory (public contract). Paths verified against live GET https://api.kingminos.com/openapi.yaml. Tool names are snake_case resource operationIds from kingminos-application PR 137 (cursor/openapi-surfaces-parity-22b7 / docs/openapi-surfaces.md). This file is not application source.",
+  "source": "KingMinos OpenAPI resource inventory (public contract). Paths verified against live GET https://api.kingminos.com/openapi.json. Tool names are snake_case resource operationIds. Only operations whose effective security includes the bearer scheme are required MCP tools. This file is not application source.",
   "spec": "https://api.kingminos.com/openapi.yaml",
   "liveOpenApiJson": "https://api.kingminos.com/openapi.json",
+  "exclusionPolicy": "Session/cookie routes under /v1/auth/* and /v1/account/* are permanently out of scope for MCP. MCP authenticates with a tenant Bearer; those routes are cookie/session only. Excluding a route is a reviewed decision, not a silent skip.",
   "publicNonToolPaths": [
     "/health",
     "/openapi.yaml",
@@ -9,6 +10,29 @@
     "/openapi.json",
     "/v1/openapi.json",
     "/api/v1/openapi.json"
+  ],
+  "nonToolPathPrefixes": ["/v1/auth", "/v1/account"],
+  "excludedOperationIds": [
+    "startLogin",
+    "verifyLogin",
+    "getSessionUser",
+    "logout",
+    "logoutAll",
+    "getAccount",
+    "listAccountHistory",
+    "listAccountWorkspaces",
+    "createAccountWorkspace",
+    "switchAccountWorkspace",
+    "listAccountMembers",
+    "listAccountInvites",
+    "createAccountInvite",
+    "listIncomingAccountInvites",
+    "acceptAccountInvite",
+    "listAccountNotifications",
+    "listAccountTokens",
+    "createAccountToken",
+    "rotateAccountToken",
+    "deleteAccountToken"
   ],
   "operations": [
     {
@@ -45,6 +69,11 @@
       "operationId": "get_run",
       "method": "GET",
       "path": "/v1/runs/{id}"
+    },
+    {
+      "operationId": "list_credentials",
+      "method": "GET",
+      "path": "/v1/credentials"
     },
     {
       "operationId": "put_credentials",

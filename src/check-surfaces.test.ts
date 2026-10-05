@@ -5,10 +5,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
-  advertisedOperations,
   LIVE_RESOURCE_ROUTES,
-  TOOL_NAME_INDEX,
   TOOL_NAMES,
+  advertisedOperations,
 } from "./catalog.js";
 import {
   diffSurfaces,
@@ -27,10 +26,13 @@ const EXPECTED_TOOLS = [
   "company_hierarchy",
   "person_verify_employment",
   "get_run",
+  "list_credentials",
   "put_credentials",
   "delete_credentials",
   "delete_subject",
 ] as const;
+
+const BEARER = [{ bearer: [] }];
 
 describe("toolNameFromOperationId", () => {
   it("keeps already-snake_case operationIds", () => {
@@ -38,6 +40,10 @@ describe("toolNameFromOperationId", () => {
     assert.equal(
       toolNameFromOperationId("person_verify_employment"),
       "person_verify_employment",
+    );
+    assert.equal(
+      toolNameFromOperationId("listCredentials"),
+      "list_credentials",
     );
   });
 
@@ -55,7 +61,7 @@ describe("OpenAPI inventory contract", () => {
   const fileInventory = readInventoryFile("inventory/openapi-surfaces.json");
   const advertised = advertisedOperations();
 
-  it("advertises exactly the resource operationIds", () => {
+  it("advertises exactly the bearer resource operationIds", () => {
     assert.deepEqual([...TOOL_NAMES].sort(), [...EXPECTED_TOOLS].sort());
     assert.deepEqual(
       fileInventory.operations.map((op) => op.operationId).sort(),
@@ -71,11 +77,25 @@ describe("OpenAPI inventory contract", () => {
     const diff = diffSurfaces(advertised, fileInventory.operations);
     assert.equal(surfacesAligned(diff), true, JSON.stringify(diff));
     assert.equal(LIVE_RESOURCE_ROUTES.length, EXPECTED_TOOLS.length);
-    assert.deepEqual(Object.keys(TOOL_NAME_INDEX).sort(), [...EXPECTED_TOOLS].sort());
+  });
+
+  it("records reviewed session/account exclusions", () => {
+    assert.ok(fileInventory.nonToolPathPrefixes.includes("/v1/auth"));
+    assert.ok(fileInventory.nonToolPathPrefixes.includes("/v1/account"));
+    assert.ok(fileInventory.excludedOperationIds.includes("startLogin"));
+    assert.ok(fileInventory.excludedOperationIds.includes("getAccount"));
+    assert.ok(
+      !fileInventory.operations.some((op) => op.path.startsWith("/v1/auth")),
+    );
+    assert.ok(
+      !fileInventory.operations.some((op) => op.path.startsWith("/v1/account")),
+    );
   });
 
   it("fails when a tool is missing from the advertised list", () => {
-    const drifted = advertised.filter((op) => op.operationId !== "delete_subject");
+    const drifted = advertised.filter(
+      (op) => op.operationId !== "delete_subject",
+    );
     const diff = diffSurfaces(drifted, fileInventory.operations);
     assert.equal(surfacesAligned(diff), false);
     assert.deepEqual(diff.missingTools, ["delete_subject"]);
@@ -125,7 +145,7 @@ describe("OpenAPI inventory contract", () => {
 });
 
 describe("inventoryFromOpenApiDocument", () => {
-  it("extracts snake_case tools from a served OpenAPI document", () => {
+  it("extracts bearer tools from a served OpenAPI document", () => {
     const parsed = inventoryFromOpenApiDocument(
       {
         openapi: "3.1.0",
@@ -133,10 +153,10 @@ describe("inventoryFromOpenApiDocument", () => {
           "/health": { get: { summary: "Liveness" } },
           "/openapi.json": { get: { summary: "Spec" } },
           "/v1/providers": {
-            get: { operationId: "get_providers" },
+            get: { operationId: "get_providers", security: BEARER },
           },
           "/v1/company/resolve": {
-            post: { operationId: "company_resolve" },
+            post: { operationId: "company_resolve", security: BEARER },
           },
         },
       },
@@ -152,20 +172,76 @@ describe("inventoryFromOpenApiDocument", () => {
     );
   });
 
-  it("does not invent tools when resource operations lack operationId", () => {
+  it("ignores operations whose effective security does not include bearer", () => {
     const parsed = inventoryFromOpenApiDocument({
       paths: {
-        "/v1/providers": { get: { summary: "Provider registry" } },
+        "/v1/auth/login": { post: { operationId: "startLogin" } },
+        "/v1/account": { get: { operationId: "getAccount" } },
+        "/v1/providers": {
+          get: { operationId: "get_providers", security: BEARER },
+        },
       },
     });
-    assert.deepEqual(parsed, { reason: "resource operations have no operationId" });
+    assert.ok(!("reason" in parsed));
+    if ("reason" in parsed) {
+      return;
+    }
+    assert.deepEqual(
+      parsed.operations.map((op) => op.operationId),
+      ["get_providers"],
+    );
+  });
+
+  it("still fails when a bearer operation is missing from the advertised catalog", () => {
+    const parsed = inventoryFromOpenApiDocument({
+      paths: {
+        "/v1/providers": {
+          get: { operationId: "get_providers", security: BEARER },
+        },
+        "/v1/credentials": {
+          get: { operationId: "listCredentials", security: BEARER },
+        },
+      },
+    });
+    assert.ok(!("reason" in parsed));
+    if ("reason" in parsed) {
+      return;
+    }
+    const advertised = [
+      {
+        operationId: "get_providers",
+        method: "GET" as const,
+        path: "/v1/providers",
+      },
+    ];
+    const diff = diffSurfaces(advertised, parsed.operations);
+    assert.equal(surfacesAligned(diff), false);
+    assert.deepEqual(diff.missingTools, ["list_credentials"]);
+    assert.deepEqual(diff.missingRoutes, ["GET /v1/credentials"]);
+  });
+
+  it("does not invent tools when bearer operations lack operationId", () => {
+    const parsed = inventoryFromOpenApiDocument({
+      paths: {
+        "/v1/providers": {
+          get: { summary: "Provider registry", security: BEARER },
+        },
+      },
+    });
+    assert.deepEqual(parsed, {
+      reason: "no bearer-authenticated resource operations",
+    });
   });
 
   it("rejects a partial live spec instead of inventing the rest", () => {
     const parsed = inventoryFromOpenApiDocument({
       paths: {
-        "/v1/providers": { get: { operationId: "get_providers" } },
-        "/v1/capabilities": { get: { summary: "Capability catalog" } },
+        "/v1/providers": {
+          get: { operationId: "get_providers", security: BEARER },
+        },
+        "/v1/capabilities": {
+          get: { summary: "Capability catalog", security: BEARER },
+        },
       },
     });
     assert.ok("reason" in parsed);
@@ -173,6 +249,30 @@ describe("inventoryFromOpenApiDocument", () => {
       return;
     }
     assert.match(parsed.reason, /GET \/v1\/capabilities/);
+  });
+
+  it("skips reviewed auth/account prefixes even if they later grow bearer security", () => {
+    const parsed = inventoryFromOpenApiDocument(
+      {
+        paths: {
+          "/v1/auth/login": {
+            post: { operationId: "startLogin", security: BEARER },
+          },
+          "/v1/providers": {
+            get: { operationId: "get_providers", security: BEARER },
+          },
+        },
+      },
+      { nonToolPathPrefixes: ["/v1/auth"] },
+    );
+    assert.ok(!("reason" in parsed));
+    if ("reason" in parsed) {
+      return;
+    }
+    assert.deepEqual(
+      parsed.operations.map((op) => op.operationId),
+      ["get_providers"],
+    );
   });
 });
 

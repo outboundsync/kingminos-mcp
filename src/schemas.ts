@@ -57,7 +57,15 @@ const MaxProviderCredits = z.union([
 export const RoutingRequest = z
   .object({
     path: z
-      .enum(["speed", "balance", "value", "auto", "accuracy", "coverage", "fast"])
+      .enum([
+        "speed",
+        "balance",
+        "value",
+        "auto",
+        "accuracy",
+        "coverage",
+        "fast",
+      ])
       .optional()
       .describe(
         "Product path. company.resolve omit = auto (value|auto|accuracy|coverage). person.verify_employment omit = balance (speed|balance|accuracy only).",
@@ -75,7 +83,9 @@ export const RoutingRequest = z
         "fast",
       ])
       .optional()
-      .describe("Back-compat alias of path plus zi_stamp (optional ZoomInfo-first). Prefer path."),
+      .describe(
+        "Back-compat alias of path plus zi_stamp (optional ZoomInfo-first). Prefer path.",
+      ),
     strategy: z.enum(["waterfall"]).optional(),
     order: z.array(ProviderName).optional(),
     allow_fallbacks: z.boolean().optional(),
@@ -138,7 +148,9 @@ export const ComplianceRequest = z
     soc2: z
       .boolean()
       .optional()
-      .describe("When true, every considered hop must have a house SOC 2 attestation."),
+      .describe(
+        "When true, every considered hop must have a house SOC 2 attestation.",
+      ),
     data: z
       .boolean()
       .optional()
@@ -152,7 +164,9 @@ const CommonRunOptions = {
   dry_run: z
     .boolean()
     .optional()
-    .describe("When true, run as a dry-run. Default false on the API."),
+    .describe(
+      "When true, skip credit spend and run persistence. API default is false — calls are not free unless you set this.",
+    ),
   external_ref: z
     .string()
     .optional()
@@ -165,7 +179,9 @@ const CommonRunOptions = {
   idempotency_key: z
     .string()
     .optional()
-    .describe("Sent as Idempotency-Key. Reusing a spent key replays the prior run."),
+    .describe(
+      "Sent as Idempotency-Key. Reusing a spent key replays the prior run.",
+    ),
 };
 
 export const ResolveCompanyInput = {
@@ -192,7 +208,10 @@ export const DecideCompanyDomainInput = {
   domain: z.string().optional(),
   website: z.string().optional(),
   email: z.string().optional(),
-  name: z.string().optional().describe("Optional company name. Alias company_name is accepted."),
+  name: z
+    .string()
+    .optional()
+    .describe("Optional company name. Alias company_name is accepted."),
   company_name: z.string().optional().describe("Alias of name."),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -202,16 +221,31 @@ export const DecideCompanyDomainInput = {
   linkedin_url: z
     .string()
     .optional()
-    .describe("LinkedIn company page URL (linkedin.com/company/...). Person /in/ URLs are rejected."),
+    .describe(
+      "LinkedIn company page URL (linkedin.com/company/...). Person /in/ URLs are rejected.",
+    ),
   family_policy: z
     .enum(["collapse_brand", "separate_regional"])
     .optional()
-    .describe("How alias / regional / family facts map to CRM shape. Omit = collapse_brand."),
+    .describe(
+      "How alias / regional / family facts map to CRM shape. Omit = collapse_brand.",
+    ),
   routing: CompanyDomainRoutingRequest.optional(),
   path: z
-    .enum(["speed", "balance", "accuracy", "coverage", "value", "auto", "fast", "name_only"])
+    .enum([
+      "speed",
+      "balance",
+      "accuracy",
+      "coverage",
+      "value",
+      "auto",
+      "fast",
+      "name_only",
+    ])
     .optional()
-    .describe("Flattened alias of routing.path. Nested routing.path wins when both are sent."),
+    .describe(
+      "Flattened alias of routing.path. Nested routing.path wins when both are sent.",
+    ),
   preset: z
     .enum([
       "speed",
@@ -225,11 +259,15 @@ export const DecideCompanyDomainInput = {
       "fast",
     ])
     .optional()
-    .describe("Flattened alias of routing.preset. Nested wins when both are sent."),
+    .describe(
+      "Flattened alias of routing.preset. Nested wins when both are sent.",
+    ),
   skip_cache: z
     .boolean()
     .optional()
-    .describe("Skip the short-TTL company.domain cache read. Does not skip Idempotency-Key replay."),
+    .describe(
+      "Skip the short-TTL company.domain cache read. Does not skip Idempotency-Key replay.",
+    ),
   cache_bypass: z
     .boolean()
     .optional()
@@ -247,9 +285,20 @@ export const DecideCompanyHierarchyInput = {
   path: z
     .enum(["speed", "balance", "accuracy", "value", "auto", "fast"])
     .optional()
-    .describe("Flattened alias of routing.path. Nested wins when both are sent. coverage is invalid."),
+    .describe(
+      "Flattened alias of routing.path. Nested wins when both are sent. coverage is invalid.",
+    ),
   preset: z
-    .enum(["speed", "balance", "accuracy", "value", "auto", "name_only", "zi_stamp", "fast"])
+    .enum([
+      "speed",
+      "balance",
+      "accuracy",
+      "value",
+      "auto",
+      "name_only",
+      "zi_stamp",
+      "fast",
+    ])
     .optional(),
   ...CommonRunOptions,
 };
@@ -290,27 +339,38 @@ export const PutCredentialInput = {
   clientId: z
     .string()
     .optional()
-    .describe("ZoomInfo OAuth client id. Required with clientSecret for zoominfo."),
+    .describe(
+      "ZoomInfo OAuth client id. Required with clientSecret for zoominfo.",
+    ),
   clientSecret: z
     .string()
     .optional()
-    .describe("ZoomInfo OAuth client secret. Required with clientId for zoominfo."),
+    .describe(
+      "ZoomInfo OAuth client secret. Required with clientId for zoominfo.",
+    ),
   apiKey: z
     .string()
     .optional()
-    .describe("API key for leadmagic, findymail, wiza, aiark, or builtwith. Alias: api_key."),
-  api_key: z.string().optional().describe("Alias of apiKey."),
+    .describe(
+      "API key for leadmagic, findymail, wiza, aiark, or builtwith. Alias: api_key. Do not send for zoominfo.",
+    ),
+  api_key: z
+    .string()
+    .optional()
+    .describe("Alias of apiKey. Do not send for zoominfo."),
 };
 
 export const DeleteCredentialInput = {
   provider: CredentialProvider,
 };
 
+export const PERCENT_ENCODED = /%[0-9A-Fa-f]{2}/;
+
 export const EraseSubjectInput = {
   subject_key: z
     .string()
     .describe(
-      "Stable subject key (URL-encoded). Company: registrable domain. Person: email:<addr> or li:<slug>. Requires the erase key scope.",
+      "Raw, unencoded subject key (e.g. email:a@b.com, li:jane-doe, acme.com). The server URL-encodes it. Do not send percent-encoded values. Requires the erase key scope.",
     ),
 };
 
@@ -340,8 +400,10 @@ export function stripMeta<T extends Record<string, unknown>>(
   return {
     body,
     explain: typeof explain === "string" ? explain : undefined,
-    schema: typeof body.schema_version === "string" ? body.schema_version : undefined,
-    idempotencyKey: typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+    schema:
+      typeof body.schema_version === "string" ? body.schema_version : undefined,
+    idempotencyKey:
+      typeof idempotencyKey === "string" ? idempotencyKey : undefined,
     cacheBypass: cacheBypass === true || body.skip_cache === true,
   };
 }

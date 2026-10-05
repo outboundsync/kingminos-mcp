@@ -1,12 +1,13 @@
 import {
-  apiBaseUrl,
+  MAX_RATE_LIMIT_WAIT_MS,
   RETRY_DELAY_MS,
   TENANT_BEARER_ENV,
   UPSTREAM_TIMEOUT_MS,
+  apiBaseUrl,
 } from "./config.js";
 import {
-  errorCodeForStatus,
   KingMinosApiError,
+  errorCodeForStatus,
   remediationFor,
 } from "./errors.js";
 
@@ -53,11 +54,12 @@ function parseErrorEnvelope(value: unknown): ErrorEnvelope | undefined {
       typeof value.request_id === "string" || value.request_id === null
         ? value.request_id
         : undefined,
-    retryable: typeof value.retryable === "boolean" ? value.retryable : undefined,
+    retryable:
+      typeof value.retryable === "boolean" ? value.retryable : undefined,
   };
 }
 
-function parseRetryAfter(header: string | null): number | undefined {
+export function parseRetryAfter(header: string | null): number | undefined {
   if (!header) {
     return undefined;
   }
@@ -71,12 +73,22 @@ function parseRetryAfter(header: string | null): number | undefined {
   return Math.max(0, Math.ceil((when - Date.now()) / 1000));
 }
 
-function joinUrl(
+export function joinUrl(
   path: string,
   query?: Record<string, string | undefined>,
   baseUrl?: string,
 ): string {
-  const url = new URL(path, `${baseUrl ?? apiBaseUrl()}/`);
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path)) {
+    throw new KingMinosApiError({
+      code: "bad_request",
+      message: "Absolute upstream paths are not allowed.",
+      remediation: remediationFor("bad_request"),
+      retryable: false,
+    });
+  }
+  const base = `${(baseUrl ?? apiBaseUrl()).replace(/\/$/, "")}/`;
+  const relative = path.startsWith("/") ? path.slice(1) : path;
+  const url = new URL(relative, base);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined && value.length > 0) {
@@ -87,14 +99,54 @@ function joinUrl(
   return url.toString();
 }
 
-function shouldRetryRead(method: ApiMethod, status: number): boolean {
-  if (method !== "GET") {
+export function requestHasIdempotencyKey(options: ApiRequestOptions): boolean {
+  const value =
+    options.headers?.["Idempotency-Key"] ??
+    options.headers?.["idempotency-key"];
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+export function methodAwareRetryable(args: {
+  method: ApiMethod;
+  status?: number;
+  code?: string;
+  hasIdempotencyKey: boolean;
+  cancelled?: boolean;
+}): boolean {
+  if (args.cancelled) {
     return false;
   }
-  if (status === 504) {
+  if (args.status === 504) {
     return false;
   }
-  return status >= 500 && status <= 599;
+  const writesAllowed = args.method === "GET" || args.hasIdempotencyKey;
+  if (args.status === 429) {
+    return writesAllowed;
+  }
+  if (args.status !== undefined && args.status >= 500) {
+    return writesAllowed;
+  }
+  if (args.code === "timeout") {
+    return writesAllowed;
+  }
+  if (args.code === "upstream_error" && args.status === undefined) {
+    return writesAllowed;
+  }
+  return false;
+}
+
+function canRetryMethod(options: ApiRequestOptions): boolean {
+  return options.method === "GET" || requestHasIdempotencyKey(options);
+}
+
+function cancelledError(): KingMinosApiError {
+  return new KingMinosApiError({
+    code: "upstream_error",
+    message: "Request was cancelled.",
+    remediation:
+      "The caller aborted the request. Do not treat this as a timeout.",
+    retryable: false,
+  });
 }
 
 export function requireBearer(bearer: string | undefined): string {
@@ -110,6 +162,10 @@ export function requireBearer(bearer: string | undefined): string {
 }
 
 async function once(options: ApiRequestOptions): Promise<unknown> {
+  if (options.signal?.aborted) {
+    throw cancelledError();
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
   const onAbort = () => controller.abort();
@@ -130,12 +186,16 @@ async function once(options: ApiRequestOptions): Promise<unknown> {
   }
 
   try {
-    const response = await fetch(joinUrl(options.path, options.query, options.baseUrl), {
-      method: options.method,
-      headers,
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-      signal: controller.signal,
-    });
+    const response = await fetch(
+      joinUrl(options.path, options.query, options.baseUrl),
+      {
+        method: options.method,
+        headers,
+        body:
+          options.body !== undefined ? JSON.stringify(options.body) : undefined,
+        signal: controller.signal,
+      },
+    );
 
     const text = await response.text();
     let parsed: unknown = text;
@@ -152,7 +212,9 @@ async function once(options: ApiRequestOptions): Promise<unknown> {
     if (!response.ok) {
       const envelope = parseErrorEnvelope(parsed);
       const code = errorCodeForStatus(response.status);
-      const retryAfterSeconds = parseRetryAfter(response.headers.get("retry-after"));
+      const retryAfterSeconds = parseRetryAfter(
+        response.headers.get("retry-after"),
+      );
       const message =
         envelope?.error ??
         envelope?.hint ??
@@ -164,13 +226,17 @@ async function once(options: ApiRequestOptions): Promise<unknown> {
         message,
         status: response.status,
         retryAfterSeconds,
-        remediation: remediationFor(code, response.status),
+        remediation: remediationFor(code, response.status, {
+          detail: envelope?.detail,
+        }),
         requestId: envelope?.request_id,
         detail: envelope?.detail,
-        retryable:
-          envelope?.retryable ??
-          (response.status === 429 ||
-            (response.status >= 500 && response.status !== 504)),
+        retryable: methodAwareRetryable({
+          method: options.method,
+          status: response.status,
+          code,
+          hasIdempotencyKey: requestHasIdempotencyKey(options),
+        }),
       });
     }
 
@@ -180,23 +246,46 @@ async function once(options: ApiRequestOptions): Promise<unknown> {
       throw error;
     }
     if (error instanceof Error && error.name === "AbortError") {
+      if (options.signal?.aborted) {
+        throw cancelledError();
+      }
       throw new KingMinosApiError({
         code: "timeout",
         message: `KingMinos API did not answer within ${UPSTREAM_TIMEOUT_MS / 1000}s.`,
         remediation: remediationFor("timeout"),
-        retryable: true,
+        retryable: methodAwareRetryable({
+          method: options.method,
+          code: "timeout",
+          hasIdempotencyKey: requestHasIdempotencyKey(options),
+        }),
       });
     }
     throw new KingMinosApiError({
       code: "upstream_error",
-      message: error instanceof Error ? error.message : "KingMinos API request failed",
+      message:
+        error instanceof Error ? error.message : "KingMinos API request failed",
       remediation: remediationFor("upstream_error"),
-      retryable: true,
+      retryable: methodAwareRetryable({
+        method: options.method,
+        code: "upstream_error",
+        hasIdempotencyKey: requestHasIdempotencyKey(options),
+      }),
     });
   } finally {
     clearTimeout(timer);
     options.signal?.removeEventListener("abort", onAbort);
   }
+}
+
+function markRetried(error: KingMinosApiError): KingMinosApiError {
+  return error.withRemediation(
+    remediationFor(error.code, error.status, {
+      retried: true,
+      detail: error.detail,
+    }) ??
+      error.remediation ??
+      "",
+  );
 }
 
 export async function apiRequest(options: ApiRequestOptions): Promise<unknown> {
@@ -208,18 +297,37 @@ export async function apiRequest(options: ApiRequestOptions): Promise<unknown> {
     }
     if (error.code === "rate_limited") {
       const waitSeconds = error.retryAfterSeconds ?? 1;
-      if (waitSeconds * 1000 <= UPSTREAM_TIMEOUT_MS) {
+      if (
+        waitSeconds * 1000 <= MAX_RATE_LIMIT_WAIT_MS &&
+        canRetryMethod(options)
+      ) {
         await sleep(waitSeconds * 1000);
-        return await once(options);
+        try {
+          return await once(options);
+        } catch (retryError) {
+          if (retryError instanceof KingMinosApiError) {
+            throw markRetried(retryError);
+          }
+          throw retryError;
+        }
       }
       throw error;
     }
     if (
       error.status !== undefined &&
-      shouldRetryRead(options.method, error.status)
+      error.status >= 500 &&
+      error.status !== 504 &&
+      canRetryMethod(options)
     ) {
       await sleep(RETRY_DELAY_MS);
-      return await once(options);
+      try {
+        return await once(options);
+      } catch (retryError) {
+        if (retryError instanceof KingMinosApiError) {
+          throw markRetried(retryError);
+        }
+        throw retryError;
+      }
     }
     throw error;
   }
@@ -232,7 +340,7 @@ export function okText(payload: unknown): {
     content: [
       {
         type: "text",
-        text: JSON.stringify(payload, null, 2),
+        text: JSON.stringify(payload),
       },
     ],
   };

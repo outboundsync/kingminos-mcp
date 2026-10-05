@@ -1,5 +1,8 @@
-# Local Node / container fallback only. Production is Cloudflare Worker
-# kingminos-mcp-prod via wrangler.jsonc — not this Fly app.
+# EXAMPLE ONLY — not a production config.
+# Do not `fly deploy` this file. It would stand up a second public endpoint.
+# Production is Cloudflare Worker kingminos-mcp-prod via wrangler.jsonc.
+# Local Node / container fallback sample only.
+
 app = "kingminos-mcp"
 primary_region = "iad"
 
@@ -8,6 +11,7 @@ primary_region = "iad"
 
 [env]
   PORT = "8080"
+  HOST = "127.0.0.1"
   KINGMINOS_API_URL = "https://api.kingminos.com"
 
 [http_service]

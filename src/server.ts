@@ -191,7 +191,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   company_domain: {
     description:
-      "POST /v1/company/domain — decide what the CRM domain field should say and whether it is safe to write. Outcomes: verified | corrected | discovered | rejected | unverified | no_decision. Write-safe stamps live on result.account_primary_domain + additional_domains. coverage needs BuiltWith BYOK. Spends credits unless dry_run is true. Does not write SFDC.",
+      'POST /v1/company/domain — decide what the CRM domain field should say and whether it is safe to write. Outcomes: verified | corrected | discovered | rejected | unverified | no_decision. Write-safe stamps live on result.account_primary_domain + additional_domains. coverage needs BuiltWith BYOK. Company URL Finder is BYOK and off every default path — force with routing.only: ["companyurlfinder"] (name→domain). Spends credits unless dry_run is true. Does not write SFDC.',
     inputSchema: DecideCompanyDomainInput,
     annotations: {
       readOnlyHint: false,
@@ -259,7 +259,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "PUT /v1/credentials/{provider} — upsert tenant Your Keys (ciphertext).",
       "ZoomInfo body is { clientId, clientSecret }. Other vendors use { apiKey }.",
       "Response never echoes the raw key. LeadMagic, Wiza, and Findymail are the approved house-key vendors; storing those keys is optional.",
-      "ZoomInfo, AI Ark, BuiltWith, Prospeo, and Apollo are BYOK. Websearch cannot be stored.",
+      "ZoomInfo, AI Ark, BuiltWith, Prospeo, Apollo, and Company URL Finder are BYOK. Websearch cannot be stored.",
       PUT_CREDENTIALS_WARNING,
       "Confirm with the user first.",
     ].join(" "),
@@ -324,7 +324,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
       instructions: [
         `${PRODUCT_NAME} wraps the live enrichment API at https://api.kingminos.com.`,
         "Call get_capabilities before the first resolve so routing defaults are current.",
-        "LeadMagic, Wiza, and Findymail are the approved house-key vendors. ZoomInfo, AI Ark, BuiltWith, Prospeo, and Apollo are BYOK via put_credentials.",
+        "LeadMagic, Wiza, and Findymail are the approved house-key vendors. ZoomInfo, AI Ark, BuiltWith, Prospeo, Apollo, and Company URL Finder are BYOK via put_credentials.",
         "Websearch is house-only and cannot be stored.",
         "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
         PUT_CREDENTIALS_WARNING,

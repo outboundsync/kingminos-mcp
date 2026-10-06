@@ -52,7 +52,8 @@
     "rdap",
     "builtwith",
     "prospeo",
-    "apollo"
+    "apollo",
+    "companyurlfinder"
   ],
   "credentialProviders": [
     "zoominfo",
@@ -62,7 +63,8 @@
     "aiark",
     "builtwith",
     "prospeo",
-    "apollo"
+    "apollo",
+    "companyurlfinder"
   ],
   "operations": [
     {

@@ -6,6 +6,8 @@ LeadMagic, Wiza, and Findymail are the approved house-key vendors. ZoomInfo, AI 
 
 Say **SFDC**, never SF.
 
+**BYOK provider rollout:** four-repo checklist and narrative live in [`docs/byok-provider-playbook.md`](docs/byok-provider-playbook.md); Cursor agents can load [`.cursor/skills/byok-provider-rollout/SKILL.md`](.cursor/skills/byok-provider-rollout/SKILL.md).
+
 ## Production host
 
 Production is Cloudflare Worker **`kingminos-mcp-prod`** on the existing OutboundSync Cloudflare account. Janus deploys it with Wrangler:

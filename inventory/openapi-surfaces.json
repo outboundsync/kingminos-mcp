@@ -53,7 +53,8 @@
     "builtwith",
     "prospeo",
     "apollo",
-    "companyurlfinder"
+    "companyurlfinder",
+    "peopledatalabs"
   ],
   "credentialProviders": [
     "zoominfo",
@@ -64,7 +65,8 @@
     "builtwith",
     "prospeo",
     "apollo",
-    "companyurlfinder"
+    "companyurlfinder",
+    "peopledatalabs"
   ],
   "operations": [
     {

@@ -191,7 +191,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   company_domain: {
     description:
-      "POST /v1/company/domain — decide what the CRM domain field should say and whether it is safe to write. Outcomes: verified | corrected | discovered | rejected | unverified | no_decision. Write-safe stamps live on result.account_primary_domain + additional_domains. coverage needs BuiltWith BYOK. Company URL Finder is BYOK and off every default path — force with routing.only: [\"companyurlfinder\"] (name→domain). Spends credits unless dry_run is true. Does not write SFDC.",
+      'POST /v1/company/domain — decide what the CRM domain field should say and whether it is safe to write. Outcomes: verified | corrected | discovered | rejected | unverified | no_decision. Write-safe stamps live on result.account_primary_domain + additional_domains. coverage needs BuiltWith BYOK. Company URL Finder is BYOK and off every default path — force with routing.only: ["companyurlfinder"] (name→domain). Spends credits unless dry_run is true. Does not write SFDC.',
     inputSchema: DecideCompanyDomainInput,
     annotations: {
       readOnlyHint: false,

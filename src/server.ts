@@ -180,7 +180,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   company_resolve: {
     description:
-      "POST /v1/company/resolve — resolve a company from email, domain, or website. Spends credits and writes a run unless dry_run is true (API default is false). Name-only input is no_decision / no_domain. Default path is auto. A LeadMagic-only or websearch-only hit is resolved_without_primary_id — do not stamp a ZoomInfo id unless es_decision is hit and result.zoominfo_company_id is present. ZoomInfo / AI Ark / BuiltWith / Prospeo / Apollo / Company URL Finder need BYOK; LeadMagic, Wiza, and Findymail are house-keyed. Prospeo and Apollo are off every default path — force them with routing.only. Does not write SFDC.",
+      "POST /v1/company/resolve — resolve a company from email, domain, or website. Spends credits and writes a run unless dry_run is true (API default is false). Name-only input is no_decision / no_domain. Default path is auto. A LeadMagic-only or websearch-only hit is resolved_without_primary_id — do not stamp a ZoomInfo id unless es_decision is hit and result.zoominfo_company_id is present. ZoomInfo / AI Ark / BuiltWith / Prospeo / Apollo need BYOK; LeadMagic, Wiza, and Findymail are house-keyed. Prospeo and Apollo are off every default path — force them with routing.only. Does not write SFDC.",
     inputSchema: ResolveCompanyInput,
     annotations: {
       readOnlyHint: false,
@@ -191,7 +191,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   company_domain: {
     description:
-      "POST /v1/company/domain — decide what the CRM domain field should say and whether it is safe to write. Outcomes: verified | corrected | discovered | rejected | unverified | no_decision. Write-safe stamps live on result.account_primary_domain + additional_domains. coverage needs BuiltWith BYOK. Spends credits unless dry_run is true. Does not write SFDC.",
+      "POST /v1/company/domain — decide what the CRM domain field should say and whether it is safe to write. Outcomes: verified | corrected | discovered | rejected | unverified | no_decision. Write-safe stamps live on result.account_primary_domain + additional_domains. coverage needs BuiltWith BYOK. Company URL Finder is BYOK and off every default path — force with routing.only: [\"companyurlfinder\"] (name→domain). Spends credits unless dry_run is true. Does not write SFDC.",
     inputSchema: DecideCompanyDomainInput,
     annotations: {
       readOnlyHint: false,

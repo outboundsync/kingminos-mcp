@@ -19,6 +19,8 @@ export interface OpenApiInventory extends ProviderLists {
   publicNonToolPaths: string[];
   nonToolPathPrefixes: string[];
   excludedOperationIds: string[];
+  /** Optional pin: allowed routing.only providers per capability id. */
+  capabilityProviders?: Record<string, string[]>;
   operations: SurfaceOperation[];
 }
 
@@ -310,6 +312,22 @@ function stringList(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
+function capabilityProvidersMap(
+  value: unknown,
+): Record<string, string[]> | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  const out: Record<string, string[]> = {};
+  for (const [capability, providers] of Object.entries(value)) {
+    const list = stringList(providers);
+    if (list.length > 0) {
+      out[capability] = list;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 function isPathList(
   options: InventoryParseOptions | readonly string[],
 ): options is readonly string[] {
@@ -403,6 +421,7 @@ export function parseInventoryDocument(
     excludedOperationIds,
     providers: stringList(record.providers),
     credentialProviders: stringList(record.credentialProviders),
+    capabilityProviders: capabilityProvidersMap(record.capabilityProviders),
     operations,
   };
 }
@@ -607,6 +626,9 @@ export function serializeInventoryFile(inventory: OpenApiInventory): string {
       excludedOperationIds: inventory.excludedOperationIds,
       providers: inventory.providers,
       credentialProviders: inventory.credentialProviders,
+      ...(inventory.capabilityProviders
+        ? { capabilityProviders: inventory.capabilityProviders }
+        : {}),
       operations: inventory.operations,
     },
     null,

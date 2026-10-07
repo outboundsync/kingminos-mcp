@@ -38,14 +38,14 @@ export const CREDENTIAL_PROVIDER_VALUES = [
 
 export const ProviderName = z
   .enum(PROVIDER_NAME_VALUES)
-  .describe(
-    "Stable provider id. LeadMagic, Wiza, and Findymail are the approved house-key vendors. ZoomInfo, AI Ark, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK. Websearch is house-only.",
+    .describe(
+    "Stable provider id. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK. Websearch is house-only.",
   );
 
 export const CredentialProvider = z
   .enum(CREDENTIAL_PROVIDER_VALUES)
-  .describe(
-    "Vendor for tenant Your Keys. Websearch is rejected (house-only). LeadMagic, Wiza, and Findymail are house-keyed; storing those keys is an optional override.",
+    .describe(
+    "Vendor for tenant Your Keys. Websearch is rejected (house-only). LeadMagic, Wiza, Findymail, and AI Ark are house-keyed; storing those keys is an optional override.",
   );
 
 export const ExplainMode = z
@@ -73,6 +73,7 @@ const MaxProviderCredits = z.union([
       "person.verify_employment": z.number().optional(),
       "company.domain": z.number().optional(),
       "company.hierarchy": z.number().optional(),
+      "company.b2b_social": z.number().optional(),
     })
     .strict(),
 ]);
@@ -323,6 +324,62 @@ export const DecideCompanyHierarchyInput = {
       "fast",
     ])
     .optional(),
+  ...CommonRunOptions,
+};
+
+export const DecideCompanyB2bSocialInput = {
+  name: z
+    .string()
+    .optional()
+    .describe(
+      "Optional unit/brand corroboration. Name-only without domain/website/email is 400.",
+    ),
+  domain: z
+    .string()
+    .optional()
+    .describe(
+      "Required subject (or website/email that hygiene-normalize to the same registrable).",
+    ),
+  website: z.string().optional(),
+  email: z.string().optional(),
+  linkedin_url: z
+    .string()
+    .optional()
+    .describe(
+      "Optional company-page hint. Must be https://www.linkedin.com/company/{slug}. Person /in/ is 400.",
+    ),
+  routing: CompanyDomainRoutingRequest.optional(),
+  path: z
+    .enum([
+      "speed",
+      "balance",
+      "accuracy",
+      "coverage",
+      "value",
+      "auto",
+      "fast",
+      "name_only",
+    ])
+    .optional()
+    .describe(
+      "Flattened alias of routing.path. Omit = balance. Nested routing.path wins when both are sent.",
+    ),
+  preset: z
+    .enum([
+      "speed",
+      "balance",
+      "accuracy",
+      "coverage",
+      "value",
+      "auto",
+      "name_only",
+      "zi_stamp",
+      "fast",
+    ])
+    .optional()
+    .describe(
+      "Flattened alias of routing.preset. Nested wins when both are sent.",
+    ),
   ...CommonRunOptions,
 };
 

@@ -17,7 +17,7 @@ Always say **SFDC**, never “SF”, if Salesforce is mentioned.
 
 | Fact | Rule |
 | --- | --- |
-| **House-key cleared** | **LeadMagic, Wiza, Findymail** only (`HOUSE_KEY_RESALE_OS_PROVIDERS` + website `house: true` / skills `supply: house_key`). |
+| **House-key cleared** | **LeadMagic, Wiza, Findymail, AI Ark** (`HOUSE_KEY_RESALE_OS_PROVIDERS` + website `house: true` / skills `supply: house_key`). |
 | **Everything else** | **BYOK** until written reseller terms (`resaleAllowed: false`; do **not** add to `HOUSE_KEY_RESALE_OS_PROVIDERS`). |
 | **Dogfood env hooks** | `VENDOR_API_KEY` on Worker for tenant `default` only is OK for internal dogfood (Prospeo/Apollo pattern). That is **not** house resale. |
 | **BuiltWith** | Parked for customer House Keys (ToS). BYOK only; keep tenant cache isolation; never customer house. |
@@ -114,7 +114,7 @@ npm run check:types && npm run lint && npm test && npm run check:surfaces
 - [ ] Docs MDX: `src/content/docs/docs/api/credentials.mdx`, capability page (e.g. `company-resolve.mdx`), `docs/mcp`, `docs/skills`, `docs/cli`, maybe `docs/index.mdx`
 - [ ] `scripts/check-agent-surfaces.mjs` if it pins keys-screen / provider presence
 
-**House-key copy must read:** LeadMagic, Wiza, Findymail = house; ZoomInfo, AI Ark, BuiltWith, Prospeo, Apollo, **+ new BYOK** = BYOK.
+**House-key copy must read:** LeadMagic, Wiza, Findymail, AI Ark = house (optional BYOK override); ZoomInfo, BuiltWith, Prospeo, Apollo, **+ new BYOK** = BYOK-only.
 
 **Website verify**
 ```bash
@@ -304,7 +304,7 @@ RULES:
 2) resaleAllowed: false; do NOT add to HOUSE_KEY_RESALE_OS_PROVIDERS.
 3) Off every default path; MUST add to presetProvidersFor(capability).
 4) OpenAPI: enums + {id}_credentials_required on the correct capability 400 list only.
-5) House-key copy stays: LeadMagic, Wiza, Findymail house; new vendor BYOK.
+5) House-key copy stays: LeadMagic, Wiza, Findymail, AI Ark house; new vendor BYOK-only.
 6) Say SFDC never SF. No secrets in git.
 7) Do not merge PR #132. Do not default-route. BuiltWith stays BYOK-only.
 8) After app merge note: redeploy kingminos-api-prod gates live OpenAPI; website needs kingminos-runtime; MCP needs kingminos-mcp-prod.

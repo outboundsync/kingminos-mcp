@@ -13,6 +13,11 @@ import {
 } from "./openapi-inventory.js";
 import { CREDENTIAL_PROVIDER_VALUES, PROVIDER_NAME_VALUES } from "./schemas.js";
 
+export interface CapabilityProviderDiff {
+  unknownProviders: string[];
+  missingPinnedCapabilities: string[];
+}
+
 export interface ProviderCheckResult {
   ok: boolean;
   source: string;
@@ -20,6 +25,7 @@ export interface ProviderCheckResult {
   advertised: ProviderLists;
   expected: ProviderLists;
   diff: ProviderDiff;
+  capabilityDiff?: CapabilityProviderDiff;
 }
 
 export function advertisedProviders(): ProviderLists {
@@ -27,6 +33,34 @@ export function advertisedProviders(): ProviderLists {
     providers: [...PROVIDER_NAME_VALUES],
     credentialProviders: [...CREDENTIAL_PROVIDER_VALUES],
   };
+}
+
+export function diffCapabilityProviders(
+  advertisedProviderNames: readonly string[],
+  pinned: Record<string, string[]> | undefined,
+): CapabilityProviderDiff {
+  const have = new Set(advertisedProviderNames);
+  const unknownProviders: string[] = [];
+  if (pinned) {
+    for (const providers of Object.values(pinned)) {
+      for (const name of providers) {
+        if (!have.has(name)) {
+          unknownProviders.push(name);
+        }
+      }
+    }
+  }
+  return {
+    unknownProviders: [...new Set(unknownProviders)].sort(),
+    missingPinnedCapabilities: [],
+  };
+}
+
+function capabilityProvidersAligned(diff: CapabilityProviderDiff): boolean {
+  return (
+    diff.unknownProviders.length === 0 &&
+    diff.missingPinnedCapabilities.length === 0
+  );
 }
 
 function pinnedProvidersMissing(expected: ProviderLists): string | undefined {
@@ -113,13 +147,18 @@ export async function checkProviders(
         };
       }
       const diff = diffProviders(advertised, expected);
+      const capabilityDiff = diffCapabilityProviders(
+        advertised.providers,
+        resolved.inventory.capabilityProviders,
+      );
       return {
-        ok: providersAligned(diff),
+        ok: providersAligned(diff) && capabilityProvidersAligned(capabilityDiff),
         source: resolved.source,
         mode,
         advertised,
         expected,
         diff,
+        capabilityDiff,
       };
     }
     default: {
@@ -131,7 +170,22 @@ export async function checkProviders(
 
 export function formatProviderCheckResult(result: ProviderCheckResult): string {
   if (!result.ok) {
-    return formatProviderDiff(result.diff, result.source);
+    const lines = [formatProviderDiff(result.diff, result.source)];
+    if (result.capabilityDiff) {
+      const { unknownProviders, missingPinnedCapabilities } =
+        result.capabilityDiff;
+      if (unknownProviders.length > 0) {
+        lines.push(
+          `capabilityProviders lists unknown ProviderName values: ${unknownProviders.join(", ")}`,
+        );
+      }
+      if (missingPinnedCapabilities.length > 0) {
+        lines.push(
+          `missing capabilityProviders pin for: ${missingPinnedCapabilities.join(", ")}`,
+        );
+      }
+    }
+    return lines.filter((line) => line.length > 0).join("\n");
   }
   return [
     "KingMinos MCP provider enums aligned with the OpenAPI inventory.",

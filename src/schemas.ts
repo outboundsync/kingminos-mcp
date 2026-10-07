@@ -19,6 +19,7 @@ export const PROVIDER_NAME_VALUES = [
   "companyurlfinder",
   "peopledatalabs",
   "hginsights",
+  "brandfetch",
   "enrichcrm",
 ] as const;
 
@@ -35,13 +36,14 @@ export const CREDENTIAL_PROVIDER_VALUES = [
   "companyurlfinder",
   "peopledatalabs",
   "hginsights",
+  "brandfetch",
   "enrichcrm",
 ] as const;
 
 export const ProviderName = z
   .enum(PROVIDER_NAME_VALUES)
   .describe(
-    "Stable provider id. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, and Enrich-CRM are BYOK. Websearch is house-only.",
+    "Stable provider id. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, and Enrich-CRM are BYOK. Websearch is house-only.",
   );
 
 export const CredentialProvider = z
@@ -76,6 +78,7 @@ const MaxProviderCredits = z.union([
       "company.domain": z.number().optional(),
       "company.hierarchy": z.number().optional(),
       "company.b2b_social": z.number().optional(),
+      "company.icon": z.number().optional(),
     })
     .strict(),
 ]);
@@ -385,6 +388,56 @@ export const DecideCompanyB2bSocialInput = {
   ...CommonRunOptions,
 };
 
+export const DecideCompanyIconInput = {
+  name: z
+    .string()
+    .optional()
+    .describe(
+      "Optional unit/brand corroboration. Name-only without domain/website/email is 400.",
+    ),
+  domain: z
+    .string()
+    .optional()
+    .describe(
+      "Required subject (or website/email that hygiene-normalize to the same registrable).",
+    ),
+  website: z.string().optional(),
+  email: z.string().optional(),
+  routing: CompanyDomainRoutingRequest.optional(),
+  path: z
+    .enum([
+      "speed",
+      "balance",
+      "accuracy",
+      "coverage",
+      "value",
+      "auto",
+      "fast",
+      "name_only",
+    ])
+    .optional()
+    .describe(
+      "Flattened alias of routing.path. Omit = balance. Nested routing.path wins when both are sent.",
+    ),
+  preset: z
+    .enum([
+      "speed",
+      "balance",
+      "accuracy",
+      "coverage",
+      "value",
+      "auto",
+      "name_only",
+      "zi_stamp",
+      "fast",
+    ])
+    .optional()
+    .describe(
+      "Flattened alias of routing.preset. Nested wins when both are sent.",
+    ),
+  ...CommonRunOptions,
+};
+
 export const VerifyEmploymentInput = {
   email: z.string().optional(),
   first_name: z.string().optional(),
@@ -434,7 +487,7 @@ export const PutCredentialInput = {
     .string()
     .optional()
     .describe(
-      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, apollo, companyurlfinder, peopledatalabs, hginsights, or enrichcrm. Alias: api_key. Do not send for zoominfo.",
+      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, apollo, companyurlfinder, peopledatalabs, hginsights, brandfetch, or enrichcrm. Alias: api_key. Do not send for zoominfo.",
     ),
   api_key: z
     .string()

@@ -24,6 +24,7 @@ import {
   EmptyInput,
   EraseSubjectInput,
   GetRunInput,
+  OAUTH_CREDENTIAL_PROVIDER_VALUES,
   PERCENT_ENCODED,
   PutCredentialInput,
   ResolveCompanyInput,
@@ -118,17 +119,19 @@ export function credentialPutBody(
   const clientSecret = stringArg(args, "clientSecret");
   const apiKey = stringArg(args, "apiKey") ?? stringArg(args, "api_key");
 
-  if (provider === "zoominfo") {
+  if (
+    (OAUTH_CREDENTIAL_PROVIDER_VALUES as readonly string[]).includes(provider)
+  ) {
     if (apiKey) {
       throw badRequest(
-        "zoominfo does not accept apiKey; send clientId and clientSecret.",
+        `${provider} does not accept apiKey; send clientId and clientSecret.`,
       );
     }
     const missing: string[] = [];
     if (!clientId) missing.push("clientId");
     if (!clientSecret) missing.push("clientSecret");
     if (missing.length > 0) {
-      throw badRequest(`zoominfo is missing ${missing.join(" and ")}.`);
+      throw badRequest(`${provider} is missing ${missing.join(" and ")}.`);
     }
     return {
       clientId: clientId as string,
@@ -293,7 +296,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   put_credentials: {
     description: [
       "PUT /v1/credentials/{provider} — upsert tenant Your Keys (ciphertext).",
-      "ZoomInfo body is { clientId, clientSecret }. Other vendors use { apiKey }.",
+      "ZoomInfo and Snov.io use { clientId, clientSecret }. Other vendors use { apiKey }.",
       "Response never echoes the raw key. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors; storing those keys is optional.",
       "ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, and Snov.io are BYOK. Websearch cannot be stored.",
       PUT_CREDENTIALS_WARNING,

@@ -37,6 +37,11 @@ describe("provider enum contract", () => {
     assert.ok(fileInventory.credentialProviders.includes("prospeo"));
   });
 
+  it("pins snovio on credentialProviders only (credentials-only BYOK)", () => {
+    assert.ok(fileInventory.credentialProviders.includes("snovio"));
+    assert.equal(fileInventory.providers.includes("snovio"), false);
+  });
+
   it("lists aiark on company.b2b_social capabilityProviders pin", () => {
     const b2b = fileInventory.capabilityProviders?.["company.b2b_social"];
     assert.ok(b2b?.includes("aiark"));

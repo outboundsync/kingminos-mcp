@@ -16,6 +16,7 @@ import {
 } from "./kingminos-client.js";
 import {
   DecideCompanyB2bSocialInput,
+  DecideCompanyDescriptionInput,
   DecideCompanyDomainInput,
   DecideCompanyHierarchyInput,
   DecideCompanyIconInput,
@@ -171,7 +172,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   get_capabilities: {
     description:
-      "GET /v1/capabilities — catalog for company.resolve, person.verify_employment, company.domain, company.hierarchy, company.b2b_social, and company.icon (inputs, outcomes, hops, default routing). Call this before the first resolve. Does not start a run.",
+      "GET /v1/capabilities — catalog for company.resolve, person.verify_employment, company.domain, company.hierarchy, company.b2b_social, company.icon, and company.description (inputs, outcomes, hops, default routing). Call this before the first resolve. Does not start a run.",
     inputSchema: EmptyInput,
     annotations: {
       readOnlyHint: true,
@@ -228,6 +229,17 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     description:
       "POST /v1/company/icon — resolve a live HTTPS company icon for a domain/website/email subject. Domain/website/email required; name-only is 400. Default waterfall (0–2 paid credits): house favicon-fetch (dns/site_probe, 0 credits) → Brandfetch BYOK (1 credit, soft-fail and continue) → ZoomInfo enrich logo (1 credit). Not sourced from LeadMagic, AI Ark, Prospeo, or Enrich-CRM. Output result.icon_url is https or null. Brandfetch and ZoomInfo need put_credentials. Spends credits unless dry_run is true. Does not write SFDC.",
     inputSchema: DecideCompanyIconInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
+    buildRequest: capabilityRequest,
+  },
+  company_description: {
+    description:
+      "POST /v1/company/description — decide a usable company description paragraph (result.description, 40–2000 chars) or null for a domain/website/email subject. Domain/website/email required; name-only is 400. Engine first_acceptable — first usable text wins. speed = LeadMagic V3 company about/headline (cap 1). balance (default) continues Wiza / Findymail / AI Ark extra.description, then websearch (Serper + judge) (cap 6). accuracy / coverage use the same house stack. Brandfetch Context is BYOK via routing.only (needs put_credentials). Spends credits unless dry_run is true. Does not write SFDC.",
+    inputSchema: DecideCompanyDescriptionInput,
     annotations: {
       readOnlyHint: false,
       openWorldHint: true,

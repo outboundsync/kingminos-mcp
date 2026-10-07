@@ -21,6 +21,7 @@ export const PROVIDER_NAME_VALUES = [
   "hginsights",
   "brandfetch",
   "enrichcrm",
+  "favicon",
 ] as const;
 
 /** put_credentials / delete_credentials. Keep in lockstep with inventory credentialProviders[]. */
@@ -79,6 +80,7 @@ const MaxProviderCredits = z.union([
       "company.hierarchy": z.number().optional(),
       "company.b2b_social": z.number().optional(),
       "company.icon": z.number().optional(),
+      "company.description": z.number().optional(),
     })
     .strict(),
 ]);
@@ -389,6 +391,56 @@ export const DecideCompanyB2bSocialInput = {
 };
 
 export const DecideCompanyIconInput = {
+  name: z
+    .string()
+    .optional()
+    .describe(
+      "Optional unit/brand corroboration. Name-only without domain/website/email is 400.",
+    ),
+  domain: z
+    .string()
+    .optional()
+    .describe(
+      "Required subject (or website/email that hygiene-normalize to the same registrable).",
+    ),
+  website: z.string().optional(),
+  email: z.string().optional(),
+  routing: CompanyDomainRoutingRequest.optional(),
+  path: z
+    .enum([
+      "speed",
+      "balance",
+      "accuracy",
+      "coverage",
+      "value",
+      "auto",
+      "fast",
+      "name_only",
+    ])
+    .optional()
+    .describe(
+      "Flattened alias of routing.path. Omit = balance. Nested routing.path wins when both are sent.",
+    ),
+  preset: z
+    .enum([
+      "speed",
+      "balance",
+      "accuracy",
+      "coverage",
+      "value",
+      "auto",
+      "name_only",
+      "zi_stamp",
+      "fast",
+    ])
+    .optional()
+    .describe(
+      "Flattened alias of routing.preset. Nested wins when both are sent.",
+    ),
+  ...CommonRunOptions,
+};
+
+export const DecideCompanyDescriptionInput = {
   name: z
     .string()
     .optional()

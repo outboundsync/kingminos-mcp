@@ -57,7 +57,8 @@
     "peopledatalabs",
     "hginsights",
     "brandfetch",
-    "enrichcrm"
+    "enrichcrm",
+    "favicon"
   ],
   "credentialProviders": [
     "zoominfo",
@@ -76,6 +77,14 @@
   ],
   "capabilityProviders": {
     "company.icon": ["dns", "site_probe", "brandfetch", "zoominfo"],
+    "company.description": [
+      "leadmagic",
+      "wiza",
+      "findymail",
+      "aiark",
+      "websearch",
+      "brandfetch"
+    ],
     "company.b2b_social": [
       "websearch",
       "leadmagic",
@@ -153,6 +162,11 @@
       "operationId": "delete_subject",
       "method": "DELETE",
       "path": "/v1/subjects/{subject_key}"
+    },
+    {
+      "operationId": "company_description",
+      "method": "POST",
+      "path": "/v1/company/description"
     }
   ]
 }

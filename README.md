@@ -171,6 +171,7 @@ Every tool is the snake_case `operationId` of one bearer-authenticated KingMinos
 | `company_domain` | `POST /v1/company/domain` | Write-safe CRM domain decision |
 | `company_hierarchy` | `POST /v1/company/hierarchy` | Immediate / ultimate parent + capped subsidiaries |
 | `company_b2b_social` | `POST /v1/company/b2b-social` | LinkedIn company page URL; balance = websearch → house AI Ark; accuracy/coverage stack LeadMagic / AI Ark / Wiza / Findymail |
+| `company_icon` | `POST /v1/company/icon` | Live HTTPS `result.icon_url`; balance = house favicon → Brandfetch (BYOK); accuracy adds ZoomInfo enrich+logo (BYOK) |
 | `person_verify_employment` | `POST /v1/person/verify-employment` | LeadMagic default; Findymail is house-key via `routing.only` |
 | `get_run` | `GET /v1/runs/{id}` | Recorded run envelope |
 | `list_credentials` | `GET /v1/credentials` | Masked Your Keys catalog. Never returns raw keys |

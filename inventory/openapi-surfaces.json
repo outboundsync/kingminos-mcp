@@ -55,7 +55,8 @@
     "apollo",
     "companyurlfinder",
     "peopledatalabs",
-    "hginsights"
+    "hginsights",
+    "brandfetch"
   ],
   "credentialProviders": [
     "zoominfo",
@@ -68,9 +69,11 @@
     "apollo",
     "companyurlfinder",
     "peopledatalabs",
-    "hginsights"
+    "hginsights",
+    "brandfetch"
   ],
   "capabilityProviders": {
+    "company.icon": ["dns", "site_probe", "brandfetch", "zoominfo"],
     "company.b2b_social": [
       "websearch",
       "leadmagic",
@@ -113,6 +116,11 @@
       "operationId": "company_b2b_social",
       "method": "POST",
       "path": "/v1/company/b2b-social"
+    },
+    {
+      "operationId": "company_icon",
+      "method": "POST",
+      "path": "/v1/company/icon"
     },
     {
       "operationId": "person_verify_employment",

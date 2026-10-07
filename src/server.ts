@@ -18,6 +18,7 @@ import {
   DecideCompanyB2bSocialInput,
   DecideCompanyDomainInput,
   DecideCompanyHierarchyInput,
+  DecideCompanyIconInput,
   DeleteCredentialInput,
   EmptyInput,
   EraseSubjectInput,
@@ -170,7 +171,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   get_capabilities: {
     description:
-      "GET /v1/capabilities — catalog for company.resolve, person.verify_employment, company.domain, company.hierarchy, and company.b2b_social (inputs, outcomes, hops, default routing). Call this before the first resolve. Does not start a run.",
+      "GET /v1/capabilities — catalog for company.resolve, person.verify_employment, company.domain, company.hierarchy, company.b2b_social, and company.icon (inputs, outcomes, hops, default routing). Call this before the first resolve. Does not start a run.",
     inputSchema: EmptyInput,
     annotations: {
       readOnlyHint: true,
@@ -216,6 +217,17 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     description:
       "POST /v1/company/b2b-social — decide the company LinkedIn page URL (or null). Domain/website/email required; name-only is 400. speed is websearch only (cap 1). balance (default) runs websearch then house AI Ark even after a search candidate (cap 2). accuracy adds LeadMagic, house AI Ark, then Wiza (cap 5). coverage adds Findymail (cap 6). Default stacks are house keys only. BYOK ZoomInfo / Apollo / Prospeo / Company URL Finder need routing.only. Output result.linkedin_url is Serper-confirmed https://www.linkedin.com/company/{slug} or null. Spends credits unless dry_run is true. Does not write SFDC.",
     inputSchema: DecideCompanyB2bSocialInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
+    buildRequest: capabilityRequest,
+  },
+  company_icon: {
+    description:
+      "POST /v1/company/icon — decide a live HTTPS company icon URL for a domain/website/email subject. Domain/website/email required; name-only is 400. speed is house favicon probe only (dns/site_probe). balance (default) runs favicon then Brandfetch (icon preferred over logo; BYOK). accuracy adds ZoomInfo company enrich+logo (BYOK). Output result.icon_url is https or null. Force Brandfetch or ZoomInfo alone with routing.only. Spends credits unless dry_run is true. Does not write SFDC.",
+    inputSchema: DecideCompanyIconInput,
     annotations: {
       readOnlyHint: false,
       openWorldHint: true,
@@ -271,7 +283,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "PUT /v1/credentials/{provider} — upsert tenant Your Keys (ciphertext).",
       "ZoomInfo body is { clientId, clientSecret }. Other vendors use { apiKey }.",
       "Response never echoes the raw key. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors; storing those keys is optional.",
-      "ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK. Websearch cannot be stored.",
+      "ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, and Brandfetch are BYOK. Websearch cannot be stored.",
       PUT_CREDENTIALS_WARNING,
       "Confirm with the user first.",
     ].join(" "),
@@ -336,7 +348,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
       instructions: [
         `${PRODUCT_NAME} wraps the live enrichment API at https://api.kingminos.com.`,
         "Call get_capabilities before the first resolve so routing defaults are current.",
-        "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK via put_credentials.",
+        "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, and Brandfetch are BYOK via put_credentials.",
         "Websearch is house-only and cannot be stored.",
         "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
         PUT_CREDENTIALS_WARNING,

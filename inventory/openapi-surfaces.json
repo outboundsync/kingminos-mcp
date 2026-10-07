@@ -75,7 +75,8 @@
     "hginsights",
     "brandfetch",
     "enrichcrm",
-    "lemlist"
+    "lemlist",
+    "snovio"
   ],
   "capabilityProviders": {
     "company.icon": ["dns", "site_probe", "brandfetch", "zoominfo"],

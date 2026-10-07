@@ -2,7 +2,7 @@
 
 Streamable HTTP MCP server that wraps the live KingMinos enrichment API at `https://api.kingminos.com`. One tool per bearer-authenticated resource route. Session and cookie routes under `/v1/auth/*` and `/v1/account/*` are permanently out of scope. This is not the OutboundSync product MCP and does not expose OutboundSync account, source, or sync tools.
 
-LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, and Lemlist are BYOK via `put_credentials`. Websearch is house-only and cannot be stored. The server never embeds vendor keys and never logs the tenant Bearer or credential bodies.
+LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, and Snov.io are BYOK via `put_credentials`. Websearch is house-only and cannot be stored. Snov.io is OAuth (`clientId`/`clientSecret`) and is a credential vendor only. The server never embeds vendor keys and never logs the tenant Bearer or credential bodies.
 
 Say **SFDC**, never SF.
 

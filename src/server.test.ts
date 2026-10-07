@@ -207,13 +207,25 @@ describe("catalog-driven handlers", () => {
         name: "put_credentials",
         arguments: { provider: "findymail", api_key: "fm-key" },
       });
+      await client.callTool({
+        name: "put_credentials",
+        arguments: {
+          provider: "snovio",
+          clientId: "snov-id",
+          clientSecret: "snov-sec",
+        },
+      });
     });
-    assert.equal(calls.length, 2);
+    assert.equal(calls.length, 3);
     assert.deepEqual(JSON.parse(calls[0]?.body ?? "{}"), {
       clientId: "id",
       clientSecret: "sec",
     });
     assert.deepEqual(JSON.parse(calls[1]?.body ?? "{}"), { apiKey: "fm-key" });
+    assert.deepEqual(JSON.parse(calls[2]?.body ?? "{}"), {
+      clientId: "snov-id",
+      clientSecret: "snov-sec",
+    });
   });
 
   it("fails put_credentials locally when required fields are missing", async () => {
@@ -227,11 +239,15 @@ describe("catalog-driven handlers", () => {
         name: "put_credentials",
         arguments: { provider: "zoominfo", apiKey: "nope" },
       });
+      const snovKey = await client.callTool({
+        name: "put_credentials",
+        arguments: { provider: "snovio", apiKey: "nope" },
+      });
       const other = await client.callTool({
         name: "put_credentials",
         arguments: { provider: "wiza" },
       });
-      for (const result of [zoom, zoomKey, other]) {
+      for (const result of [zoom, zoomKey, snovKey, other]) {
         assert.equal(result.isError, true);
         const text = toolText(result);
         assert.match(text, /bad_request/);
@@ -239,6 +255,7 @@ describe("catalog-driven handlers", () => {
       }
       assert.match(toolText(zoom), /clientId and clientSecret/);
       assert.match(toolText(zoomKey), /does not accept apiKey/);
+      assert.match(toolText(snovKey), /does not accept apiKey/);
       assert.match(toolText(other), /missing apiKey/);
     });
     assert.equal(calls.length, 0);
@@ -326,6 +343,18 @@ describe("local validators", () => {
     assert.throws(
       () => credentialPutBody({ provider: "leadmagic" }),
       /missing apiKey/,
+    );
+    assert.deepEqual(
+      credentialPutBody({
+        provider: "snovio",
+        clientId: "a",
+        clientSecret: "b",
+      }),
+      { clientId: "a", clientSecret: "b" },
+    );
+    assert.throws(
+      () => credentialPutBody({ provider: "snovio", apiKey: "x" }),
+      /does not accept apiKey/,
     );
   });
 });

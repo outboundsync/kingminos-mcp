@@ -58,7 +58,8 @@
     "hginsights",
     "brandfetch",
     "enrichcrm",
-    "favicon"
+    "favicon",
+    "lemlist"
   ],
   "credentialProviders": [
     "zoominfo",
@@ -73,7 +74,8 @@
     "peopledatalabs",
     "hginsights",
     "brandfetch",
-    "enrichcrm"
+    "enrichcrm",
+    "lemlist"
   ],
   "capabilityProviders": {
     "company.icon": ["dns", "site_probe", "brandfetch", "zoominfo"],

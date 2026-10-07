@@ -55,7 +55,8 @@
     "apollo",
     "companyurlfinder",
     "peopledatalabs",
-    "hginsights"
+    "hginsights",
+    "enrichcrm"
   ],
   "credentialProviders": [
     "zoominfo",
@@ -68,7 +69,8 @@
     "apollo",
     "companyurlfinder",
     "peopledatalabs",
-    "hginsights"
+    "hginsights",
+    "enrichcrm"
   ],
   "capabilityProviders": {
     "company.b2b_social": [

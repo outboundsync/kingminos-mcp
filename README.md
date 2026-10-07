@@ -2,7 +2,7 @@
 
 Streamable HTTP MCP server that wraps the live KingMinos enrichment API at `https://api.kingminos.com`. One tool per bearer-authenticated resource route. Session and cookie routes under `/v1/auth/*` and `/v1/account/*` are permanently out of scope. This is not the OutboundSync product MCP and does not expose OutboundSync account, source, or sync tools.
 
-LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK via `put_credentials`. Websearch is house-only and cannot be stored. The server never embeds vendor keys and never logs the tenant Bearer or credential bodies.
+LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, and Enrich-CRM are BYOK via `put_credentials`. Websearch is house-only and cannot be stored. The server never embeds vendor keys and never logs the tenant Bearer or credential bodies.
 
 Say **SFDC**, never SF.
 
@@ -56,7 +56,7 @@ npm run check:surfaces
 npm run check:providers
 ```
 
-`check:surfaces` compares advertised MCP tools to `operations[]`. `check:providers` compares the Zod `ProviderName` / `CredentialProvider` enums to the pinned `providers[]` / `credentialProviders[]`. A new BYOK id such as `prospeo`, `companyurlfinder`, `peopledatalabs`, or `hginsights` fails CI until both Zod enums and the pin list it — that is how `routing.only: ["prospeo"]` and `put_credentials({ provider: "prospeo" })` stay accepted.
+`check:surfaces` compares advertised MCP tools to `operations[]`. `check:providers` compares the Zod `ProviderName` / `CredentialProvider` enums to the pinned `providers[]` / `credentialProviders[]`. A new BYOK id such as `prospeo`, `companyurlfinder`, `peopledatalabs`, `hginsights`, or `enrichcrm` fails CI until both Zod enums and the pin list it — that is how `routing.only: ["prospeo"]` and `put_credentials({ provider: "prospeo" })` stay accepted.
 
 `/v1/auth/*` and `/v1/account/*` are intentionally not MCP tools (cookie/session app surfaces). They are denied by `nonToolPathPrefixes` plus the reviewed `excludedOperationIds` catalog. Do not implement those ~24 operations as tools.
 

@@ -1,5 +1,5 @@
 import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js";
-import { type RuntimeEnv, envString, processRuntimeEnv } from "./env.js";
+import { envString, processRuntimeEnv, type RuntimeEnv } from "./env.js";
 import { isLoopbackHost, normalizeHostname } from "./hosts.js";
 
 export const SERVICE_NAME = "kingminos-mcp";

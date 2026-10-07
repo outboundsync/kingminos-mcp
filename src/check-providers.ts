@@ -1,12 +1,12 @@
 import { pathToFileURL } from "node:url";
 import {
+  diffProviders,
+  fetchLiveOpenApiDocument,
+  formatProviderDiff,
   OPENAPI_LIVE_ENV,
   type ProviderCheckMode,
   type ProviderDiff,
   type ProviderLists,
-  diffProviders,
-  fetchLiveOpenApiDocument,
-  formatProviderDiff,
   providersAligned,
   providersFromOpenApiDocument,
   resolveExpectedInventory,

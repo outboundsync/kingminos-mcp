@@ -3,7 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { LIVE_RESOURCE_ROUTES } from "./catalog.js";
 import { checkSurfaces, formatCheckResult } from "./check-surfaces.js";
-import { TENANT_BEARER_ENV, apiBaseUrl } from "./config.js";
+import { apiBaseUrl, TENANT_BEARER_ENV } from "./config.js";
 import { createApp } from "./http.js";
 
 async function listToolsOverHttp(

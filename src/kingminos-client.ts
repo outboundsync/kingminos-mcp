@@ -1,13 +1,13 @@
 import {
+  apiBaseUrl,
   MAX_RATE_LIMIT_WAIT_MS,
   RETRY_DELAY_MS,
   TENANT_BEARER_ENV,
   UPSTREAM_TIMEOUT_MS,
-  apiBaseUrl,
 } from "./config.js";
 import {
-  KingMinosApiError,
   errorCodeForStatus,
+  KingMinosApiError,
   remediationFor,
 } from "./errors.js";
 

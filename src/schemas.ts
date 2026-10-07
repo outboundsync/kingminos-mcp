@@ -38,13 +38,13 @@ export const CREDENTIAL_PROVIDER_VALUES = [
 
 export const ProviderName = z
   .enum(PROVIDER_NAME_VALUES)
-    .describe(
+  .describe(
     "Stable provider id. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK. Websearch is house-only.",
   );
 
 export const CredentialProvider = z
   .enum(CREDENTIAL_PROVIDER_VALUES)
-    .describe(
+  .describe(
     "Vendor for tenant Your Keys. Websearch is rejected (house-only). LeadMagic, Wiza, Findymail, and AI Ark are house-keyed; storing those keys is an optional override.",
   );
 

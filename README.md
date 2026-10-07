@@ -170,7 +170,7 @@ Every tool is the snake_case `operationId` of one bearer-authenticated KingMinos
 | `company_resolve` | `POST /v1/company/resolve` | Email / domain / website. Spends credits unless `dry_run` is true (API default false). Name-only is `no_decision` |
 | `company_domain` | `POST /v1/company/domain` | Write-safe CRM domain decision |
 | `company_hierarchy` | `POST /v1/company/hierarchy` | Immediate / ultimate parent + capped subsidiaries |
-| `company_b2b_social` | `POST /v1/company/b2b-social` | LinkedIn company page URL decision; house LeadMagic / Wiza / Findymail / AI Ark |
+| `company_b2b_social` | `POST /v1/company/b2b-social` | LinkedIn company page URL; balance = websearch → house AI Ark; accuracy/coverage stack LeadMagic / AI Ark / Wiza / Findymail |
 | `person_verify_employment` | `POST /v1/person/verify-employment` | LeadMagic default; Findymail is house-key via `routing.only` |
 | `get_run` | `GET /v1/runs/{id}` | Recorded run envelope |
 | `list_credentials` | `GET /v1/credentials` | Masked Your Keys catalog. Never returns raw keys |

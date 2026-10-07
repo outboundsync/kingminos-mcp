@@ -152,7 +152,8 @@ export async function checkProviders(
         resolved.inventory.capabilityProviders,
       );
       return {
-        ok: providersAligned(diff) && capabilityProvidersAligned(capabilityDiff),
+        ok:
+          providersAligned(diff) && capabilityProvidersAligned(capabilityDiff),
         source: resolved.source,
         mode,
         advertised,

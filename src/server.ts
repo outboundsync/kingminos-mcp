@@ -15,8 +15,8 @@ import {
   requireBearer,
 } from "./kingminos-client.js";
 import {
-  DecideCompanyDomainInput,
   DecideCompanyB2bSocialInput,
+  DecideCompanyDomainInput,
   DecideCompanyHierarchyInput,
   DeleteCredentialInput,
   EmptyInput,
@@ -214,7 +214,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   company_b2b_social: {
     description:
-      'POST /v1/company/b2b-social — decide the company LinkedIn page URL (or null). Domain/website/email required; name-only is 400. Default path is balance (websearch then house LeadMagic). accuracy adds Wiza; coverage adds Findymail. House stacks: websearch, LeadMagic, Wiza, Findymail, and AI Ark (via routing.only). BYOK ZoomInfo / Apollo / Prospeo / Company URL Finder need routing.only. Output result.linkedin_url is Serper-confirmed https://www.linkedin.com/company/{slug} or null. Spends credits unless dry_run is true. Does not write SFDC.',
+      "POST /v1/company/b2b-social — decide the company LinkedIn page URL (or null). Domain/website/email required; name-only is 400. speed is websearch only (cap 1). balance (default) runs websearch then house AI Ark even after a search candidate (cap 2). accuracy adds LeadMagic, house AI Ark, then Wiza (cap 5). coverage adds Findymail (cap 6). Default stacks are house keys only. BYOK ZoomInfo / Apollo / Prospeo / Company URL Finder need routing.only. Output result.linkedin_url is Serper-confirmed https://www.linkedin.com/company/{slug} or null. Spends credits unless dry_run is true. Does not write SFDC.",
     inputSchema: DecideCompanyB2bSocialInput,
     annotations: {
       readOnlyHint: false,

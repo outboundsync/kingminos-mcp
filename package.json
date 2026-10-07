@@ -25,7 +25,8 @@
     "check:worker": "wrangler deploy --dry-run",
     "cf-typegen": "wrangler types --include-runtime false --strict-vars false",
     "deploy": "wrangler deploy",
-    "ci": "npm run typecheck && npm run lint && npm run check:surfaces && npm run check:providers && npm test && npm run smoke && npm run build && npm run check:worker"
+    "ci": "npm run typecheck && npm run lint && npm run check:surfaces && npm run check:providers && npm test && npm run smoke && npm run build && npm run check:worker",
+    "prepare": "simple-git-hooks"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.1",
@@ -33,11 +34,15 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.5.15",
     "@types/express": "^4.17.21",
     "@types/node": "^22.13.10",
+    "simple-git-hooks": "^2.14.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "wrangler": "^4.147.0"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx --no-install biome check --write --staged --no-errors-on-unmatched && git update-index --again"
   }
 }

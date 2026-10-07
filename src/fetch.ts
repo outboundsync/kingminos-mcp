@@ -1,16 +1,16 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import {
-  MCP_PROTOCOL,
-  PRODUCT_NAME,
-  SERVICE_NAME,
-  TENANT_BEARER_ENV,
-  VERSION,
   allowEnvBearerOptIn,
   allowedHosts,
   allowedOriginHosts,
   apiBaseUrl,
+  MCP_PROTOCOL,
+  PRODUCT_NAME,
   publicMcpUrl,
+  SERVICE_NAME,
+  TENANT_BEARER_ENV,
   tenantBearerFromEnv,
+  VERSION,
 } from "./config.js";
 import type { RuntimeEnv } from "./env.js";
 import { mergeRuntimeEnv, workerRuntimeEnv } from "./env.js";

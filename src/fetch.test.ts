@@ -12,9 +12,9 @@ import {
   VERSION,
 } from "./config.js";
 import {
-  MCP_ALLOW_METHODS,
   handleFetch,
   healthCard,
+  MCP_ALLOW_METHODS,
   readTenantBearer,
   serviceCard,
 } from "./fetch.js";

@@ -1,4 +1,4 @@
-import { SERVICE_NAME, VERSION, listenHost, listenPort } from "./config.js";
+import { listenHost, listenPort, SERVICE_NAME, VERSION } from "./config.js";
 import { createApp } from "./http.js";
 
 const host = listenHost();

@@ -1,17 +1,17 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import express from "express";
 import {
-  MAX_REQUEST_BODY_BYTES,
   allowEnvBearerOptIn,
   isLoopbackHost,
   listenHost,
+  MAX_REQUEST_BODY_BYTES,
 } from "./config.js";
 import type { RuntimeEnv } from "./env.js";
 import { mergeRuntimeEnv } from "./env.js";
 import { handleFetch } from "./fetch.js";
 
-export { handleFetch, readTenantBearer } from "./fetch.js";
 export type { BearerFailure, BearerResult } from "./fetch.js";
+export { handleFetch, readTenantBearer } from "./fetch.js";
 
 export class RequestBodyTooLargeError extends Error {
   constructor() {

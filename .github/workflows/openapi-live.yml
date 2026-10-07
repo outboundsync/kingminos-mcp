@@ -1,5 +1,9 @@
 name: OpenAPI live drift
 
+# Not a PR gate: compares advertised tools to whatever is deployed at api.kingminos.com,
+# and opens (or comments on) one issue when they drift. CI map:
+# https://github.com/outboundsync/kingminos-application/blob/main/docs/ci.md
+
 on:
   schedule:
     - cron: "17 6 * * *"
@@ -7,12 +11,15 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   live-openapi:
     name: Live OpenAPI vs advertised tools
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      KINGMINOS_OPENAPI_JSON_URL: https://api.kingminos.com/openapi.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -24,11 +31,29 @@ jobs:
       - run: npm ci
 
       - name: Fail on live OpenAPI surface drift
+        id: surfaces
         run: npm run check:surfaces:live
-        env:
-          KINGMINOS_OPENAPI_JSON_URL: https://api.kingminos.com/openapi.json
 
       - name: Fail when live OpenAPI lists a provider MCP Zod lacks
+        id: providers
+        if: ${{ !cancelled() }}
         run: npm run check:providers:live
+
+      - name: Open or update drift issue
+        if: failure() && (steps.surfaces.outcome == 'failure' || steps.providers.outcome == 'failure')
+        continue-on-error: true
         env:
-          KINGMINOS_OPENAPI_JSON_URL: https://api.kingminos.com/openapi.json
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="Live OpenAPI drift"
+          BODY="Scheduled live drift check failed on \`${GITHUB_SHA}\` (surfaces: ${{ steps.surfaces.outcome }}, providers: ${{ steps.providers.outcome }}).
+
+          Usually an API deploy added an operation or provider: run \`npm run inventory:refresh\`, then update tools / Zod enums. This job does not block PRs.
+
+          Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          EXISTING="$(gh issue list --search "\"$TITLE\" in:title" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi

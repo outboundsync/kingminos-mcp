@@ -1,14 +1,14 @@
 import { pathToFileURL } from "node:url";
-import { TOOL_NAMES, advertisedOperations } from "./catalog.js";
+import { advertisedOperations, TOOL_NAMES } from "./catalog.js";
 import {
-  OPENAPI_LIVE_ENV,
-  type ResolvedInventory,
-  type SurfaceDiff,
   diffSurfaces,
   formatSurfaceDiff,
+  OPENAPI_LIVE_ENV,
+  type ResolvedInventory,
   refreshInventoryFile,
   resolveExpectedInventory,
   resolveLiveInventory,
+  type SurfaceDiff,
   surfacesAligned,
   toolNameFromOperationId,
 } from "./openapi-inventory.js";

@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
-import { OPENAPI_FETCH_TIMEOUT_MS, apiBaseUrl } from "./config.js";
+import { apiBaseUrl, OPENAPI_FETCH_TIMEOUT_MS } from "./config.js";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -369,9 +369,7 @@ export function operationHasBearerSecurity(
     return false;
   }
   return security.some(
-    (entry) =>
-      isRecord(entry) &&
-      Object.prototype.hasOwnProperty.call(entry, BEARER_SCHEME),
+    (entry) => isRecord(entry) && Object.hasOwn(entry, BEARER_SCHEME),
   );
 }
 

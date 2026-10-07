@@ -5,9 +5,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
+  advertisedOperations,
   LIVE_RESOURCE_ROUTES,
   TOOL_NAMES,
-  advertisedOperations,
 } from "./catalog.js";
 import {
   diffSurfaces,

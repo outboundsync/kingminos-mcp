@@ -26,8 +26,8 @@ import {
   PERCENT_ENCODED,
   PutCredentialInput,
   ResolveCompanyInput,
-  VerifyEmploymentInput,
   stripMeta,
+  VerifyEmploymentInput,
 } from "./schemas.js";
 
 export interface ToolContext {

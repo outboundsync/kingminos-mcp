@@ -39,7 +39,11 @@ export const CREDENTIAL_PROVIDER_VALUES = [
   "hginsights",
   "brandfetch",
   "enrichcrm",
+  "snovio",
 ] as const;
+
+/** put_credentials OAuth vendors ({ clientId, clientSecret }). Keep in lockstep with application OAUTH_PROVIDER_NAMES. */
+export const OAUTH_CREDENTIAL_PROVIDER_VALUES = ["zoominfo", "snovio"] as const;
 
 export const ProviderName = z
   .enum(PROVIDER_NAME_VALUES)
@@ -527,24 +531,24 @@ export const PutCredentialInput = {
     .string()
     .optional()
     .describe(
-      "ZoomInfo OAuth client id. Required with clientSecret for zoominfo.",
+      "OAuth client id. Required with clientSecret for zoominfo and snovio.",
     ),
   clientSecret: z
     .string()
     .optional()
     .describe(
-      "ZoomInfo OAuth client secret. Required with clientId for zoominfo.",
+      "OAuth client secret. Required with clientId for zoominfo and snovio.",
     ),
   apiKey: z
     .string()
     .optional()
     .describe(
-      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, apollo, companyurlfinder, peopledatalabs, hginsights, brandfetch, or enrichcrm. Alias: api_key. Do not send for zoominfo.",
+      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, apollo, companyurlfinder, peopledatalabs, hginsights, brandfetch, or enrichcrm. Alias: api_key. Do not send for zoominfo or snovio.",
     ),
   api_key: z
     .string()
     .optional()
-    .describe("Alias of apiKey. Do not send for zoominfo."),
+    .describe("Alias of apiKey. Do not send for zoominfo or snovio."),
 };
 
 export const DeleteCredentialInput = {

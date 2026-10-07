@@ -73,7 +73,8 @@
     "peopledatalabs",
     "hginsights",
     "brandfetch",
-    "enrichcrm"
+    "enrichcrm",
+    "snovio"
   ],
   "capabilityProviders": {
     "company.icon": ["dns", "site_probe", "brandfetch", "zoominfo"],

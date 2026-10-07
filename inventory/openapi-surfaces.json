@@ -56,7 +56,8 @@
     "companyurlfinder",
     "peopledatalabs",
     "hginsights",
-    "brandfetch"
+    "brandfetch",
+    "enrichcrm"
   ],
   "credentialProviders": [
     "zoominfo",
@@ -70,7 +71,8 @@
     "companyurlfinder",
     "peopledatalabs",
     "hginsights",
-    "brandfetch"
+    "brandfetch",
+    "enrichcrm"
   ],
   "capabilityProviders": {
     "company.icon": ["dns", "site_probe", "brandfetch", "zoominfo"],

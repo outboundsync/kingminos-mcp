@@ -19,6 +19,7 @@ export const PROVIDER_NAME_VALUES = [
   "companyurlfinder",
   "peopledatalabs",
   "hginsights",
+  "enrichcrm",
 ] as const;
 
 /** put_credentials / delete_credentials. Keep in lockstep with inventory credentialProviders[]. */
@@ -34,12 +35,13 @@ export const CREDENTIAL_PROVIDER_VALUES = [
   "companyurlfinder",
   "peopledatalabs",
   "hginsights",
+  "enrichcrm",
 ] as const;
 
 export const ProviderName = z
   .enum(PROVIDER_NAME_VALUES)
   .describe(
-    "Stable provider id. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK. Websearch is house-only.",
+    "Stable provider id. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, and Enrich-CRM are BYOK. Websearch is house-only.",
   );
 
 export const CredentialProvider = z
@@ -432,7 +434,7 @@ export const PutCredentialInput = {
     .string()
     .optional()
     .describe(
-      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, apollo, companyurlfinder, peopledatalabs, or hginsights. Alias: api_key. Do not send for zoominfo.",
+      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, apollo, companyurlfinder, peopledatalabs, hginsights, or enrichcrm. Alias: api_key. Do not send for zoominfo.",
     ),
   api_key: z
     .string()

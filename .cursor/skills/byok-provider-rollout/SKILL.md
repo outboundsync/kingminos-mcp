@@ -36,7 +36,7 @@ Stop if any are missing:
 
 ## Hard rules
 
-1. **House keys cleared:** LeadMagic, Wiza, Findymail only. New vendor = BYOK (`resaleAllowed: false`). Do **not** add to `HOUSE_KEY_RESALE_OS_PROVIDERS` in `kingminos-application/src/credentials.ts`.
+1. **House keys cleared:** LeadMagic, Wiza, Findymail, AI Ark. New vendor = BYOK-only (`resaleAllowed: false`). Do **not** add to `HOUSE_KEY_RESALE_OS_PROVIDERS` in `kingminos-application/src/credentials.ts` unless counsel signs resale.
 2. Dogfood `VENDOR_API_KEY` for tenant `default` is OK; that is **not** house resale.
 3. **BuiltWith** stays BYOK-only (ToS / reseller parked); tenant cache isolation; never customer house.
 4. Never put BYOK vendors on default routing (`field-stacks`). Opt-in via `routing.only` after `presetProvidersFor`.
@@ -94,7 +94,7 @@ Copy shape from `src/providers/apollo.ts` or `src/providers/prospeo.ts`.
 - Docs: `src/content/docs/docs/api/credentials.mdx`, capability MDX, `docs/mcp`, `docs/skills`, `docs/cli`
 - `scripts/check-agent-surfaces.mjs` if it pins catalog copy
 
-House-key prose: LeadMagic, Wiza, Findymail = house; ZoomInfo, AI Ark, BuiltWith, Prospeo, Apollo, **new id** = BYOK.
+House-key prose: LeadMagic, Wiza, Findymail, AI Ark = house (optional BYOK override); ZoomInfo, BuiltWith, Prospeo, Apollo, **new id** = BYOK-only.
 
 **Verify:** `npm run check:session && npm run lint && npm run check:types && npm run build && npm run check:agent`  
 **Deploy:** `kingminos-runtime`.

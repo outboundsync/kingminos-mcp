@@ -2,7 +2,7 @@
 
 Streamable HTTP MCP server that wraps the live KingMinos enrichment API at `https://api.kingminos.com`. One tool per bearer-authenticated resource route. Session and cookie routes under `/v1/auth/*` and `/v1/account/*` are permanently out of scope. This is not the OutboundSync product MCP and does not expose OutboundSync account, source, or sync tools.
 
-LeadMagic, Wiza, and Findymail are the approved house-key vendors. ZoomInfo, AI Ark, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK via `put_credentials`. Websearch is house-only and cannot be stored. The server never embeds vendor keys and never logs the tenant Bearer or credential bodies.
+LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK via `put_credentials`. Websearch is house-only and cannot be stored. The server never embeds vendor keys and never logs the tenant Bearer or credential bodies.
 
 Say **SFDC**, never SF.
 
@@ -170,7 +170,8 @@ Every tool is the snake_case `operationId` of one bearer-authenticated KingMinos
 | `company_resolve` | `POST /v1/company/resolve` | Email / domain / website. Spends credits unless `dry_run` is true (API default false). Name-only is `no_decision` |
 | `company_domain` | `POST /v1/company/domain` | Write-safe CRM domain decision |
 | `company_hierarchy` | `POST /v1/company/hierarchy` | Immediate / ultimate parent + capped subsidiaries |
-| `person_verify_employment` | `POST /v1/person/verify-employment` | LeadMagic default; Findymail is BYOK-only |
+| `company_b2b_social` | `POST /v1/company/b2b-social` | LinkedIn company page URL; balance = websearch → house AI Ark; accuracy/coverage stack LeadMagic / AI Ark / Wiza / Findymail |
+| `person_verify_employment` | `POST /v1/person/verify-employment` | LeadMagic default; Findymail is house-key via `routing.only` |
 | `get_run` | `GET /v1/runs/{id}` | Recorded run envelope |
 | `list_credentials` | `GET /v1/credentials` | Masked Your Keys catalog. Never returns raw keys |
 | `put_credentials` | `PUT /v1/credentials/{provider}` | Tenant Your Keys (ciphertext). Confirm first. The key will be visible in this conversation; prefer the web app at https://app.kingminos.com/app/keys/ |

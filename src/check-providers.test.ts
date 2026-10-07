@@ -37,6 +37,12 @@ describe("provider enum contract", () => {
     assert.ok(fileInventory.credentialProviders.includes("prospeo"));
   });
 
+  it("lists aiark on company.b2b_social capabilityProviders pin", () => {
+    const b2b = fileInventory.capabilityProviders?.["company.b2b_social"];
+    assert.ok(b2b?.includes("aiark"));
+    assert.ok(b2b?.includes("leadmagic"));
+  });
+
   it("fails when inventory lists prospeo but MCP Zod enums do not", () => {
     const advertised = {
       providers: PROVIDER_NAME_VALUES.filter((name) => name !== "prospeo"),

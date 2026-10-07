@@ -6,6 +6,7 @@ export type ToolName =
   | "company_resolve"
   | "company_domain"
   | "company_hierarchy"
+  | "company_b2b_social"
   | "person_verify_employment"
   | "get_run"
   | "list_credentials"
@@ -29,6 +30,11 @@ export const LIVE_RESOURCE_ROUTES: readonly ResourceRoute[] = [
   { method: "POST", path: "/v1/company/resolve", tool: "company_resolve" },
   { method: "POST", path: "/v1/company/domain", tool: "company_domain" },
   { method: "POST", path: "/v1/company/hierarchy", tool: "company_hierarchy" },
+  {
+    method: "POST",
+    path: "/v1/company/b2b-social",
+    tool: "company_b2b_social",
+  },
   {
     method: "POST",
     path: "/v1/person/verify-employment",

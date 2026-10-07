@@ -15,6 +15,7 @@ import {
   requireBearer,
 } from "./kingminos-client.js";
 import {
+  DecideCompanyB2bSocialInput,
   DecideCompanyDomainInput,
   DecideCompanyHierarchyInput,
   DeleteCredentialInput,
@@ -158,7 +159,7 @@ const PUT_CREDENTIALS_WARNING =
 const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   get_providers: {
     description:
-      "GET /v1/providers — static provider registry plus configured flags, billing_mode, and credit estimates. Does not start a run. LeadMagic, Wiza, and Findymail are the approved house-key vendors; other paid vendors are BYOK.",
+      "GET /v1/providers — static provider registry plus configured flags, billing_mode, and credit estimates. Does not start a run. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors; other paid vendors are BYOK.",
     inputSchema: EmptyInput,
     annotations: {
       readOnlyHint: true,
@@ -169,7 +170,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   get_capabilities: {
     description:
-      "GET /v1/capabilities — catalog for company.resolve, person.verify_employment, company.domain, and company.hierarchy (inputs, outcomes, hops, default routing). Call this before the first resolve. Does not start a run.",
+      "GET /v1/capabilities — catalog for company.resolve, person.verify_employment, company.domain, company.hierarchy, and company.b2b_social (inputs, outcomes, hops, default routing). Call this before the first resolve. Does not start a run.",
     inputSchema: EmptyInput,
     annotations: {
       readOnlyHint: true,
@@ -180,7 +181,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   company_resolve: {
     description:
-      "POST /v1/company/resolve — resolve a company from email, domain, or website. Spends credits and writes a run unless dry_run is true (API default is false). Name-only input is no_decision / no_domain. Default path is auto. A LeadMagic-only or websearch-only hit is resolved_without_primary_id — do not stamp a ZoomInfo id unless es_decision is hit and result.zoominfo_company_id is present. ZoomInfo / AI Ark / BuiltWith / Prospeo / Apollo / People Data Labs / HG Insights need BYOK; LeadMagic, Wiza, and Findymail are house-keyed. Prospeo, Apollo, People Data Labs, and HG Insights are off every default path — force them with routing.only. Does not write SFDC.",
+      "POST /v1/company/resolve — resolve a company from email, domain, or website. Spends credits and writes a run unless dry_run is true (API default is false). Name-only input is no_decision / no_domain. Default path is auto. A LeadMagic-only or websearch-only hit is resolved_without_primary_id — do not stamp a ZoomInfo id unless es_decision is hit and result.zoominfo_company_id is present. ZoomInfo / BuiltWith / Prospeo / Apollo / People Data Labs / HG Insights need BYOK; LeadMagic, Wiza, Findymail, and AI Ark are house-keyed. Prospeo, Apollo, People Data Labs, and HG Insights are off every default path — force them with routing.only. Does not write SFDC.",
     inputSchema: ResolveCompanyInput,
     annotations: {
       readOnlyHint: false,
@@ -211,9 +212,20 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     },
     buildRequest: capabilityRequest,
   },
+  company_b2b_social: {
+    description:
+      "POST /v1/company/b2b-social — decide the company LinkedIn page URL (or null). Domain/website/email required; name-only is 400. speed is websearch only (cap 1). balance (default) runs websearch then house AI Ark even after a search candidate (cap 2). accuracy adds LeadMagic, house AI Ark, then Wiza (cap 5). coverage adds Findymail (cap 6). Default stacks are house keys only. BYOK ZoomInfo / Apollo / Prospeo / Company URL Finder need routing.only. Output result.linkedin_url is Serper-confirmed https://www.linkedin.com/company/{slug} or null. Spends credits unless dry_run is true. Does not write SFDC.",
+    inputSchema: DecideCompanyB2bSocialInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
+    buildRequest: capabilityRequest,
+  },
   person_verify_employment: {
     description:
-      "POST /v1/person/verify-employment — pre-flight whether to send to this person. Default path is balance (LeadMagic email validate + optional paid LinkedIn lookup). speed is LeadMagic validate only. accuracy adds AI Ark (BYOK). Findymail is a BYOK Layer-1 alternate only when routing.only selects it — never stacked after LeadMagic. Outcomes: high_confidence_send | low_confidence_send | low_confidence_block | high_confidence_block | no_decision. Spends credits unless dry_run is true. Does not write SFDC.",
+      "POST /v1/person/verify-employment — pre-flight whether to send to this person. Default path is balance (LeadMagic email validate + optional paid LinkedIn lookup). speed is LeadMagic validate only. accuracy adds AI Ark (house-keyed). Findymail is a house-key Layer-1 alternate only when routing.only selects it — never stacked after LeadMagic. Outcomes: high_confidence_send | low_confidence_send | low_confidence_block | high_confidence_block | no_decision. Spends credits unless dry_run is true. Does not write SFDC.",
     inputSchema: VerifyEmploymentInput,
     annotations: {
       readOnlyHint: false,
@@ -245,7 +257,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   list_credentials: {
     description:
-      "GET /v1/credentials — masked Your Keys catalog (provider, status, mask). Never returns raw keys. A tenant Bearer lists tenant_provider_credentials. LeadMagic without a stored row is managed (house key). Other vendors are unset until stored.",
+      "GET /v1/credentials — masked Your Keys catalog (provider, status, mask). Never returns raw keys. A tenant Bearer lists tenant_provider_credentials. LeadMagic, Wiza, Findymail, and AI Ark without a stored row are managed (house key). Other vendors are unset until stored.",
     inputSchema: EmptyInput,
     annotations: {
       readOnlyHint: true,
@@ -258,8 +270,8 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     description: [
       "PUT /v1/credentials/{provider} — upsert tenant Your Keys (ciphertext).",
       "ZoomInfo body is { clientId, clientSecret }. Other vendors use { apiKey }.",
-      "Response never echoes the raw key. LeadMagic, Wiza, and Findymail are the approved house-key vendors; storing those keys is optional.",
-      "ZoomInfo, AI Ark, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK. Websearch cannot be stored.",
+      "Response never echoes the raw key. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors; storing those keys is optional.",
+      "ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK. Websearch cannot be stored.",
       PUT_CREDENTIALS_WARNING,
       "Confirm with the user first.",
     ].join(" "),
@@ -324,7 +336,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
       instructions: [
         `${PRODUCT_NAME} wraps the live enrichment API at https://api.kingminos.com.`,
         "Call get_capabilities before the first resolve so routing defaults are current.",
-        "LeadMagic, Wiza, and Findymail are the approved house-key vendors. ZoomInfo, AI Ark, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK via put_credentials.",
+        "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, and HG Insights are BYOK via put_credentials.",
         "Websearch is house-only and cannot be stored.",
         "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
         PUT_CREDENTIALS_WARNING,

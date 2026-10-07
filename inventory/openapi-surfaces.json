@@ -70,6 +70,19 @@
     "peopledatalabs",
     "hginsights"
   ],
+  "capabilityProviders": {
+    "company.b2b_social": [
+      "websearch",
+      "leadmagic",
+      "wiza",
+      "findymail",
+      "aiark",
+      "zoominfo",
+      "apollo",
+      "prospeo",
+      "companyurlfinder"
+    ]
+  },
   "operations": [
     {
       "operationId": "get_providers",
@@ -95,6 +108,11 @@
       "operationId": "company_hierarchy",
       "method": "POST",
       "path": "/v1/company/hierarchy"
+    },
+    {
+      "operationId": "company_b2b_social",
+      "method": "POST",
+      "path": "/v1/company/b2b-social"
     },
     {
       "operationId": "person_verify_employment",

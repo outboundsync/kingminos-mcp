@@ -8,6 +8,7 @@ export type ToolName =
   | "company_hierarchy"
   | "company_b2b_social"
   | "company_icon"
+  | "company_description"
   | "person_verify_employment"
   | "get_run"
   | "list_credentials"
@@ -40,6 +41,11 @@ export const LIVE_RESOURCE_ROUTES: readonly ResourceRoute[] = [
     method: "POST",
     path: "/v1/company/icon",
     tool: "company_icon",
+  },
+  {
+    method: "POST",
+    path: "/v1/company/description",
+    tool: "company_description",
   },
   {
     method: "POST",

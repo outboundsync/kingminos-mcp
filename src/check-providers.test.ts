@@ -51,6 +51,21 @@ describe("provider enum contract", () => {
     assert.ok(icon?.includes("zoominfo"));
   });
 
+  it("lists the house stack and Brandfetch on company.description capabilityProviders pin", () => {
+    const description =
+      fileInventory.capabilityProviders?.["company.description"];
+    for (const name of [
+      "leadmagic",
+      "wiza",
+      "findymail",
+      "aiark",
+      "websearch",
+      "brandfetch",
+    ]) {
+      assert.ok(description?.includes(name), name);
+    }
+  });
+
   it("fails when inventory lists prospeo but MCP Zod enums do not", () => {
     const advertised = {
       providers: PROVIDER_NAME_VALUES.filter((name) => name !== "prospeo"),

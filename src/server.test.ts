@@ -88,6 +88,7 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   company_hierarchy: { domain: "acme.com" },
   company_b2b_social: { domain: "acme.com" },
   company_icon: { domain: "acme.com" },
+  company_description: { domain: "acme.com" },
   person_verify_employment: { email: "a@b.com" },
   get_run: { id: "run_1" },
   list_credentials: {},

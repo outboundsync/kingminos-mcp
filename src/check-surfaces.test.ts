@@ -27,6 +27,7 @@ const EXPECTED_TOOLS = [
   "company_hierarchy",
   "company_b2b_social",
   "company_icon",
+  "company_description",
   "person_verify_employment",
   "get_run",
   "list_credentials",

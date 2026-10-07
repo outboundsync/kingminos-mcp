@@ -37,6 +37,14 @@ describe("provider enum contract", () => {
     assert.ok(fileInventory.credentialProviders.includes("prospeo"));
   });
 
+  it("pins lemlist on providers and credentialProviders with favicon neighbor intact", () => {
+    assert.ok(fileInventory.providers.includes("lemlist"));
+    assert.ok(fileInventory.credentialProviders.includes("lemlist"));
+    assert.ok(fileInventory.providers.includes("favicon"));
+    assert.ok(fileInventory.providers.includes("brandfetch"));
+    assert.equal(fileInventory.providers.includes("snovio"), false);
+  });
+
   it("lists aiark on company.b2b_social capabilityProviders pin", () => {
     const b2b = fileInventory.capabilityProviders?.["company.b2b_social"];
     assert.ok(b2b?.includes("aiark"));

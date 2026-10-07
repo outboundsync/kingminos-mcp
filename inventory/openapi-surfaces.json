@@ -58,7 +58,8 @@
     "hginsights",
     "brandfetch",
     "enrichcrm",
-    "favicon"
+    "favicon",
+    "lemlist"
   ],
   "credentialProviders": [
     "zoominfo",
@@ -74,6 +75,7 @@
     "hginsights",
     "brandfetch",
     "enrichcrm",
+    "lemlist",
     "snovio"
   ],
   "capabilityProviders": {

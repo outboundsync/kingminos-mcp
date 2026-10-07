@@ -37,6 +37,13 @@ describe("provider enum contract", () => {
     assert.ok(fileInventory.credentialProviders.includes("prospeo"));
   });
 
+  it("pins lemlist on providers and credentialProviders with favicon neighbor intact", () => {
+    assert.ok(fileInventory.providers.includes("lemlist"));
+    assert.ok(fileInventory.credentialProviders.includes("lemlist"));
+    assert.ok(fileInventory.providers.includes("favicon"));
+    assert.ok(fileInventory.providers.includes("brandfetch"));
+  });
+
   it("pins snovio on credentialProviders only (credentials-only BYOK)", () => {
     assert.ok(fileInventory.credentialProviders.includes("snovio"));
     assert.equal(fileInventory.providers.includes("snovio"), false);

@@ -26,7 +26,7 @@
     "cf-typegen": "wrangler types --include-runtime false --strict-vars false",
     "deploy": "wrangler deploy",
     "ci": "npm run typecheck && npm run lint && npm run check:surfaces && npm run check:providers && npm test && npm run smoke && npm run build && npm run check:worker",
-    "prepare": "simple-git-hooks"
+    "prepare": "simple-git-hooks || true"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.1",
@@ -43,6 +43,7 @@
     "wrangler": "^4.147.0"
   },
   "simple-git-hooks": {
-    "pre-commit": "npx --no-install biome check --write --staged --no-errors-on-unmatched && git update-index --again"
+    "pre-commit": "npx --no-install biome check --write --staged --no-errors-on-unmatched && git update-index --again",
+    "pre-push": "npm run -s typecheck && npm test"
   }
 }

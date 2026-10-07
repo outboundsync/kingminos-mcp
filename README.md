@@ -94,7 +94,7 @@ Full local suite:
 npm run ci
 ```
 
-That is exactly what the required `OpenAPI tool contract` check runs on PRs and `main` (branches must be up to date). `npm install` also installs a pre-commit hook (`simple-git-hooks`) that runs `biome check --write` on staged files. The nightly live drift job opens a `Live OpenAPI drift` issue instead of blocking PRs. CI map for all kingminos-* repos: [`kingminos-application/docs/ci.md`](https://github.com/outboundsync/kingminos-application/blob/main/docs/ci.md).
+That is exactly what the required `OpenAPI tool contract` check runs on PRs and `main` (branches must be up to date; protection applies to admins, so no direct pushes to `main`). `npm install` also installs git hooks (`simple-git-hooks`): pre-commit runs `biome check --write` on staged files, pre-push runs typecheck + tests. The nightly live drift job opens a `Live OpenAPI drift` issue instead of blocking PRs. CI map for all kingminos-* repos: [`kingminos-application/docs/ci.md`](https://github.com/outboundsync/kingminos-application/blob/main/docs/ci.md).
 
 ## Tenant Bearer
 

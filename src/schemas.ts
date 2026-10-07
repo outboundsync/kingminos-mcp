@@ -39,6 +39,7 @@ export const CREDENTIAL_PROVIDER_VALUES = [
   "hginsights",
   "brandfetch",
   "enrichcrm",
+  "snovio",
 ] as const;
 
 export const ProviderName = z

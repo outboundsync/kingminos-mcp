@@ -475,7 +475,7 @@ export const DecideCompanyDescriptionInput = {
     ])
     .optional()
     .describe(
-      "Flattened alias of routing.path. Always pass explicitly; omit defaults to balance but raises the credit cap from 2 to 6. Nested routing.path wins when both are sent. company.description paths (not aliases): speed = homepage meta/og then AI Ark (cap 1) | balance (default, cap 2) = Jev-ranked homepage extracts + meta/og + AI Ark, optional rewrite | accuracy (cap 3) = xAI third-person compose from homepage evidence | coverage (cap 6) = accuracy compose plus off-homepage Serper / ZoomInfo BYOK evidence.",
+      "Flattened alias of routing.path. Always pass explicitly; omit runs balance at cap 6; path balance is cap 2. Nested routing.path wins when both are sent. company.description paths (not aliases): speed = homepage meta/og then AI Ark (cap 1) | balance = Jev-ranked homepage extracts + meta/og + AI Ark, optional rewrite (cap 2 when sent explicitly) | accuracy (cap 3) = xAI third-person compose from homepage evidence | coverage (cap 6) = accuracy compose plus off-homepage Serper / ZoomInfo BYOK evidence.",
     ),
   preset: z
     .enum([

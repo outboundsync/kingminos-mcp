@@ -192,6 +192,28 @@ describe("catalog-driven handlers", () => {
     assert.equal(body.cache_bypass, undefined);
   });
 
+  it("routes company_description cache_bypass to X-Router-Cache and not the body", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      await client.callTool({
+        name: "company_description",
+        arguments: {
+          domain: "acme.com",
+          path: "balance",
+          cache_bypass: true,
+        },
+      });
+    });
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    assert.ok(call);
+    assert.equal(call.headers["x-router-cache"], "bypass");
+    const body = JSON.parse(call.body ?? "{}") as Record<string, unknown>;
+    assert.equal(body.domain, "acme.com");
+    assert.equal(body.path, "balance");
+    assert.equal(body.cache_bypass, undefined);
+  });
+
   it("shapes put_credentials bodies and aliases api_key", async () => {
     const { calls } = captureFetch();
     await withClient(async (client) => {
@@ -306,11 +328,13 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /not aliases/i);
       assert.match(description, /speed.*balance.*accuracy.*coverage/i);
       assert.match(description, /Always pass path explicitly/i);
-      assert.match(description, /credit cap from 2 to 6/i);
+      assert.match(description, /omit runs balance at cap 6/i);
+      assert.match(description, /path balance is cap 2/i);
       assert.match(description, /AI Ark/i);
       assert.match(description, /same_as_speed/);
       assert.match(description, /hype.*first_person.*tagline.*grammar/i);
       assert.match(description, /grammar is informational only/i);
+      assert.match(description, /do not reject unknown/i);
       assert.match(description, /usage\.hops/);
       assert.match(description, /by_provider/);
       assert.match(description, /not company\.description vendors/i);
@@ -325,7 +349,7 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /low is never safe to write/i);
       assert.match(description, /skip_cache true or cache_bypass true/i);
       assert.match(description, /Idempotency-Key replay/i);
-      assert.match(description, /company\.resolve has no cache bypass/i);
+      assert.match(description, /company\.resolve ignores bypass inputs/i);
       assert.match(
         description,
         /Cache-Control no-cache or no-store is API-only/i,

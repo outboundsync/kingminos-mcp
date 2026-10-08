@@ -297,7 +297,7 @@ describe("catalog-driven handlers", () => {
     });
   });
 
-  it("documents kingminos-application PR #177 company.description contract on company_description", async () => {
+  it("documents kingminos-application PR #181 company.description contract on company_description", async () => {
     await withClient(async (client) => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "company_description");
@@ -305,9 +305,12 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /POST \/v1\/company\/description/);
       assert.match(description, /not aliases/i);
       assert.match(description, /speed.*balance.*accuracy.*coverage/i);
+      assert.match(description, /Always pass path explicitly/i);
+      assert.match(description, /credit cap from 2 to 6/i);
       assert.match(description, /AI Ark/i);
       assert.match(description, /same_as_speed/);
-      assert.match(description, /hype.*first_person.*tagline/i);
+      assert.match(description, /hype.*first_person.*tagline.*grammar/i);
+      assert.match(description, /grammar is informational only/i);
       assert.match(description, /usage\.hops/);
       assert.match(description, /by_provider/);
       assert.match(description, /not company\.description vendors/i);
@@ -320,6 +323,13 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /safe_to_write\.description/);
       assert.match(description, /answer\.identity/);
       assert.match(description, /low is never safe to write/i);
+      assert.match(description, /skip_cache true or cache_bypass true/i);
+      assert.match(description, /Idempotency-Key replay/i);
+      assert.match(description, /company\.resolve has no cache bypass/i);
+      assert.match(
+        description,
+        /Cache-Control no-cache or no-store is API-only/i,
+      );
       assert.doesNotMatch(description, /40–2000/);
     });
   });

@@ -475,7 +475,7 @@ export const DecideCompanyDescriptionInput = {
     ])
     .optional()
     .describe(
-      "Flattened alias of routing.path. Omit = balance. Nested routing.path wins when both are sent. company.description paths (not aliases): speed = homepage meta/og then AI Ark (cap 1) | balance (default, cap 2) = Jev-ranked homepage extracts + meta/og + AI Ark, optional rewrite | accuracy (cap 3) = xAI third-person compose from homepage evidence | coverage (cap 6) = accuracy compose plus off-homepage Serper / ZoomInfo BYOK evidence.",
+      "Flattened alias of routing.path. Always pass explicitly; omit defaults to balance but raises the credit cap from 2 to 6. Nested routing.path wins when both are sent. company.description paths (not aliases): speed = homepage meta/og then AI Ark (cap 1) | balance (default, cap 2) = Jev-ranked homepage extracts + meta/og + AI Ark, optional rewrite | accuracy (cap 3) = xAI third-person compose from homepage evidence | coverage (cap 6) = accuracy compose plus off-homepage Serper / ZoomInfo BYOK evidence.",
     ),
   preset: z
     .enum([
@@ -506,7 +506,13 @@ export const DecideCompanyDescriptionInput = {
     .boolean()
     .optional()
     .describe(
-      "Skip the 30-day company.description result-cache read and re-run the ladder (still writes). Same as X-Router-Cache: bypass.",
+      "Skip the 30-day company.description result-cache read and re-run the ladder (still writes). Same as cache_bypass (X-Router-Cache: bypass). Does not skip Idempotency-Key replay.",
+    ),
+  cache_bypass: z
+    .boolean()
+    .optional()
+    .describe(
+      "When true, send X-Router-Cache: bypass (same as skip_cache; other header values are 400). Does not skip Idempotency-Key replay.",
     ),
   ...CommonRunOptions,
 };

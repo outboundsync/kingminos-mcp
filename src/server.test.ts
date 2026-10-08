@@ -381,16 +381,17 @@ describe("catalog-driven handlers", () => {
     });
   });
 
-  it("company_icon input schema is domain plus run options only", () => {
+  it("company_icon input schema matches CompanyIconRequest (domain, optional name, run options)", () => {
     const keys = new Set(Object.keys(DecideCompanyIconInput));
     assert.ok(keys.has("domain"));
+    assert.ok(keys.has("name"));
     assert.ok(keys.has("dry_run"));
+    assert.ok(keys.has("external_ref"));
     assert.equal(keys.has("routing"), false);
     assert.equal(keys.has("path"), false);
     assert.equal(keys.has("preset"), false);
     assert.equal(keys.has("website"), false);
     assert.equal(keys.has("email"), false);
-    assert.equal(keys.has("name"), false);
   });
 });
 

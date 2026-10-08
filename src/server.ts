@@ -231,7 +231,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   company_icon: {
     description: [
       "POST /v1/company/icon — fetch, validate, normalize, and host a 128×128 PNG company icon for a domain.",
-      "Request body is domain plus run options only (routing, path, and preset are not part of the contract; the API silently ignores them if sent).",
+      "Request body is required domain, optional name, and run options (routing, path, and preset are not part of the contract; the API silently ignores them if sent). website and email are not accepted — use domain directly.",
       "One implementation ladder (0–2 paid credits): house favicon-fetch (dns/site_probe, 0) → Brandfetch BYOK (1, soft-fail) → ZoomInfo enrich logo (1). Brandfetch and ZoomInfo need put_credentials.",
       "On a hit, result.icon_url is always the KingMinos-hosted URL https://logos.kingminos.com/i/<sha256>.png (128×128 PNG in R2), never a third-party, site, Brandfetch, or ZoomInfo URL.",
       "Optional result.icon_source_url holds the original winning source URL before hosting.",

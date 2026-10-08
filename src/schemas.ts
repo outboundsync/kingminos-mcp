@@ -400,8 +400,12 @@ export const DecideCompanyIconInput = {
   domain: z
     .string()
     .describe(
-      "Registrable domain to fetch, normalize, and host an icon for. Required; other subject shapes are not accepted on this route.",
+      "Registrable domain to fetch, normalize, and host an icon for. Required.",
     ),
+  name: z
+    .string()
+    .optional()
+    .describe("Optional company-name hint for corroboration."),
   ...CommonRunOptions,
 };
 

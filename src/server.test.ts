@@ -368,9 +368,14 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /256×256 PNG in R2/);
       assert.match(description, /result\.icon_source_url/);
       assert.match(description, /never a third-party/i);
+      assert.match(description, /Fetch or store failure is a miss/i);
       assert.match(description, /icon_url null/);
-      assert.match(description, /safe_to_write\.icon_url/);
-      assert.match(description, /hosted logos\.kingminos\.com URL/);
+      assert.match(description, /wrong-company, junk, and empty only/i);
+      assert.match(description, /under 64px/i);
+      assert.match(description, /flags\.low_res true/i);
+      assert.match(description, /answer\.confidence low/i);
+      assert.match(description, /safe_to_write\.icon_url true/i);
+      assert.match(description, /including low-res/i);
       assert.match(
         description,
         /routing, path, and preset are not part of the contract/i,

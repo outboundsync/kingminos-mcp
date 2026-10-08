@@ -365,7 +365,7 @@ describe("catalog-driven handlers", () => {
       const description = tool?.description ?? "";
       assert.match(description, /POST \/v1\/company\/icon/);
       assert.match(description, /logos\.kingminos\.com\/i\/<sha256>\.png/);
-      assert.match(description, /128×128 PNG in R2/);
+      assert.match(description, /256×256 PNG in R2/);
       assert.match(description, /result\.icon_source_url/);
       assert.match(description, /never a third-party/i);
       assert.match(description, /icon_url null/);

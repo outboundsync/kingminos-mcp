@@ -81,12 +81,11 @@
   "capabilityProviders": {
     "company.icon": ["dns", "site_probe", "brandfetch", "zoominfo"],
     "company.description": [
-      "leadmagic",
-      "wiza",
-      "findymail",
+      "dns",
+      "site_probe",
       "aiark",
       "websearch",
-      "brandfetch"
+      "zoominfo"
     ],
     "company.b2b_social": [
       "websearch",

@@ -240,8 +240,20 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     buildRequest: capabilityRequest,
   },
   company_description: {
-    description:
-      "POST /v1/company/description — decide a usable company description paragraph (result.description, 40–2000 chars) or null for a domain/website/email subject. Domain/website/email required; name-only is 400. Engine first_acceptable — first usable text wins. speed = LeadMagic V3 company about/headline (cap 1). balance (default) continues Wiza / Findymail / AI Ark extra.description, then websearch (Serper + judge) (cap 6). accuracy / coverage use the same house stack. Brandfetch Context is BYOK via routing.only (needs put_credentials). Spends credits unless dry_run is true. Does not write SFDC.",
+    description: [
+      "POST /v1/company/description — decide a usable company description paragraph (result.description, 40–2000 chars) or null for a domain/website/email subject.",
+      "Domain/website/email required; name-only is 400.",
+      "Engine first_acceptable — first usable third-person company blurb wins; rejects taglines, first-person bios, nav/menu copy, PII, and hype.",
+      "Paths speed | balance (default) | accuracy | coverage are distinct ladders (not aliases), each capped at ~10s.",
+      "speed = house AI Ark firmographic + homepage/meta probe (fastest).",
+      "balance = site_probe homepage then optional Serper/websearch rewrite evidence; AI Ark is the only default-stack firmographic vendor; may fall back to a Serper snippet then the speed winner (result.same_as_speed when nearly identical).",
+      "accuracy = stricter rewrite/judge on balance evidence (higher precision).",
+      "coverage = parallel off-homepage Serper evidence plus compose + identity judge (highest recall).",
+      "LeadMagic, Wiza, Findymail, and Brandfetch are not company.description vendors.",
+      "ZoomInfo is BYOK-only via routing.only after put_credentials.",
+      "Envelope includes result flags hype, first_person, tagline, same_as_speed; answer.confidence; usage.hops and usage.by_provider; credits.",
+      "Spends credits unless dry_run is true. Does not write SFDC.",
+    ].join(" "),
     inputSchema: DecideCompanyDescriptionInput,
     annotations: {
       readOnlyHint: false,

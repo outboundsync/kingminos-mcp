@@ -296,6 +296,27 @@ describe("catalog-driven handlers", () => {
       assert.match(list?.description ?? "", /Never returns raw keys/i);
     });
   });
+
+  it("documents kingminos-application PR #177 company.description contract on company_description", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const tool = listed.tools.find((t) => t.name === "company_description");
+      const description = tool?.description ?? "";
+      assert.match(description, /POST \/v1\/company\/description/);
+      assert.match(description, /not aliases/i);
+      assert.match(description, /speed.*balance.*accuracy.*coverage/i);
+      assert.match(description, /AI Ark/i);
+      assert.match(description, /same_as_speed/);
+      assert.match(description, /hype.*first_person.*tagline/i);
+      assert.match(description, /usage\.hops/);
+      assert.match(description, /by_provider/);
+      assert.match(description, /not company\.description vendors/i);
+      assert.doesNotMatch(description, /speed = LeadMagic/i);
+      assert.doesNotMatch(description, /Wiza \/ Findymail/i);
+      assert.doesNotMatch(description, /same house stack/i);
+      assert.match(description, /ZoomInfo is BYOK-only/i);
+    });
+  });
 });
 
 describe("stripMeta", () => {

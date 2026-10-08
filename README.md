@@ -174,7 +174,7 @@ Every tool is the snake_case `operationId` of one bearer-authenticated KingMinos
 | `company_hierarchy` | `POST /v1/company/hierarchy` | Immediate / ultimate parent + capped subsidiaries |
 | `company_b2b_social` | `POST /v1/company/b2b-social` | LinkedIn company page URL; balance = websearch → house AI Ark; accuracy/coverage stack LeadMagic / AI Ark / Wiza / Findymail |
 | `company_icon` | `POST /v1/company/icon` | Live HTTPS `result.icon_url`; ladder = house favicon-fetch (0) → Brandfetch BYOK (1, soft-fail) → ZoomInfo enrich logo (1); not LeadMagic / AI Ark / Prospeo / Enrich-CRM |
-| `company_description` | `POST /v1/company/description` | Usable `result.description` (40–2000 chars) or null; speed = LeadMagic (cap 1); balance (default) = LeadMagic → Wiza / Findymail / AI Ark → websearch (cap 6); Brandfetch BYOK via `routing.only` |
+| `company_description` | `POST /v1/company/description` | Usable `result.description` (40–2000 chars) or null; distinct paths `speed` \| `balance` (default) \| `accuracy` \| `coverage` (~10s each); house AI Ark is the only default firmographic vendor; websearch rewrite/compose on balance+; flags `hype` / `first_person` / `tagline` / `same_as_speed` plus `confidence`, `usage.hops`, `usage.by_provider`, `credits`; ZoomInfo BYOK via `routing.only` (not LeadMagic / Wiza / Findymail / Brandfetch) |
 | `person_verify_employment` | `POST /v1/person/verify-employment` | LeadMagic default; Findymail is house-key via `routing.only` |
 | `get_run` | `GET /v1/runs/{id}` | Recorded run envelope |
 | `list_credentials` | `GET /v1/credentials` | Masked Your Keys catalog. Never returns raw keys |

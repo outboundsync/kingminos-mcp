@@ -475,7 +475,7 @@ export const DecideCompanyDescriptionInput = {
     ])
     .optional()
     .describe(
-      "Flattened alias of routing.path. Omit = balance. Nested routing.path wins when both are sent.",
+      "Flattened alias of routing.path. Omit = balance. Nested routing.path wins when both are sent. company.description paths: speed (AI Ark + meta, fastest) | balance (default, homepage rewrite) | accuracy (stricter judge) | coverage (max Serper evidence + compose) — not aliases.",
     ),
   preset: z
     .enum([

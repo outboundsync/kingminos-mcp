@@ -4,7 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { LIVE_RESOURCE_ROUTES, type ToolName } from "./catalog.js";
 import { handleFetch } from "./fetch.js";
-import { stripMeta } from "./schemas.js";
+import { DecideCompanyIconInput, stripMeta } from "./schemas.js";
 import { credentialPutBody, encodePath, rawSubjectKey } from "./server.js";
 
 const originalFetch = globalThis.fetch;
@@ -356,6 +356,47 @@ describe("catalog-driven handlers", () => {
       );
       assert.doesNotMatch(description, /40–2000/);
     });
+  });
+
+  it("documents kingminos-application PR #186 company.icon hosted URL contract on company_icon", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const tool = listed.tools.find((t) => t.name === "company_icon");
+      const description = tool?.description ?? "";
+      assert.match(description, /POST \/v1\/company\/icon/);
+      assert.match(description, /logos\.kingminos\.com\/i\/<sha256>\.png/);
+      assert.match(description, /256×256 PNG in R2/);
+      assert.match(description, /result\.icon_source_url/);
+      assert.match(description, /never a third-party/i);
+      assert.match(description, /Fetch or store failure is a miss/i);
+      assert.match(description, /icon_url null/);
+      assert.match(description, /wrong-company, junk, and empty only/i);
+      assert.match(description, /under 64px/i);
+      assert.match(description, /flags\.low_res true/i);
+      assert.match(description, /answer\.confidence low/i);
+      assert.match(description, /safe_to_write\.icon_url true/i);
+      assert.match(description, /including low-res/i);
+      assert.match(
+        description,
+        /routing, path, and preset are not part of the contract/i,
+      );
+      assert.match(description, /One implementation ladder/i);
+      assert.doesNotMatch(description, /Omit = balance/);
+      assert.doesNotMatch(description, /Live HTTPS/);
+    });
+  });
+
+  it("company_icon input schema matches CompanyIconRequest (domain, optional name, run options)", () => {
+    const keys = new Set(Object.keys(DecideCompanyIconInput));
+    assert.ok(keys.has("domain"));
+    assert.ok(keys.has("name"));
+    assert.ok(keys.has("dry_run"));
+    assert.ok(keys.has("external_ref"));
+    assert.equal(keys.has("routing"), false);
+    assert.equal(keys.has("path"), false);
+    assert.equal(keys.has("preset"), false);
+    assert.equal(keys.has("website"), false);
+    assert.equal(keys.has("email"), false);
   });
 });
 

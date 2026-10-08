@@ -229,8 +229,19 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     buildRequest: capabilityRequest,
   },
   company_icon: {
-    description:
-      "POST /v1/company/icon — resolve a live HTTPS company icon for a domain/website/email subject. Domain/website/email required; name-only is 400. Default waterfall (0–2 paid credits): house favicon-fetch (dns/site_probe, 0 credits) → Brandfetch BYOK (1 credit, soft-fail and continue) → ZoomInfo enrich logo (1 credit). Not sourced from LeadMagic, AI Ark, Prospeo, or Enrich-CRM. Output result.icon_url is https or null. Brandfetch and ZoomInfo need put_credentials. Spends credits unless dry_run is true. Does not write SFDC.",
+    description: [
+      "POST /v1/company/icon — fetch, validate, normalize, and host a 256×256 PNG company icon for a domain.",
+      "Request body is required domain, optional name, and run options (routing, path, and preset are not part of the contract; the API silently ignores them if sent). website and email are not accepted — use domain directly.",
+      "One implementation ladder (0–2 paid credits): house favicon-fetch (dns/site_probe, 0) → Brandfetch BYOK (1, soft-fail) → ZoomInfo enrich logo (1). Brandfetch and ZoomInfo need put_credentials.",
+      "On a hit, result.icon_url is always the KingMinos-hosted URL https://logos.kingminos.com/i/<sha256>.png (256×256 PNG in R2), never a third-party, site, Brandfetch, or ZoomInfo URL.",
+      "Optional result.icon_source_url holds the original winning source URL before hosting.",
+      "Hard rejects are wrong-company, junk, and empty only.",
+      "A source under 64px is still a hosted hit: answer.confidence low, result.flags.low_res true, and answer.safe_to_write.icon_url true (upscaled to 256×256 in R2).",
+      "Fetch or store failure is a miss with result.icon_url null.",
+      "answer.safe_to_write.icon_url is true on any hosted logos.kingminos.com hit (including low-res); false on misses.",
+      "Not sourced from LeadMagic, AI Ark, Prospeo, or Enrich-CRM.",
+      "Spends credits unless dry_run is true. Does not write SFDC.",
+    ].join(" "),
     inputSchema: DecideCompanyIconInput,
     annotations: {
       readOnlyHint: false,

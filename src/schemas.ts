@@ -397,51 +397,10 @@ export const DecideCompanyB2bSocialInput = {
 };
 
 export const DecideCompanyIconInput = {
-  name: z
-    .string()
-    .optional()
-    .describe(
-      "Optional unit/brand corroboration. Name-only without domain/website/email is 400.",
-    ),
   domain: z
     .string()
-    .optional()
     .describe(
-      "Required subject (or website/email that hygiene-normalize to the same registrable).",
-    ),
-  website: z.string().optional(),
-  email: z.string().optional(),
-  routing: CompanyDomainRoutingRequest.optional(),
-  path: z
-    .enum([
-      "speed",
-      "balance",
-      "accuracy",
-      "coverage",
-      "value",
-      "auto",
-      "fast",
-      "name_only",
-    ])
-    .optional()
-    .describe(
-      "Flattened alias of routing.path. Omit = balance. Nested routing.path wins when both are sent.",
-    ),
-  preset: z
-    .enum([
-      "speed",
-      "balance",
-      "accuracy",
-      "coverage",
-      "value",
-      "auto",
-      "name_only",
-      "zi_stamp",
-      "fast",
-    ])
-    .optional()
-    .describe(
-      "Flattened alias of routing.preset. Nested wins when both are sent.",
+      "Registrable domain to fetch, normalize, and host an icon for. Required; other subject shapes are not accepted on this route.",
     ),
   ...CommonRunOptions,
 };

@@ -63,18 +63,20 @@ describe("provider enum contract", () => {
     assert.ok(icon?.includes("zoominfo"));
   });
 
-  it("lists the house stack and Brandfetch on company.description capabilityProviders pin", () => {
+  it("pins AI Ark + websearch hops on company.description (PR #177; no LeadMagic/Wiza/Findymail/Brandfetch)", () => {
     const description =
       fileInventory.capabilityProviders?.["company.description"];
     for (const name of [
-      "leadmagic",
-      "wiza",
-      "findymail",
+      "dns",
+      "site_probe",
       "aiark",
       "websearch",
-      "brandfetch",
+      "zoominfo",
     ]) {
       assert.ok(description?.includes(name), name);
+    }
+    for (const excluded of ["leadmagic", "wiza", "findymail", "brandfetch"]) {
+      assert.equal(description?.includes(excluded), false, excluded);
     }
   });
 

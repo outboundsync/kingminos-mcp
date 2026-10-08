@@ -475,7 +475,7 @@ export const DecideCompanyDescriptionInput = {
     ])
     .optional()
     .describe(
-      "Flattened alias of routing.path. Omit = balance. Nested routing.path wins when both are sent.",
+      "Flattened alias of routing.path. Omit = balance. Nested routing.path wins when both are sent. company.description paths (not aliases): speed = homepage meta/og then AI Ark (cap 1) | balance (default, cap 2) = Jev-ranked homepage extracts + meta/og + AI Ark, optional rewrite | accuracy (cap 3) = xAI third-person compose from homepage evidence | coverage (cap 6) = accuracy compose plus off-homepage Serper / ZoomInfo BYOK evidence.",
     ),
   preset: z
     .enum([
@@ -492,6 +492,21 @@ export const DecideCompanyDescriptionInput = {
     .optional()
     .describe(
       "Flattened alias of routing.preset. Nested wins when both are sent.",
+    ),
+  max_chars: z
+    .number()
+    .int()
+    .min(80)
+    .max(500)
+    .optional()
+    .describe(
+      "Max description length (80–500, API default 300). Trims at a sentence boundary; never mid-word.",
+    ),
+  skip_cache: z
+    .boolean()
+    .optional()
+    .describe(
+      "Skip the 30-day company.description result-cache read and re-run the ladder (still writes). Same as X-Router-Cache: bypass.",
     ),
   ...CommonRunOptions,
 };

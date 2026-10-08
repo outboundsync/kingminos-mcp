@@ -315,6 +315,12 @@ describe("catalog-driven handlers", () => {
       assert.doesNotMatch(description, /Wiza \/ Findymail/i);
       assert.doesNotMatch(description, /same house stack/i);
       assert.match(description, /ZoomInfo is BYOK-only/i);
+      assert.match(description, /truncated/);
+      assert.match(description, /cta/);
+      assert.match(description, /safe_to_write\.description/);
+      assert.match(description, /answer\.identity/);
+      assert.match(description, /low is never safe to write/i);
+      assert.doesNotMatch(description, /40–2000/);
     });
   });
 });

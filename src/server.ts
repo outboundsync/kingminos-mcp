@@ -326,7 +326,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "PUT /v1/credentials/{provider} — upsert tenant Your Keys (ciphertext).",
       "ZoomInfo and Snov.io use { clientId, clientSecret }. Other vendors use { apiKey }.",
       "Response never echoes the raw key. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors; storing those keys is optional.",
-      "ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, and Snov.io are BYOK. Websearch cannot be stored.",
+      "ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, Snov.io, Cognism, Lusha, Starbridge, Clay, and Databar are BYOK. Websearch cannot be stored.",
       PUT_CREDENTIALS_WARNING,
       "Confirm with the user first.",
     ].join(" "),
@@ -393,7 +393,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
         : [
             `${PRODUCT_NAME} wraps the live enrichment API at https://api.kingminos.com.`,
             "Call get_capabilities before the first resolve so routing defaults are current.",
-            "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, and Snov.io are BYOK via put_credentials.",
+            "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, Snov.io, Cognism, Lusha, Starbridge, Clay, and Databar are BYOK via put_credentials.",
             "Websearch is house-only and cannot be stored.",
             "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
             PUT_CREDENTIALS_WARNING,

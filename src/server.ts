@@ -27,6 +27,7 @@ import {
   GetRunInput,
   OAUTH_CREDENTIAL_PROVIDER_VALUES,
   PERCENT_ENCODED,
+  PersonLanguageInput,
   PutCredentialInput,
   ResolveCompanyInput,
   stripMeta,
@@ -282,6 +283,25 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     description:
       "POST /v1/person/verify-employment — pre-flight whether to send to this person. Default path is balance (LeadMagic email validate + optional paid LinkedIn lookup). speed is LeadMagic validate only. accuracy adds AI Ark (house-keyed). Findymail is a house-key Layer-1 alternate only when routing.only selects it — never stacked after LeadMagic. Outcomes: high_confidence_send | low_confidence_send | low_confidence_block | high_confidence_block | no_decision. Spends credits unless dry_run is true. Does not write SFDC.",
     inputSchema: VerifyEmploymentInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
+    buildRequest: capabilityRequest,
+  },
+  person_language: {
+    description: [
+      "POST /v1/person/language — can we engage this person in English, and if not, in what language? Input email or linkedin_url (one required, else 400 email_or_linkedin_required); first_name / last_name are match-only (reject someone else's profile → person_mismatch), never used to infer a language.",
+      "result.english is yes | likely | unconfirmed | unknown (never no). result.recommended_language (ISO 639-1; English whenever english=yes) and result.local_language (strongest non-English) are set only at medium or high; low guesses stay in result.languages [{code, name, confidence, level, evidence[]}]. result.detected, result.flags (weak_signals, multilingual_country, conflicting_signals, unconfirmed_identity), result.person.",
+      "Confidence is a heuristic 0–1 score (high ≥ 0.75, medium ≥ 0.5), not a calibrated probability.",
+      "routing.path: speed (cap 1: one profile read + language judge) | balance (default, cap 3: LeadMagic by URL → AI Ark by email → Findymail only if AI Ark found no one → LeadMagic on a resolved URL) | accuracy (cap 4: every structured source, no early stop, + language judge). Only path/preset is read; coverage and anything else is 400 invalid_routing.",
+      "decision.outcome hit iff recommended_language is set; low-only → no_decision/ambiguous; nothing found → zero_hits; no vendor answered → provider_error; skips → compliance_blocked | status_down | max_credits_reached | not_configured. answer.safe_to_write.recommended_language only on hit without conflicting_signals or unconfirmed_identity.",
+      "Under compliance.soc2 LeadMagic and AI Ark are skipped; Findymail is the only source. Misses, vendor errors, and unconfigured cost 0.",
+      "30-day cache: repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers.",
+      "Spends credits unless dry_run is true. Does not write SFDC.",
+    ].join(" "),
+    inputSchema: PersonLanguageInput,
     annotations: {
       readOnlyHint: false,
       openWorldHint: true,

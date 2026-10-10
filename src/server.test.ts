@@ -90,6 +90,7 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   company_icon: { domain: "acme.com" },
   company_description: { domain: "acme.com" },
   person_verify_employment: { email: "a@b.com" },
+  person_language: { email: "a@b.com" },
   get_run: { id: "run_1" },
   list_credentials: {},
   put_credentials: { provider: "leadmagic", apiKey: "vendor-key" },
@@ -212,6 +213,56 @@ describe("catalog-driven handlers", () => {
     assert.equal(body.domain, "acme.com");
     assert.equal(body.path, "balance");
     assert.equal(body.cache_bypass, undefined);
+  });
+
+  it("sends person_language to POST /v1/person/language with routing.path and cache bypass", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      await client.callTool({
+        name: "person_language",
+        arguments: {
+          linkedin_url: "https://www.linkedin.com/in/example",
+          first_name: "Anna",
+          routing: { path: "speed" },
+          skip_cache: true,
+        },
+      });
+    });
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    assert.ok(call);
+    assert.match(call.url, /\/v1\/person\/language$/);
+    assert.equal(call.headers["x-router-cache"], "bypass");
+    const body = JSON.parse(call.body ?? "{}") as Record<string, unknown>;
+    assert.deepEqual(body.routing, { path: "speed" });
+    assert.equal(body.skip_cache, true);
+    assert.equal(body.first_name, "Anna");
+  });
+
+  it("rejects routing.path coverage on person_language before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const result = await client.callTool({
+        name: "person_language",
+        arguments: { email: "a@b.com", routing: { path: "coverage" } },
+      });
+      assert.equal(result.isError, true);
+    });
+    assert.equal(calls.length, 0);
+  });
+
+  it("documents the person.language contract on person_language", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const tool = listed.tools.find((t) => t.name === "person_language");
+      const description = tool?.description ?? "";
+      assert.match(description, /POST \/v1\/person\/language/);
+      assert.match(description, /speed \(cap 1/);
+      assert.match(description, /balance \(default, cap 3/);
+      assert.match(description, /accuracy \(cap 4/);
+      assert.match(description, /coverage.*400 invalid_routing/);
+      assert.match(description, /match-only/i);
+    });
   });
 
   it("shapes put_credentials bodies and aliases api_key", async () => {

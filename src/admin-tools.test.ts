@@ -105,4 +105,52 @@ describe("admin tools", () => {
     assert.match(calls[2]?.body ?? "", /"amount_cents":10000/);
     assert.equal(calls[0]?.auth, "Bearer kmadm_testtoken");
   });
+
+  it("partner_payout approves and lists pending", async () => {
+    const calls: Array<{ url: string; method: string; body: string | null }> =
+      [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (input, init) => {
+      const req = input instanceof Request ? input : new Request(input, init);
+      if (req.url.startsWith("http://127.0.0.1/")) {
+        return realFetch(input, init);
+      }
+      calls.push({
+        url: req.url,
+        method: req.method,
+        body: init?.body !== undefined ? String(init.body) : null,
+      });
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    await withClient("kmadm_testtoken", async (c) => {
+      await c.callTool({
+        name: "partner_payout",
+        arguments: { action: "list_pending" },
+      });
+      await c.callTool({
+        name: "partner_payout",
+        arguments: {
+          action: "approve",
+          id: "po_p_acme_2026-10",
+          confirm: "2500.00",
+        },
+      });
+      const bad = await c.callTool({
+        name: "partner_payout",
+        arguments: { action: "approve" },
+      });
+      assert.equal(bad.isError, true);
+    });
+    assert.match(
+      calls[0]?.url ?? "",
+      /\/v1\/admin\/partners\/payouts\?status=pending$/,
+    );
+    assert.equal(calls[1]?.method, "POST");
+    assert.match(calls[1]?.url ?? "", /\/payouts\/po_p_acme_2026-10\/approve$/);
+    assert.match(calls[1]?.body ?? "", /"confirm":"2500.00"/);
+    assert.equal(calls.length, 2);
+  });
 });

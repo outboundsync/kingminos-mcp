@@ -42,6 +42,11 @@ export const CREDENTIAL_PROVIDER_VALUES = [
   "enrichcrm",
   "lemlist",
   "snovio",
+  "cognism",
+  "lusha",
+  "starbridge",
+  "clay",
+  "databar",
 ] as const;
 
 /** put_credentials OAuth vendors ({ clientId, clientSecret }). Keep in lockstep with application OAUTH_PROVIDER_NAMES. */
@@ -87,6 +92,7 @@ const MaxProviderCredits = z.union([
       "company.b2b_social": z.number().optional(),
       "company.icon": z.number().optional(),
       "company.description": z.number().optional(),
+      "person.language": z.number().optional(),
     })
     .strict(),
 ]);
@@ -480,6 +486,59 @@ export const DecideCompanyDescriptionInput = {
   ...CommonRunOptions,
 };
 
+const PersonLanguagePath = z.enum(["speed", "balance", "accuracy"]);
+
+export const PersonLanguageInput = {
+  email: z
+    .string()
+    .optional()
+    .describe("Work email. One of email / linkedin_url is required."),
+  linkedin_url: z
+    .string()
+    .optional()
+    .describe(
+      "LinkedIn profile URL or slug. One of email / linkedin_url is required; an unparseable URL is 400 invalid_linkedin_url.",
+    ),
+  first_name: z
+    .string()
+    .optional()
+    .describe(
+      "Match-only: rejects a profile that belongs to someone else (person_mismatch). A name never infers a language.",
+    ),
+  last_name: z.string().optional().describe("Match-only (see first_name)."),
+  person: z
+    .object({
+      email: z.string().optional(),
+      linkedin_url: z.string().optional(),
+      first_name: z.string().optional(),
+      last_name: z.string().optional(),
+    })
+    .optional()
+    .describe("Nested alternative to the top-level person fields."),
+  routing: z
+    .object({
+      path: PersonLanguagePath.optional().describe(
+        "speed (cap 1) | balance (default, cap 3) | accuracy (cap 4). coverage is 400 invalid_routing.",
+      ),
+      preset: PersonLanguagePath.optional().describe("Alias of path."),
+    })
+    .optional()
+    .describe(
+      "Only path (or preset) is read; other routing fields are ignored.",
+    ),
+  skip_cache: z
+    .boolean()
+    .optional()
+    .describe(
+      "Skip the 30-day cache read (still writes). Same as cache_bypass (X-Router-Cache: bypass).",
+    ),
+  cache_bypass: z
+    .boolean()
+    .optional()
+    .describe("When true, send X-Router-Cache: bypass (same as skip_cache)."),
+  ...CommonRunOptions,
+};
+
 export const VerifyEmploymentInput = {
   email: z.string().optional(),
   first_name: z.string().optional(),
@@ -529,7 +588,7 @@ export const PutCredentialInput = {
     .string()
     .optional()
     .describe(
-      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, apollo, companyurlfinder, peopledatalabs, hginsights, brandfetch, enrichcrm, or lemlist. Alias: api_key. Do not send for zoominfo or snovio.",
+      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, apollo, companyurlfinder, peopledatalabs, hginsights, brandfetch, enrichcrm, lemlist, cognism, lusha, starbridge, clay, or databar. Alias: api_key. Do not send for zoominfo or snovio.",
     ),
   api_key: z
     .string()

@@ -76,7 +76,12 @@
     "brandfetch",
     "enrichcrm",
     "lemlist",
-    "snovio"
+    "snovio",
+    "cognism",
+    "lusha",
+    "starbridge",
+    "clay",
+    "databar"
   ],
   "capabilityProviders": {
     "company.icon": ["dns", "site_probe", "brandfetch", "zoominfo"],
@@ -139,6 +144,11 @@
       "operationId": "person_verify_employment",
       "method": "POST",
       "path": "/v1/person/verify-employment"
+    },
+    {
+      "operationId": "person_language",
+      "method": "POST",
+      "path": "/v1/person/language"
     },
     {
       "operationId": "get_run",

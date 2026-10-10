@@ -27,6 +27,7 @@ import {
   GetRunInput,
   OAUTH_CREDENTIAL_PROVIDER_VALUES,
   PERCENT_ENCODED,
+  PersonLanguageInput,
   PutCredentialInput,
   ResolveCompanyInput,
   stripMeta,
@@ -289,6 +290,25 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     },
     buildRequest: capabilityRequest,
   },
+  person_language: {
+    description: [
+      "POST /v1/person/language — can we engage this person in English, and if not, in what language? Input email or linkedin_url (one required, else 400 email_or_linkedin_required); first_name / last_name are match-only (reject someone else's profile → person_mismatch), never used to infer a language.",
+      "result.english is yes | likely | unconfirmed | unknown (never no). result.recommended_language (ISO 639-1; English whenever english=yes) and result.local_language (strongest non-English) are set only at medium or high; low guesses stay in result.languages [{code, name, confidence, level, evidence[]}]. result.detected, result.flags (weak_signals, multilingual_country, conflicting_signals, unconfirmed_identity), result.person.",
+      "Confidence is a heuristic 0–1 score (high ≥ 0.75, medium ≥ 0.5), not a calibrated probability.",
+      "routing.path: speed (cap 1: one profile read + language judge) | balance (default, cap 3: LeadMagic by URL → AI Ark by email → Findymail only if AI Ark found no one → LeadMagic on a resolved URL) | accuracy (cap 4: every structured source, no early stop, + language judge). Only path/preset is read; coverage and anything else is 400 invalid_routing.",
+      "decision.outcome hit iff recommended_language is set; low-only → no_decision/ambiguous; nothing found → zero_hits; no vendor answered → provider_error; skips → compliance_blocked | status_down | max_credits_reached | not_configured. answer.safe_to_write.recommended_language only on hit without conflicting_signals or unconfirmed_identity.",
+      "Under compliance.soc2 LeadMagic and AI Ark are skipped; Findymail is the only source. Misses, vendor errors, and unconfigured cost 0.",
+      "30-day cache: repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers.",
+      "Spends credits unless dry_run is true. Does not write SFDC.",
+    ].join(" "),
+    inputSchema: PersonLanguageInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
+    buildRequest: capabilityRequest,
+  },
   get_run: {
     description:
       "GET /v1/runs/{id} — fetch a recorded run. Completed runs match the capability POST envelope plus candidates. running/failed return a subset (decision/result/es_decision are null). 404 only for missing or another tenant's run.",
@@ -326,7 +346,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "PUT /v1/credentials/{provider} — upsert tenant Your Keys (ciphertext).",
       "ZoomInfo and Snov.io use { clientId, clientSecret }. Other vendors use { apiKey }.",
       "Response never echoes the raw key. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors; storing those keys is optional.",
-      "ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, and Snov.io are BYOK. Websearch cannot be stored.",
+      "ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, Snov.io, Cognism, Lusha, Starbridge, Clay, and Databar are BYOK. Websearch cannot be stored.",
       PUT_CREDENTIALS_WARNING,
       "Confirm with the user first.",
     ].join(" "),
@@ -393,7 +413,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
         : [
             `${PRODUCT_NAME} wraps the live enrichment API at https://api.kingminos.com.`,
             "Call get_capabilities before the first resolve so routing defaults are current.",
-            "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, and Snov.io are BYOK via put_credentials.",
+            "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, Snov.io, Cognism, Lusha, Starbridge, Clay, and Databar are BYOK via put_credentials.",
             "Websearch is house-only and cannot be stored.",
             "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
             PUT_CREDENTIALS_WARNING,

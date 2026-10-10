@@ -1,16 +1,23 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { advertisedProviders } from "./check-providers.js";
 import {
+  CREDENTIAL_ONLY_PROVIDERS,
   diffProviders,
+  INVENTORY_PATH_ENV,
+  OPENAPI_JSON_URL_ENV,
   parseInventoryDocument,
   providersAligned,
   providersFromOpenApiDocument,
   readInventoryFile,
+  refreshInventoryFile,
+  serializeInventoryFile,
 } from "./openapi-inventory.js";
 import { CREDENTIAL_PROVIDER_VALUES, PROVIDER_NAME_VALUES } from "./schemas.js";
 
@@ -47,6 +54,15 @@ describe("provider enum contract", () => {
   it("pins snovio on credentialProviders only (credentials-only BYOK)", () => {
     assert.ok(fileInventory.credentialProviders.includes("snovio"));
     assert.equal(fileInventory.providers.includes("snovio"), false);
+  });
+
+  it("pins the five credential-only vendors on credentialProviders only", () => {
+    // Cognism / Lusha / Starbridge / Clay / Databar (Harris 2026-10-10):
+    // store/verify via put_credentials, no routing hop — never in providers[].
+    for (const id of ["cognism", "lusha", "starbridge", "clay", "databar"]) {
+      assert.ok(fileInventory.credentialProviders.includes(id));
+      assert.equal(fileInventory.providers.includes(id), false);
+    }
   });
 
   it("lists aiark on company.b2b_social capabilityProviders pin", () => {
@@ -163,6 +179,91 @@ describe("providersFromOpenApiDocument", () => {
       "leadmagic",
       "prospeo",
     ]);
+  });
+});
+
+describe("credential-only vendors", () => {
+  it("never lands credential-only vendors in providers[]", () => {
+    const extracted = providersFromOpenApiDocument({
+      components: {
+        schemas: {
+          ProviderName: {
+            type: "string",
+            enum: ["leadmagic", ...CREDENTIAL_ONLY_PROVIDERS, "lemlist"],
+          },
+        },
+      },
+      paths: {},
+    });
+    assert.deepEqual(extracted.providers, ["leadmagic", "lemlist"]);
+  });
+
+  it("inventory:refresh skips credential-only vendors and preserves capabilityProviders", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "kingminos-mcp-refresh-"));
+    const file = join(dir, "inventory.json");
+    const pinned = readInventoryFile(
+      join(process.cwd(), "inventory", "openapi-surfaces.json"),
+    );
+    writeFileSync(
+      file,
+      serializeInventoryFile({
+        ...pinned,
+        providers: [...pinned.providers, "clay"],
+      }),
+    );
+    const doc = {
+      openapi: "3.0.3",
+      components: {
+        securitySchemes: { bearer: { type: "http", scheme: "bearer" } },
+        schemas: {
+          ProviderName: {
+            type: "string",
+            enum: [...pinned.providers, ...CREDENTIAL_ONLY_PROVIDERS],
+          },
+        },
+      },
+      paths: Object.fromEntries(
+        pinned.operations.map((op) => [
+          op.path,
+          {
+            [op.method.toLowerCase()]: {
+              operationId: op.operationId,
+              security: [{ bearer: [] }],
+            },
+          },
+        ]),
+      ),
+    };
+    const server = createServer((_req, res) => {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify(doc));
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const { port } = server.address() as AddressInfo;
+    const prev = {
+      url: process.env[OPENAPI_JSON_URL_ENV],
+      path: process.env[INVENTORY_PATH_ENV],
+    };
+    process.env[OPENAPI_JSON_URL_ENV] = `http://127.0.0.1:${port}/openapi.json`;
+    process.env[INVENTORY_PATH_ENV] = file;
+    try {
+      const { inventory } = await refreshInventoryFile(dir);
+      for (const vendor of CREDENTIAL_ONLY_PROVIDERS) {
+        assert.equal(inventory.providers.includes(vendor), false, vendor);
+      }
+      const written = readInventoryFile(file);
+      assert.deepEqual(written.providers, pinned.providers);
+      assert.deepEqual(written.capabilityProviders, pinned.capabilityProviders);
+      assert.ok(written.capabilityProviders?.["company.description"]);
+    } finally {
+      server.close();
+      if (prev.url === undefined) delete process.env[OPENAPI_JSON_URL_ENV];
+      else process.env[OPENAPI_JSON_URL_ENV] = prev.url;
+      if (prev.path === undefined) delete process.env[INVENTORY_PATH_ENV];
+      else process.env[INVENTORY_PATH_ENV] = prev.path;
+    }
   });
 });
 

@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { ZodTypeAny } from "zod";
+import { isAdminBearer, registerAdminTools } from "./admin-tools.js";
 import { LIVE_RESOURCE_ROUTES, type ToolName } from "./catalog.js";
 import { PRODUCT_NAME, VERSION } from "./config.js";
 import {
@@ -401,6 +402,12 @@ export function createKingMinosServer(context: ToolContext): McpServer {
 
   const bearerOf = (): string => requireBearer(context.bearer);
   const requestBaseUrl = context.apiBaseUrl;
+
+  // Admin token: admin tools only (they never appear for tenant/user bearers).
+  if (isAdminBearer(context.bearer)) {
+    registerAdminTools(server, context.bearer as string, requestBaseUrl);
+    return server;
+  }
 
   for (const route of LIVE_RESOURCE_ROUTES) {
     const spec = TOOL_SPECS[route.tool];

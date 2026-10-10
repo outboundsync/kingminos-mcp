@@ -146,6 +146,11 @@
       "path": "/v1/person/verify-employment"
     },
     {
+      "operationId": "person_language",
+      "method": "POST",
+      "path": "/v1/person/language"
+    },
+    {
       "operationId": "get_run",
       "method": "GET",
       "path": "/v1/runs/{id}"

@@ -10,6 +10,7 @@ export type ToolName =
   | "company_icon"
   | "company_description"
   | "person_verify_employment"
+  | "person_language"
   | "get_run"
   | "list_credentials"
   | "put_credentials"
@@ -51,6 +52,11 @@ export const LIVE_RESOURCE_ROUTES: readonly ResourceRoute[] = [
     method: "POST",
     path: "/v1/person/verify-employment",
     tool: "person_verify_employment",
+  },
+  {
+    method: "POST",
+    path: "/v1/person/language",
+    tool: "person_language",
   },
   { method: "GET", path: "/v1/runs/{id}", tool: "get_run" },
   { method: "GET", path: "/v1/credentials", tool: "list_credentials" },

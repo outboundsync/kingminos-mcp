@@ -71,7 +71,7 @@ npm run check:surfaces:live
 npm run check:providers:live
 ```
 
-Refresh the pin from live OpenAPI (network). Unions provider enums and newly seen auth/account operationIds; never drops pinned providers. Review the diff before committing:
+Refresh the pin from live OpenAPI (network). Unions provider enums and newly seen auth/account operationIds; never drops pinned providers. Credential-only vendors (snovio, cognism, lusha, starbridge, clay, databar — no routing hop) are skipped from `providers[]`; the hand-written `capabilityProviders` pin is preserved. Review the diff before committing:
 
 ```bash
 npm run inventory:refresh
@@ -180,6 +180,7 @@ Every tool is the snake_case `operationId` of one bearer-authenticated KingMinos
 | `company_icon` | `POST /v1/company/icon` | Required `domain`, optional `name` (no routing/path/preset; no website/email); on hit `result.icon_url` is always `https://logos.kingminos.com/i/<sha256>.png` (256×256 R2); optional `result.icon_source_url`; source under 64px → hosted hit with `confidence` low, `flags.low_res`, `safe_to_write.icon_url` true; rejects wrong-company/junk/empty only; fetch/store fail → `icon_url` null; ladder = favicon-fetch (0) → Brandfetch BYOK (1) → ZoomInfo (1) |
 | `company_description` | `POST /v1/company/description` | English `result.description` or null (max_chars 80–500, default 300); always pass `path` (omit → balance at cap 6; `path: balance` → cap 2); paths `speed` (meta/og → AI Ark) \| `balance` (Jev-ranked extracts + AI Ark + optional rewrite) \| `accuracy` (xAI compose) \| `coverage` (compose + Serper / ZoomInfo BYOK); flags `hype` / `first_person` / `tagline` / `same_as_speed` / `truncated` / `cta` / `grammar` (may gain keys — tolerate unknowns; truncated/cta → `low`; `grammar` informational only); cache bypass via `skip_cache` or `cache_bypass` (not Idempotency-Key replay; `company.resolve` ignores bypass); `answer.confidence`, `answer.identity`; `safe_to_write.description` only on non-low + identity; winner-only billing; AI Ark only firmographic vendor |
 | `person_verify_employment` | `POST /v1/person/verify-employment` | LeadMagic default; Findymail is house-key via `routing.only` |
+| `person_language` | `POST /v1/person/language` | Can we engage in English, and if not, which language? `email` or `linkedin_url` required (names are match-only); `result.english` yes \| likely \| unconfirmed \| unknown, `recommended_language` / `local_language` at medium+ only; `routing.path` speed (cap 1) \| balance (default, cap 3) \| accuracy (cap 4), `coverage` is `400 invalid_routing`; `skip_cache` / `cache_bypass` |
 | `get_run` | `GET /v1/runs/{id}` | Recorded run envelope |
 | `list_credentials` | `GET /v1/credentials` | Masked Your Keys catalog. Never returns raw keys |
 | `put_credentials` | `PUT /v1/credentials/{provider}` | Tenant Your Keys (ciphertext). Confirm first. The key will be visible in this conversation; prefer the web app at https://app.kingminos.com/app/keys/ |

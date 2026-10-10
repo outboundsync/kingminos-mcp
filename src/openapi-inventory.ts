@@ -574,9 +574,28 @@ function pathParameterEnum(
   return [];
 }
 
+/**
+ * Credential-only BYOK vendors: the application descriptor has `operations: {}`
+ * (Your Keys store/verify only, no routing hop), so routing.only rejects them.
+ * They stay in credentialProviders[] but never land in providers[].
+ */
+export const CREDENTIAL_ONLY_PROVIDERS: readonly string[] = [
+  "snovio",
+  "cognism",
+  "lusha",
+  "starbridge",
+  "clay",
+  "databar",
+];
+
+export function routableProviders(names: readonly string[]): string[] {
+  const skip = new Set(CREDENTIAL_ONLY_PROVIDERS);
+  return names.filter((name) => !skip.has(name));
+}
+
 export function providersFromOpenApiDocument(doc: unknown): ProviderLists {
   return {
-    providers: schemaEnum(doc, "ProviderName"),
+    providers: routableProviders(schemaEnum(doc, "ProviderName")),
     credentialProviders: unionPreserve(
       pathParameterEnum(doc, CREDENTIALS_PROVIDER_PATH, "provider"),
       unionPreserve(
@@ -747,7 +766,8 @@ export interface RefreshInventoryResult {
  * Rewrite the pinned inventory from live OpenAPI.
  * Bearer resource operations replace operations[]. Provider enums and
  * excludedOperationIds are unioned with the existing pin so a stale
- * production spec cannot drop names (e.g. prospeo).
+ * production spec cannot drop names (e.g. prospeo). Credential-only vendors
+ * are kept out of providers[]; capabilityProviders is preserved verbatim.
  */
 export async function refreshInventoryFile(
   cwd: string = process.cwd(),
@@ -779,11 +799,17 @@ export async function refreshInventoryFile(
       existing.excludedOperationIds,
       liveExcluded,
     ),
-    providers: unionPreserve(existing.providers, liveProviders.providers),
+    providers: routableProviders(
+      unionPreserve(existing.providers, liveProviders.providers),
+    ),
     credentialProviders: unionPreserve(
       existing.credentialProviders,
       liveProviders.credentialProviders,
     ),
+    // Hand-written pin; live OpenAPI has no source for it.
+    ...(existing.capabilityProviders
+      ? { capabilityProviders: existing.capabilityProviders }
+      : {}),
     operations: mergeOperations(
       existing.operations,
       parsed.operations.map((op) => ({

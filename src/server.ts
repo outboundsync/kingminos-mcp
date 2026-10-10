@@ -388,15 +388,17 @@ export function createKingMinosServer(context: ToolContext): McpServer {
   const server = new McpServer(
     { name: "KingMinos", version: VERSION },
     {
-      instructions: [
-        `${PRODUCT_NAME} wraps the live enrichment API at https://api.kingminos.com.`,
-        "Call get_capabilities before the first resolve so routing defaults are current.",
-        "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, and Snov.io are BYOK via put_credentials.",
-        "Websearch is house-only and cannot be stored.",
-        "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
-        PUT_CREDENTIALS_WARNING,
-        "Say SFDC, never SF. Branch automations on answer.outcome / es_decision — business misses stay HTTP 200.",
-      ].join(" "),
+      instructions: isAdminBearer(context.bearer)
+        ? "KingMinos admin tools (admin token): abuse_report and partner_report are read-only D1 reports (JSON or CSV); partner_payout records a commission payout and can grant credits, so confirm partner, amount and method with the user first."
+        : [
+            `${PRODUCT_NAME} wraps the live enrichment API at https://api.kingminos.com.`,
+            "Call get_capabilities before the first resolve so routing defaults are current.",
+            "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, and Snov.io are BYOK via put_credentials.",
+            "Websearch is house-only and cannot be stored.",
+            "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
+            PUT_CREDENTIALS_WARNING,
+            "Say SFDC, never SF. Branch automations on answer.outcome / es_decision — business misses stay HTTP 200.",
+          ].join(" "),
     },
   );
 

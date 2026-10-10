@@ -68,6 +68,11 @@ describe("admin tools", () => {
     await withClient("kmadm_testtoken", async (c) => {
       const names = (await c.listTools()).tools.map((t) => t.name).sort();
       assert.deepEqual(names, [...ADMIN_TOOL_NAMES].sort());
+      assert.doesNotMatch(
+        c.getInstructions() ?? "",
+        /get_capabilities|put_credentials/,
+      );
+      assert.match(c.getInstructions() ?? "", /partner_payout/);
       await c.callTool({
         name: "abuse_report",
         arguments: { date: "2026-10-10" },

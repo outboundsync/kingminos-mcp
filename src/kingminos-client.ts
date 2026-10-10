@@ -174,6 +174,8 @@ async function once(options: ApiRequestOptions): Promise<unknown> {
   const headers = new Headers();
   headers.set("Authorization", `Bearer ${options.bearer}`);
   headers.set("Accept", "application/json");
+  // Lets the API attribute calls to MCP (first-MCP-call onboarding grant).
+  headers.set("X-KingMinos-Client", "mcp");
   if (options.body !== undefined) {
     headers.set("Content-Type", "application/json");
   }

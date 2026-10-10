@@ -13,7 +13,19 @@ export type ErrorCode =
 export interface RemediationContext {
   retried?: boolean;
   detail?: string;
+  /** Envelope `error` code from the API body (e.g. webhooks_not_enabled). */
+  apiError?: string;
 }
+
+/** Remediation keyed by the API envelope error code; wins over the status-based text. */
+const API_ERROR_REMEDIATION: Record<string, string> = {
+  webhooks_not_enabled:
+    "Webhooks are not enabled for this workspace; ask KingMinos support to enable them.",
+  webhook_owner_required:
+    "Webhook changes need the workspace owner (session or owner key).",
+  webhook_endpoint_inactive:
+    "The endpoint is paused; re-enable it with patch_webhook is_active=true first.",
+};
 
 export interface ToolErrorBody {
   error: {
@@ -96,6 +108,14 @@ export function remediationFor(
   extra: RemediationContext = {},
 ): string | undefined {
   const retried = extra.retried === true;
+  const byApiError =
+    extra.apiError !== undefined &&
+    Object.hasOwn(API_ERROR_REMEDIATION, extra.apiError)
+      ? API_ERROR_REMEDIATION[extra.apiError]
+      : undefined;
+  if (byApiError !== undefined) {
+    return byApiError;
+  }
   switch (code) {
     case "auth_required":
       return `Add Authorization: Bearer <token> or set ${TENANT_BEARER_ENV}.`;

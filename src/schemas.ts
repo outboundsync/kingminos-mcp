@@ -684,7 +684,9 @@ export const ListEventsInput = {
   delivered: z
     .boolean()
     .optional()
-    .describe("Filter by whether any delivery of the event succeeded."),
+    .describe(
+      "true = at least one successful delivery; false = no successful delivery yet (still retrying, dead, or no endpoint subscribed).",
+    ),
   limit: z.number().int().optional().describe("Default 50, max 200."),
   cursor: z
     .string()

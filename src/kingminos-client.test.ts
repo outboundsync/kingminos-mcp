@@ -190,6 +190,46 @@ describe("apiRequest", () => {
     }
   });
 
+  it("branches 403/409 remediation on the envelope error code", async () => {
+    const cases: Array<{ status: number; error: string; remediation: RegExp }> =
+      [
+        {
+          status: 403,
+          error: "webhooks_not_enabled",
+          remediation: /not enabled for this workspace; ask KingMinos support/,
+        },
+        {
+          status: 403,
+          error: "webhook_owner_required",
+          remediation: /need the workspace owner/,
+        },
+        {
+          status: 409,
+          error: "webhook_endpoint_inactive",
+          remediation: /patch_webhook is_active=true/,
+        },
+        { status: 403, error: "nope", remediation: /lacks this scope/ },
+      ];
+    for (const item of cases) {
+      globalThis.fetch = async () =>
+        jsonResponse(item.status, { error: item.error });
+      await assert.rejects(
+        () =>
+          apiRequest({
+            method: "POST",
+            path: "/v1/webhooks/kmwhk_1/test",
+            bearer: "t",
+          }),
+        (error: unknown) => {
+          assert.ok(error instanceof KingMinosApiError);
+          assert.equal(error.status, item.status);
+          assert.match(error.remediation ?? "", item.remediation, item.error);
+          return true;
+        },
+      );
+    }
+  });
+
   it("retries GET 500 once and does not retry POST 500 without an Idempotency-Key", async () => {
     let gets = 0;
     globalThis.fetch = async () => {

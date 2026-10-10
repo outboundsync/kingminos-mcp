@@ -477,12 +477,12 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   rotate_webhook_secret: {
     description:
-      "POST /v1/webhooks/{id}/rotate-secret — new signing secret (kmwhsec_…) shown once; the previous secret stops working immediately. Update the receiver, then rotate. Owner only. Confirm with the user first.",
+      "POST /v1/webhooks/{id}/rotate-secret — the previous secret stops working immediately (no grace window); the new secret (kmwhsec_…) is returned once in this response. Have the receiver ready, rotate, then update the receiver's secret at once. Owner only. Confirm with the user first.",
     inputSchema: WebhookIdInput,
     annotations: {
       readOnlyHint: false,
       openWorldHint: true,
-      destructiveHint: false,
+      destructiveHint: true,
       idempotentHint: false,
     },
     buildRequest: (args) => ({

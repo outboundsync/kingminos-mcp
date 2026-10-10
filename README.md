@@ -186,5 +186,15 @@ Every tool is the snake_case `operationId` of one bearer-authenticated KingMinos
 | `put_credentials` | `PUT /v1/credentials/{provider}` | Tenant Your Keys (ciphertext). Confirm first. The key will be visible in this conversation; prefer the web app at https://app.kingminos.com/app/keys/ |
 | `delete_credentials` | `DELETE /v1/credentials/{provider}` | Revoke Your Keys. Confirm first |
 | `delete_subject` | `DELETE /v1/subjects/{subject_key}` | Raw unencoded key (e.g. `email:a@b.com`). Needs `erase` scope. Confirm first |
+| `list_webhooks` | `GET /v1/webhooks` | Workspace endpoints (`kmwhk_…`). `403 webhooks_not_enabled` while the workspace gate is off. Never returns secrets |
+| `create_webhook` | `POST /v1/webhooks` | HTTPS only; private/loopback targets rejected; max 20 per workspace. Signing secret (`kmwhsec_…`) shown once. Owner only. Confirm first |
+| `get_webhook` | `GET /v1/webhooks/{id}` | One endpoint: `is_active`, `consecutive_failures`, `auto_disabled_at`. No secret |
+| `patch_webhook` | `PATCH /v1/webhooks/{id}` | `url` / `description` / `enabled_events` / `is_active`; `is_active: true` re-enables after auto-disable. Owner only. Confirm first |
+| `delete_webhook` | `DELETE /v1/webhooks/{id}` | Soft delete. Owner only. Confirm first |
+| `rotate_webhook_secret` | `POST /v1/webhooks/{id}/rotate-secret` | Previous secret stops working immediately (no grace); new secret returned once. Owner only. Confirm first |
+| `test_webhook` | `POST /v1/webhooks/{id}/test` | Signed `test.ping` (`202 { event_id }`); `409 webhook_endpoint_inactive` while paused. Owner only. Confirm first |
+| `list_webhook_deliveries` | `GET /v1/webhooks/{id}/deliveries` | `status` pending \| succeeded \| failed \| dead, `last_http_status`, `last_error`; limit ≤ 100 |
+| `replay_webhook_delivery` | `POST /v1/webhooks/{id}/deliveries/{delivery_id}/replay` | New delivery for the same event. Re-enable a paused endpoint first. Owner only. Confirm first |
+| `list_events` | `GET /v1/events` | Reconciliation log; `type`, `delivered` (false = no successful delivery yet), limit ≤ 200, `next_cursor` only on a full page |
 
-Capability POSTs spend credits and write runs even though they do not write SFDC. Confirm `put_credentials`, `delete_credentials`, and `delete_subject` with the user. CI fails if this list drifts from the OpenAPI inventory.
+Capability POSTs spend credits and write runs even though they do not write SFDC. Confirm `put_credentials`, `delete_credentials`, `delete_subject`, and webhook mutations (`create_webhook`, `patch_webhook`, `delete_webhook`, `rotate_webhook_secret`, `test_webhook`, `replay_webhook_delivery`) with the user. CI fails if this list drifts from the OpenAPI inventory.

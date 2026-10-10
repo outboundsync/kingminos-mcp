@@ -76,7 +76,12 @@
     "brandfetch",
     "enrichcrm",
     "lemlist",
-    "snovio"
+    "snovio",
+    "cognism",
+    "lusha",
+    "starbridge",
+    "clay",
+    "databar"
   ],
   "capabilityProviders": {
     "company.icon": ["dns", "site_probe", "brandfetch", "zoominfo"],

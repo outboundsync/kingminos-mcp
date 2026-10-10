@@ -124,29 +124,70 @@ export function registerAdminTools(
     "partner_payout",
     {
       description:
-        "Admin only. Records a partner commission payout (POST /v1/admin/partners/payouts). method=cash records a PayPal/Wise/manual transfer you already made; method=credits also grants amount × 12.5 bundle credits ($100 = 1,250) to workspace_id with the memo on the ledger. `id` is the idempotency key (same id = no second payout). Moves value: confirm partner, amount and method with the user first, and check partner_report commission_due_cents.",
+        "Admin only. Partner payouts. action=list_pending: payouts waiting for approval (created on the 1st for partners owed >= $100 after a 30-day hold), with Stripe readiness (GET /v1/admin/partners/payouts?status=pending). action=approve: approve AND PAY one payout by id. Sends a Stripe Connect transfer to the partner's account (idempotency key = payout id), or grants credits if they chose credits (POST /v1/admin/partners/payouts/{id}/approve). Payouts over $2,000 need confirm = the exact amount, e.g. \"2500.00\". action=record: record a manual cash/credits payout already made (POST /v1/admin/partners/payouts). approve and record move money: get the user's explicit OK for the partner, amount and month first.",
       inputSchema: {
+        action: z
+          .enum(["list_pending", "approve", "record"])
+          .optional()
+          .describe("Default record (back-compat)"),
         id: z
           .string()
-          .regex(/^[A-Za-z0-9_:.-]{3,80}$/)
-          .describe("Idempotency key, e.g. po_p_acme_2026-10"),
-        partner_id: z.string().min(1),
-        amount_cents: z.number().int().positive(),
-        method: z.enum(["cash", "credits"]),
+          .regex(/^[A-Za-z0-9_:.-]{3,120}$/)
+          .optional()
+          .describe("Payout id (approve) or idempotency key (record)"),
+        confirm: z
+          .string()
+          .optional()
+          .describe("approve over $2,000: the exact amount, e.g. 2500.00"),
+        partner_id: z.string().min(1).optional(),
+        amount_cents: z.number().int().positive().optional(),
+        method: z.enum(["cash", "credits"]).optional(),
         workspace_id: z
           .string()
           .optional()
-          .describe("Required for method=credits"),
-        memo: z.string().min(1).max(200),
+          .describe("record with method=credits"),
+        memo: z.string().min(1).max(200).optional(),
       },
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,
         idempotentHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
       },
     },
-    async (args, extra) =>
-      call("POST", "/v1/admin/partners/payouts", {}, args, extra.signal),
+    async (args, extra) => {
+      const action = args.action ?? "record";
+      if (action === "list_pending") {
+        return call(
+          "GET",
+          "/v1/admin/partners/payouts",
+          { status: "pending" },
+          undefined,
+          extra.signal,
+        );
+      }
+      if (action === "approve") {
+        if (!args.id) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text" as const,
+                text: "approve needs id (from list_pending).",
+              },
+            ],
+          };
+        }
+        return call(
+          "POST",
+          `/v1/admin/partners/payouts/${encodeURIComponent(args.id)}/approve`,
+          {},
+          { confirm: args.confirm },
+          extra.signal,
+        );
+      }
+      const { action: _a, confirm: _c, ...body } = args;
+      return call("POST", "/v1/admin/partners/payouts", {}, body, extra.signal);
+    },
   );
 }

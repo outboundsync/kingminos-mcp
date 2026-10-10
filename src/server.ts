@@ -409,7 +409,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
     { name: "KingMinos", version: VERSION },
     {
       instructions: isAdminBearer(context.bearer)
-        ? "KingMinos admin tools (admin token): abuse_report and partner_report are read-only D1 reports (JSON or CSV); partner_payout records a commission payout and can grant credits, so confirm partner, amount and method with the user first."
+        ? "KingMinos admin tools (admin token): abuse_report and partner_report are read-only D1 reports (JSON or CSV); partner_payout lists pending payouts and can approve-and-pay one (Stripe transfer or credits) or record a manual payout. Approving moves money, so get the user's explicit OK for partner, amount and month first."
         : [
             `${PRODUCT_NAME} wraps the live enrichment API at https://api.kingminos.com.`,
             "Call get_capabilities before the first resolve so routing defaults are current.",

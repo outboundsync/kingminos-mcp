@@ -96,6 +96,16 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   put_credentials: { provider: "leadmagic", apiKey: "vendor-key" },
   delete_credentials: { provider: "leadmagic" },
   delete_subject: { subject_key: "email:a@b.com" },
+  list_webhooks: {},
+  create_webhook: { url: "https://hooks.example.test/os" },
+  get_webhook: { id: "kmwhk_1" },
+  patch_webhook: { id: "kmwhk_1", is_active: true },
+  delete_webhook: { id: "kmwhk_1" },
+  rotate_webhook_secret: { id: "kmwhk_1" },
+  test_webhook: { id: "kmwhk_1" },
+  list_webhook_deliveries: { id: "kmwhk_1" },
+  replay_webhook_delivery: { id: "kmwhk_1", delivery_id: "kmwhd_1" },
+  list_events: {},
 };
 
 describe("catalog-driven handlers", () => {
@@ -118,11 +128,12 @@ describe("catalog-driven handlers", () => {
       assert.ok(call, route.tool);
       assert.equal(call.method, route.method, route.tool);
       const url = new URL(call.url);
-      const expectedPath = encodePath(route.path, {
-        id: "run_1",
-        provider: "leadmagic",
-        subject_key: "email:a@b.com",
-      });
+      const args = TOOL_ARGS[route.tool] as Record<string, unknown>;
+      const params: Record<string, string> = {};
+      for (const [key, value] of Object.entries(args)) {
+        if (typeof value === "string") params[key] = value;
+      }
+      const expectedPath = encodePath(route.path, params);
       assert.equal(url.pathname, expectedPath, route.tool);
       assert.equal(call.authorization, `Bearer ${BEARER}`);
     }

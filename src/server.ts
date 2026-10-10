@@ -16,6 +16,7 @@ import {
   requireBearer,
 } from "./kingminos-client.js";
 import {
+  CreateWebhookInput,
   DecideCompanyB2bSocialInput,
   DecideCompanyDescriptionInput,
   DecideCompanyDomainInput,
@@ -25,13 +26,18 @@ import {
   EmptyInput,
   EraseSubjectInput,
   GetRunInput,
+  ListEventsInput,
+  ListWebhookDeliveriesInput,
   OAUTH_CREDENTIAL_PROVIDER_VALUES,
+  PatchWebhookInput,
   PERCENT_ENCODED,
   PersonLanguageInput,
   PutCredentialInput,
+  ReplayDeliveryInput,
   ResolveCompanyInput,
   stripMeta,
   VerifyEmploymentInput,
+  WebhookIdInput,
 } from "./schemas.js";
 
 export interface ToolContext {
@@ -390,6 +396,166 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       pathParams: { subject_key: rawSubjectKey(args.subject_key) },
     }),
   },
+  list_webhooks: {
+    description:
+      "GET /v1/webhooks — workspace webhook endpoints (kmwhk_…). 403 webhooks_not_enabled while the workspace gate is off (an OutboundSync admin toggles it). Never returns signing secrets.",
+    inputSchema: EmptyInput,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      idempotentHint: true,
+    },
+    buildRequest: () => ({}),
+  },
+  create_webhook: {
+    description: [
+      "POST /v1/webhooks — register an HTTPS webhook endpoint. Returns the endpoint plus the signing secret (kmwhsec_…) shown once — tell the user to store it immediately; it is never shown again.",
+      "HTTPS only; private/loopback/link-local targets (including DNS-resolved) are rejected. Max 20 endpoints per workspace. enabled_events holds active types only (empty or omitted = all active); reserved names return 400 invalid_webhook_events.",
+      "Confirm with the user first.",
+    ].join(" "),
+    inputSchema: CreateWebhookInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+    },
+    buildRequest: (args) => ({
+      body: {
+        url: args.url,
+        description: args.description,
+        enabled_events: args.enabled_events,
+      },
+    }),
+  },
+  get_webhook: {
+    description:
+      "GET /v1/webhooks/{id} — one endpoint: url, description, enabled_events, is_active, consecutive_failures, auto_disabled_at. No secret.",
+    inputSchema: WebhookIdInput,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      idempotentHint: true,
+    },
+    buildRequest: (args) => ({
+      pathParams: { id: String(args.id ?? "") },
+    }),
+  },
+  patch_webhook: {
+    description:
+      "PATCH /v1/webhooks/{id} — update url, description, enabled_events, or is_active. Re-enabling (is_active: true) clears the auto-disable state. Owner only. Confirm with the user first.",
+    inputSchema: PatchWebhookInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+    },
+    buildRequest: (args) => ({
+      pathParams: { id: String(args.id ?? "") },
+      body: {
+        url: args.url,
+        description: args.description,
+        enabled_events: args.enabled_events,
+        is_active: args.is_active,
+      },
+    }),
+  },
+  delete_webhook: {
+    description:
+      "DELETE /v1/webhooks/{id} — soft-delete the endpoint (deleted_at). Owner only. Confirm with the user first.",
+    inputSchema: WebhookIdInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: true,
+      idempotentHint: true,
+    },
+    buildRequest: (args) => ({
+      pathParams: { id: String(args.id ?? "") },
+    }),
+  },
+  rotate_webhook_secret: {
+    description:
+      "POST /v1/webhooks/{id}/rotate-secret — new signing secret (kmwhsec_…) shown once; the previous secret stops working immediately. Update the receiver, then rotate. Owner only. Confirm with the user first.",
+    inputSchema: WebhookIdInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+    },
+    buildRequest: (args) => ({
+      pathParams: { id: String(args.id ?? "") },
+    }),
+  },
+  test_webhook: {
+    description:
+      "POST /v1/webhooks/{id}/test — queues a signed test.ping delivery (202 { event_id }); ignores enabled_events. Follow with list_webhook_deliveries and require succeeded. Owner only.",
+    inputSchema: WebhookIdInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+    },
+    buildRequest: (args) => ({
+      pathParams: { id: String(args.id ?? "") },
+    }),
+  },
+  list_webhook_deliveries: {
+    description:
+      "GET /v1/webhooks/{id}/deliveries — delivery log: status (pending | succeeded | failed | dead), attempt_count, last_http_status, last_error, next_attempt_at. status filter, limit ≤ 100.",
+    inputSchema: ListWebhookDeliveriesInput,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      idempotentHint: true,
+    },
+    buildRequest: (args) => ({
+      pathParams: { id: String(args.id ?? "") },
+      query: {
+        status: args.status ? String(args.status) : undefined,
+        limit: args.limit === undefined ? undefined : String(args.limit),
+      },
+    }),
+  },
+  replay_webhook_delivery: {
+    description:
+      "POST /v1/webhooks/{id}/deliveries/{delivery_id}/replay — create a new delivery for the same event (linked via replay_of_delivery_id) and dispatch it. Use after fixing the receiver or an auto-disable. Owner only. Confirm with the user first.",
+    inputSchema: ReplayDeliveryInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+    },
+    buildRequest: (args) => ({
+      pathParams: {
+        id: String(args.id ?? ""),
+        delivery_id: String(args.delivery_id ?? ""),
+      },
+    }),
+  },
+  list_events: {
+    description:
+      "GET /v1/events — emitted platform events, the reconciliation log. Queryable even when no webhook was active; recover misses here, then replay. Filters: type (run.failed | run.recovered | test.ping), delivered, limit ≤ 200, keyset cursor (next_cursor).",
+    inputSchema: ListEventsInput,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      idempotentHint: true,
+    },
+    buildRequest: (args) => ({
+      query: {
+        type: args.type === undefined ? undefined : String(args.type),
+        delivered:
+          args.delivered === undefined ? undefined : String(args.delivered),
+        limit: args.limit === undefined ? undefined : String(args.limit),
+        cursor: args.cursor === undefined ? undefined : String(args.cursor),
+      },
+    }),
+  },
 };
 
 function asApiMethod(method: string): ApiMethod {
@@ -397,6 +563,7 @@ function asApiMethod(method: string): ApiMethod {
     method === "GET" ||
     method === "POST" ||
     method === "PUT" ||
+    method === "PATCH" ||
     method === "DELETE"
   ) {
     return method;
@@ -416,6 +583,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
             "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, Snov.io, Cognism, Lusha, Starbridge, Clay, and Databar are BYOK via put_credentials.",
             "Websearch is house-only and cannot be stored.",
             "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
+            "Webhook mutations (create/patch/delete/rotate/test/replay) also need confirmation; signing secrets are shown once.",
             PUT_CREDENTIALS_WARNING,
             "Say SFDC, never SF. Branch automations on answer.outcome / es_decision — business misses stay HTTP 200.",
           ].join(" "),

@@ -15,7 +15,17 @@ export type ToolName =
   | "list_credentials"
   | "put_credentials"
   | "delete_credentials"
-  | "delete_subject";
+  | "delete_subject"
+  | "list_webhooks"
+  | "create_webhook"
+  | "get_webhook"
+  | "patch_webhook"
+  | "delete_webhook"
+  | "rotate_webhook_secret"
+  | "test_webhook"
+  | "list_webhook_deliveries"
+  | "replay_webhook_delivery"
+  | "list_events";
 
 export interface ResourceRoute {
   method: HttpMethod;
@@ -75,6 +85,28 @@ export const LIVE_RESOURCE_ROUTES: readonly ResourceRoute[] = [
     path: "/v1/subjects/{subject_key}",
     tool: "delete_subject",
   },
+  { method: "GET", path: "/v1/webhooks", tool: "list_webhooks" },
+  { method: "POST", path: "/v1/webhooks", tool: "create_webhook" },
+  { method: "GET", path: "/v1/webhooks/{id}", tool: "get_webhook" },
+  { method: "PATCH", path: "/v1/webhooks/{id}", tool: "patch_webhook" },
+  { method: "DELETE", path: "/v1/webhooks/{id}", tool: "delete_webhook" },
+  {
+    method: "POST",
+    path: "/v1/webhooks/{id}/rotate-secret",
+    tool: "rotate_webhook_secret",
+  },
+  { method: "POST", path: "/v1/webhooks/{id}/test", tool: "test_webhook" },
+  {
+    method: "GET",
+    path: "/v1/webhooks/{id}/deliveries",
+    tool: "list_webhook_deliveries",
+  },
+  {
+    method: "POST",
+    path: "/v1/webhooks/{id}/deliveries/{delivery_id}/replay",
+    tool: "replay_webhook_delivery",
+  },
+  { method: "GET", path: "/v1/events", tool: "list_events" },
 ] as const;
 
 export const TOOL_NAMES: readonly ToolName[] = LIVE_RESOURCE_ROUTES.map(

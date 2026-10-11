@@ -16,6 +16,7 @@ export const ADMIN_TOOL_NAMES = [
   "partner_report",
   "partner_payout",
   "feedback_report",
+  "partner_admin",
 ] as const;
 
 export function isAdminBearer(bearer: string | undefined): boolean {
@@ -32,7 +33,7 @@ export function registerAdminTools(
   baseUrl?: string,
 ): void {
   const call = async (
-    method: "GET" | "POST",
+    method: "GET" | "POST" | "PATCH",
     path: string,
     query: Record<string, string | undefined>,
     body: unknown,
@@ -244,6 +245,83 @@ export function registerAdminTools(
         "/v1/admin/feedback/summary",
         { days: args.days === undefined ? undefined : String(args.days) },
         undefined,
+        extra.signal,
+      );
+    },
+  );
+
+  server.registerTool(
+    "partner_admin",
+    {
+      description:
+        "Admin only. Partner onboarding. action=list: partners with their codes, share links and Stripe status (GET /v1/admin/partners). action=create: create a partner and its first code in one step (POST /v1/admin/partners {partner_name, email, code}); the code is uppercased, A-Z 0-9 and hyphens, 3-20 chars, unique (409 code_taken); idempotent on code. The response includes share_link https://kingminos.com/?code=CODE. action=add_code: add another code to partner_id. action=deactivate_code: deactivate partner_id's code (PATCH ... {active:false}). Stripe onboarding links still come from the Admin page or POST /v1/admin/partners/{id}/connect.",
+      inputSchema: {
+        action: z.enum(["list", "create", "add_code", "deactivate_code"]),
+        partner_name: z.string().min(1).max(120).optional(),
+        email: z.string().email().optional(),
+        code: z
+          .string()
+          .regex(/^[A-Za-z0-9-]{3,20}$/)
+          .optional(),
+        partner_id: z
+          .string()
+          .regex(/^[A-Za-z0-9_.-]{1,64}$/)
+          .optional()
+          .describe("add_code / deactivate_code"),
+        payout_method: z.enum(["stripe", "credits"]).optional(),
+        credits_workspace_id: z.string().optional(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (args, extra) => {
+      const need = (msg: string) => ({
+        isError: true,
+        content: [{ type: "text" as const, text: msg }],
+      });
+      if (args.action === "list") {
+        return call("GET", "/v1/admin/partners", {}, undefined, extra.signal);
+      }
+      if (args.action === "create") {
+        if (!args.partner_name || !args.email || !args.code) {
+          return need("create needs partner_name, email and code.");
+        }
+        return call(
+          "POST",
+          "/v1/admin/partners",
+          {},
+          {
+            partner_name: args.partner_name,
+            email: args.email,
+            code: args.code.toUpperCase(),
+            payout_method: args.payout_method,
+            credits_workspace_id: args.credits_workspace_id,
+          },
+          extra.signal,
+        );
+      }
+      if (!args.partner_id || !args.code) {
+        return need(`${args.action} needs partner_id and code.`);
+      }
+      const base = `/v1/admin/partners/${encodeURIComponent(args.partner_id)}/codes`;
+      if (args.action === "add_code") {
+        return call(
+          "POST",
+          base,
+          {},
+          { code: args.code.toUpperCase() },
+          extra.signal,
+        );
+      }
+      return call(
+        "PATCH",
+        `${base}/${encodeURIComponent(args.code.toUpperCase())}`,
+        {},
+        { active: false },
         extra.signal,
       );
     },

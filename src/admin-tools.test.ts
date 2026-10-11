@@ -153,4 +153,64 @@ describe("admin tools", () => {
     assert.match(calls[1]?.body ?? "", /"confirm":"2500.00"/);
     assert.equal(calls.length, 2);
   });
+  it("partner_admin lists, creates, adds and deactivates codes", async () => {
+    const calls: Array<{ url: string; method: string; body: string | null }> =
+      [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (input, init) => {
+      const req = input instanceof Request ? input : new Request(input, init);
+      if (req.url.startsWith("http://127.0.0.1/")) {
+        return realFetch(input, init);
+      }
+      calls.push({
+        url: req.url,
+        method: req.method,
+        body: init?.body !== undefined ? String(init.body) : null,
+      });
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    await withClient("kmadm_testtoken", async (c) => {
+      await c.callTool({
+        name: "partner_admin",
+        arguments: { action: "list" },
+      });
+      await c.callTool({
+        name: "partner_admin",
+        arguments: {
+          action: "create",
+          partner_name: "Acme",
+          email: "pat@acme.test",
+          code: "acme",
+        },
+      });
+      await c.callTool({
+        name: "partner_admin",
+        arguments: { action: "add_code", partner_id: "p_acme", code: "acme-2" },
+      });
+      await c.callTool({
+        name: "partner_admin",
+        arguments: {
+          action: "deactivate_code",
+          partner_id: "p_acme",
+          code: "acme-2",
+        },
+      });
+      const bad = await c.callTool({
+        name: "partner_admin",
+        arguments: { action: "create", code: "ACME" },
+      });
+      assert.equal(bad.isError, true);
+    });
+    assert.equal(calls.length, 4);
+    assert.match(calls[0]?.url ?? "", /\/v1\/admin\/partners$/);
+    assert.equal(calls[1]?.method, "POST");
+    assert.match(calls[1]?.body ?? "", /"code":"ACME"/);
+    assert.match(calls[2]?.url ?? "", /\/partners\/p_acme\/codes$/);
+    assert.equal(calls[3]?.method, "PATCH");
+    assert.match(calls[3]?.url ?? "", /\/partners\/p_acme\/codes\/ACME-2$/);
+    assert.match(calls[3]?.body ?? "", /"active":false/);
+  });
 });

@@ -12,7 +12,7 @@ Say **SFDC**, never SF.
 
 ## Admin tools (admin token only)
 
-`abuse_report`, `partner_report`, `partner_payout` wrap `/v1/admin/abuse/daily`, `/v1/admin/partners/analytics` and `/v1/admin/partners/payouts`. They are registered **only** when the MCP bearer is a KingMinos admin token (`kmadm_…`, hashed in the API's D1, minted by Harris with `scripts/mint-admin-token.ts` in kingminos-application). Any other bearer never sees them in `tools/list`; an admin bearer sees only these three. The API re-checks the token on every call. They are not OpenAPI resource operations, so `check:surfaces` ignores them.
+`abuse_report`, `partner_report`, `partner_payout`, `feedback_report` and `partner_admin` wrap `/v1/admin/abuse/daily`, `/v1/admin/partners/analytics`, `/v1/admin/partners/payouts`, `/v1/admin/feedback` and `/v1/admin/partners` (list, create partner + code, add/deactivate code). They are registered **only** when the MCP bearer is a KingMinos admin token (`kmadm_…`, hashed in the API's D1, minted by Harris with `scripts/mint-admin-token.ts` in kingminos-application). Any other bearer never sees them in `tools/list`; an admin bearer sees only these admin tools. The API re-checks the token on every call. They are not OpenAPI resource operations, so `check:surfaces` ignores them.
 
 Production is Cloudflare Worker **`kingminos-mcp-prod`** on the existing OutboundSync Cloudflare account. Janus deploys it with Wrangler:
 

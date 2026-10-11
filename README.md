@@ -198,3 +198,13 @@ Every tool is the snake_case `operationId` of one bearer-authenticated KingMinos
 | `list_events` | `GET /v1/events` | Reconciliation log; `type`, `delivered` (false = no successful delivery yet), limit ≤ 200, `next_cursor` only on a full page |
 
 Capability POSTs spend credits and write runs even though they do not write SFDC. Confirm `put_credentials`, `delete_credentials`, `delete_subject`, and webhook mutations (`create_webhook`, `patch_webhook`, `delete_webhook`, `rotate_webhook_secret`, `test_webhook`, `replay_webhook_delivery`) with the user. CI fails if this list drifts from the OpenAPI inventory.
+
+## Sentry
+
+`src/worker.ts` is wrapped with `@sentry/cloudflare` `withSentry` (project
+`outboundsync/kingminos-mcp`). Errors only (`tracesSampleRate: 0`); the SDK is
+off unless the `SENTRY_DSN` secret is set (`wrangler secret put`, piped). No
+request bodies, tool arguments, auth headers, cookies, query strings, emails,
+LinkedIn URLs or `km*_` (incl. `kmadm_`, `kmwhsec_`) / `osr_` tokens leave the Worker
+(`src/sentry.ts`). Release: `--var SENTRY_RELEASE:$(git rev-parse HEAD)` at
+deploy, else the Worker version id.

@@ -11,7 +11,7 @@ import {
   remediationFor,
 } from "./errors.js";
 
-export type ApiMethod = "GET" | "POST" | "PUT" | "DELETE";
+export type ApiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface ApiRequestOptions {
   method: ApiMethod;
@@ -230,6 +230,7 @@ async function once(options: ApiRequestOptions): Promise<unknown> {
         retryAfterSeconds,
         remediation: remediationFor(code, response.status, {
           detail: envelope?.detail,
+          apiError: envelope?.error,
         }),
         requestId: envelope?.request_id,
         detail: envelope?.detail,
@@ -284,6 +285,7 @@ function markRetried(error: KingMinosApiError): KingMinosApiError {
     remediationFor(error.code, error.status, {
       retried: true,
       detail: error.detail,
+      apiError: error.message,
     }) ??
       error.remediation ??
       "",

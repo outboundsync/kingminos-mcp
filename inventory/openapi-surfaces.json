@@ -156,6 +156,56 @@
       "path": "/v1/runs/{id}"
     },
     {
+      "operationId": "list_webhooks",
+      "method": "GET",
+      "path": "/v1/webhooks"
+    },
+    {
+      "operationId": "create_webhook",
+      "method": "POST",
+      "path": "/v1/webhooks"
+    },
+    {
+      "operationId": "get_webhook",
+      "method": "GET",
+      "path": "/v1/webhooks/{id}"
+    },
+    {
+      "operationId": "patch_webhook",
+      "method": "PATCH",
+      "path": "/v1/webhooks/{id}"
+    },
+    {
+      "operationId": "delete_webhook",
+      "method": "DELETE",
+      "path": "/v1/webhooks/{id}"
+    },
+    {
+      "operationId": "rotate_webhook_secret",
+      "method": "POST",
+      "path": "/v1/webhooks/{id}/rotate-secret"
+    },
+    {
+      "operationId": "test_webhook",
+      "method": "POST",
+      "path": "/v1/webhooks/{id}/test"
+    },
+    {
+      "operationId": "list_webhook_deliveries",
+      "method": "GET",
+      "path": "/v1/webhooks/{id}/deliveries"
+    },
+    {
+      "operationId": "replay_webhook_delivery",
+      "method": "POST",
+      "path": "/v1/webhooks/{id}/deliveries/{delivery_id}/replay"
+    },
+    {
+      "operationId": "list_events",
+      "method": "GET",
+      "path": "/v1/events"
+    },
+    {
       "operationId": "list_credentials",
       "method": "GET",
       "path": "/v1/credentials"

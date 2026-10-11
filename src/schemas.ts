@@ -612,6 +612,88 @@ export const EraseSubjectInput = {
 
 export const EmptyInput = {};
 
+export const ACTIVE_WEBHOOK_EVENT_VALUES = [
+  "run.failed",
+  "run.recovered",
+] as const;
+export const WEBHOOK_EVENT_TYPE_VALUES = [
+  ...ACTIVE_WEBHOOK_EVENT_VALUES,
+  "test.ping",
+] as const;
+export const WEBHOOK_DELIVERY_STATUS_VALUES = [
+  "pending",
+  "succeeded",
+  "failed",
+  "dead",
+] as const;
+
+export const WebhookIdInput = {
+  id: z
+    .string()
+    .describe(
+      "Webhook endpoint id (kmwhk_…) as returned by create_webhook or list_webhooks.",
+    ),
+};
+
+export const CreateWebhookInput = {
+  url: z
+    .string()
+    .url()
+    .describe(
+      "HTTPS endpoint URL. Private, loopback, and link-local targets (including DNS-resolved) are rejected; the answer is re-checked per delivery attempt.",
+    ),
+  description: z.string().max(300).optional().describe("Optional human label."),
+  enabled_events: z
+    .array(z.enum(ACTIVE_WEBHOOK_EVENT_VALUES))
+    .optional()
+    .describe(
+      "Active event types to receive. Empty or omitted = all active types (run.failed, run.recovered). Reserved names are rejected.",
+    ),
+};
+
+export const PatchWebhookInput = {
+  id: WebhookIdInput.id.describe("Webhook endpoint id (kmwhk_…)."),
+  url: z
+    .string()
+    .url()
+    .optional()
+    .describe("New HTTPS endpoint URL (revalidated)."),
+  description: z.string().max(300).nullable().optional(),
+  enabled_events: z.array(z.enum(ACTIVE_WEBHOOK_EVENT_VALUES)).optional(),
+  is_active: z
+    .boolean()
+    .optional()
+    .describe("Re-enabling after an auto-disable clears the failure streak."),
+};
+
+export const ListWebhookDeliveriesInput = {
+  id: WebhookIdInput.id.describe("Webhook endpoint id (kmwhk_…)."),
+  status: z.enum(WEBHOOK_DELIVERY_STATUS_VALUES).optional(),
+  limit: z.number().int().optional().describe("Default 25, max 100."),
+};
+
+export const ReplayDeliveryInput = {
+  id: WebhookIdInput.id.describe("Webhook endpoint id (kmwhk_…)."),
+  delivery_id: z
+    .string()
+    .describe("Delivery id (kmwhd_…) from list_webhook_deliveries."),
+};
+
+export const ListEventsInput = {
+  type: z.enum(WEBHOOK_EVENT_TYPE_VALUES).optional(),
+  delivered: z
+    .boolean()
+    .optional()
+    .describe(
+      "true = at least one successful delivery; false = no successful delivery yet (still retrying, dead, or no endpoint subscribed).",
+    ),
+  limit: z.number().int().optional().describe("Default 50, max 200."),
+  cursor: z
+    .string()
+    .optional()
+    .describe("Keyset cursor from a previous next_cursor."),
+};
+
 export function stripMeta<T extends Record<string, unknown>>(
   args: T,
 ): {

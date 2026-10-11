@@ -35,6 +35,16 @@ const EXPECTED_TOOLS = [
   "put_credentials",
   "delete_credentials",
   "delete_subject",
+  "list_webhooks",
+  "create_webhook",
+  "get_webhook",
+  "patch_webhook",
+  "delete_webhook",
+  "rotate_webhook_secret",
+  "test_webhook",
+  "list_webhook_deliveries",
+  "replay_webhook_delivery",
+  "list_events",
 ] as const;
 
 const BEARER = [{ bearer: [] }];

@@ -21,8 +21,10 @@ export interface RemediationContext {
 const API_ERROR_REMEDIATION: Record<string, string> = {
   webhooks_not_enabled:
     "Webhooks are not enabled for this workspace; ask KingMinos support to enable them.",
+  webhook_scope_required:
+    'This API key lacks the `webhooks` scope. A workspace owner must create a key with "Can manage webhooks" checked (scopes: ["capability:*", "webhooks"]) at https://kingminos.com/app/tokens/ and use it here; `capability:*` alone does not include webhooks.',
   webhook_owner_required:
-    "Webhook changes need the workspace owner (session or owner key).",
+    "Webhook changes need the workspace owner (signed-in session, or an owner key with the `webhooks` scope).",
   webhook_endpoint_inactive:
     "The endpoint is paused; re-enable it with patch_webhook is_active=true first.",
 };

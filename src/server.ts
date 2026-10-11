@@ -398,7 +398,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   list_webhooks: {
     description:
-      "GET /v1/webhooks — workspace webhook endpoints (kmwhk_…). 403 webhooks_not_enabled while the workspace gate is off (an OutboundSync admin toggles it). Never returns signing secrets.",
+      "GET /v1/webhooks — workspace webhook endpoints (kmwhk_…). 403 webhooks_not_enabled while the workspace gate is off (an OutboundSync admin toggles it). All webhook tools need a key carrying the explicit `webhooks` scope (403 webhook_scope_required otherwise; capability:* does not include it). Never returns signing secrets.",
     inputSchema: EmptyInput,
     annotations: {
       readOnlyHint: true,

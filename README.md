@@ -186,7 +186,7 @@ Every tool is the snake_case `operationId` of one bearer-authenticated KingMinos
 | `put_credentials` | `PUT /v1/credentials/{provider}` | Tenant Your Keys (ciphertext). Confirm first. The key will be visible in this conversation; prefer the web app at https://app.kingminos.com/app/keys/ |
 | `delete_credentials` | `DELETE /v1/credentials/{provider}` | Revoke Your Keys. Confirm first |
 | `delete_subject` | `DELETE /v1/subjects/{subject_key}` | Raw unencoded key (e.g. `email:a@b.com`). Needs `erase` scope. Confirm first |
-| `list_webhooks` | `GET /v1/webhooks` | Workspace endpoints (`kmwhk_…`). `403 webhooks_not_enabled` while the workspace gate is off. Never returns secrets |
+| `list_webhooks` | `GET /v1/webhooks` | Workspace endpoints (`kmwhk_…`). `403 webhooks_not_enabled` while the workspace gate is off. Every webhook tool needs a key with the explicit `webhooks` scope (`403 webhook_scope_required` otherwise). Never returns secrets |
 | `create_webhook` | `POST /v1/webhooks` | HTTPS only; private/loopback targets rejected; max 20 per workspace. Signing secret (`kmwhsec_…`) shown once. Owner only. Confirm first |
 | `get_webhook` | `GET /v1/webhooks/{id}` | One endpoint: `is_active`, `consecutive_failures`, `auto_disabled_at`. No secret |
 | `patch_webhook` | `PATCH /v1/webhooks/{id}` | `url` / `description` / `enabled_events` / `is_active`; `is_active: true` re-enables after auto-disable. Owner only. Confirm first |

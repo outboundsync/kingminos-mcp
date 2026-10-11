@@ -200,6 +200,11 @@ describe("apiRequest", () => {
         },
         {
           status: 403,
+          error: "webhook_scope_required",
+          remediation: /lacks the `webhooks` scope/,
+        },
+        {
+          status: 403,
           error: "webhook_owner_required",
           remediation: /need the workspace owner/,
         },

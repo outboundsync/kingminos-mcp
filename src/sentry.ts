@@ -19,7 +19,7 @@ const REDACTED = "[redacted]";
 const SENSITIVE_HEADER =
   /^(authorization|cookie|set-cookie|x-api-key|proxy-authorization|cf-access-.*|x-kingminos-.*)$/i;
 const SENSITIVE_PATTERNS: RegExp[] = [
-  /\b(?:km|kmwhsec|osr)_[A-Za-z0-9_-]+/g,
+  /\b(?:km[a-z]*|osr)_[A-Za-z0-9_-]+/g,
   /\bBearer\s+[A-Za-z0-9._~+/=-]+/gi,
   /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
   /(?:https?:\/\/)?(?:[a-z]{2,3}\.)?linkedin\.com\/[^\s"'<>]*/gi,

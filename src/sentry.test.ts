@@ -18,11 +18,12 @@ test("sentryOptions: no traces, production default, scrubbing hook", () => {
 
 test("scrubString redacts tokens, emails and LinkedIn URLs", () => {
   const out = scrubString(
-    "km_live_abc kmwhsec_xyz osr_123 Bearer abc.def jane@acme.com https://www.linkedin.com/in/jane",
+    "km_live_abc kmwhsec_xyz kmadm_q1 osr_123 Bearer abc.def jane@acme.com https://www.linkedin.com/in/jane",
   );
   for (const leak of [
     "km_live_abc",
     "kmwhsec_xyz",
+    "kmadm_q1",
     "osr_123",
     "abc.def",
     "jane@acme.com",

@@ -205,6 +205,6 @@ Capability POSTs spend credits and write runs even though they do not write SFDC
 `outboundsync/kingminos-mcp`). Errors only (`tracesSampleRate: 0`); the SDK is
 off unless the `SENTRY_DSN` secret is set (`wrangler secret put`, piped). No
 request bodies, tool arguments, auth headers, cookies, query strings, emails,
-LinkedIn URLs or `km_` / `kmwhsec_` / `osr_` tokens leave the Worker
+LinkedIn URLs or `km*_` (incl. `kmadm_`, `kmwhsec_`) / `osr_` tokens leave the Worker
 (`src/sentry.ts`). Release: `--var SENTRY_RELEASE:$(git rev-parse HEAD)` at
 deploy, else the Worker version id.

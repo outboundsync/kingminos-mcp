@@ -226,6 +226,11 @@
       "path": "/v1/subjects/{subject_key}"
     },
     {
+      "operationId": "submit_feedback",
+      "method": "POST",
+      "path": "/v1/feedback"
+    },
+    {
       "operationId": "company_description",
       "method": "POST",
       "path": "/v1/company/description"

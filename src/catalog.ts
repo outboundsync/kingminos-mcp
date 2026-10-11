@@ -25,7 +25,8 @@ export type ToolName =
   | "test_webhook"
   | "list_webhook_deliveries"
   | "replay_webhook_delivery"
-  | "list_events";
+  | "list_events"
+  | "submit_feedback";
 
 export interface ResourceRoute {
   method: HttpMethod;
@@ -107,6 +108,7 @@ export const LIVE_RESOURCE_ROUTES: readonly ResourceRoute[] = [
     tool: "replay_webhook_delivery",
   },
   { method: "GET", path: "/v1/events", tool: "list_events" },
+  { method: "POST", path: "/v1/feedback", tool: "submit_feedback" },
 ] as const;
 
 export const TOOL_NAMES: readonly ToolName[] = LIVE_RESOURCE_ROUTES.map(

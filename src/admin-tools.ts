@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { toolErrorResult } from "./errors.js";
 import { apiRequest, okText } from "./kingminos-client.js";
+import { FEEDBACK_CATEGORY_VALUES } from "./schemas.js";
 
 /**
  * Admin-only tools (Harris 2026-10-10). Registered ONLY when the MCP bearer is
@@ -196,7 +197,7 @@ export function registerAdminTools(
     "feedback_report",
     {
       description:
-        "Admin only. Feedback triage feed from D1 (GET /v1/admin/feedback/summary): groups of product feedback with counts and status breakdown, grouped by category + requested (provider/endpoint requests), category + capability (data_quality), or category + lower(summary). Returns count, representative summary, capability/requested, and sample run_ids — never the free-text details/task_context (PII); list them with GET /v1/admin/feedback?status=&category=&days=&limit=. Scope note: a feedback:read scoped kmadm_ token can call this and the feedback list only.",
+        "Admin only. Feedback triage feed from D1 (GET /v1/admin/feedback/summary): groups of product feedback with counts and status breakdown, grouped by category + requested (provider/endpoint requests), category + capability (data_quality), or category + lower(summary). Returns count, latest summary, capability/requested, and linked run_ids — never the free-text details/task_context (PII); truncated: true when the window holds more than 5000 reports. format=list returns raw rows (GET /v1/admin/feedback, newest first, includes details) and is the only format that applies the category/status filters.",
       inputSchema: {
         days: z
           .number()
@@ -206,19 +207,13 @@ export function registerAdminTools(
           .optional()
           .describe("Window in days (default 30)."),
         category: z
-          .enum([
-            "api_schema",
-            "mcp",
-            "data_quality",
-            "provider_request",
-            "endpoint_request",
-            "workflow_friction",
-            "product_idea",
-          ])
-          .optional(),
+          .enum(FEEDBACK_CATEGORY_VALUES)
+          .optional()
+          .describe("format=list only."),
         status: z
           .enum(["new", "triaged", "planned", "shipped", "wontfix"])
-          .optional(),
+          .optional()
+          .describe("format=list only."),
         format: z
           .enum(["summary", "list"])
           .optional()

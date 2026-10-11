@@ -730,9 +730,10 @@ export const SubmitFeedbackInput = {
     ),
   details: z
     .string()
+    .min(1)
     .max(4000)
     .describe(
-      "What happened, up to 4000 chars. Free text; never sent to Linear by triage. No personal data, no secrets.",
+      "What happened, up to 4000 chars. Free text, read only by the KingMinos team. No personal data, no secrets.",
     ),
   source: z
     .enum(["user", "agent"])

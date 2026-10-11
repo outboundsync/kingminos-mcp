@@ -173,7 +173,7 @@ Every tool is the snake_case `operationId` of one bearer-authenticated KingMinos
 | --- | --- | --- |
 | `get_providers` | `GET /v1/providers` | Registry + configured flags |
 | `get_capabilities` | `GET /v1/capabilities` | Call before the first resolve |
-| `company_resolve` | `POST /v1/company/resolve` | Email / domain / website. Spends credits unless `dry_run` is true (API default false). Name-only is `no_decision` |
+| `company_resolve` | `POST /v1/company/resolve` | Email / domain / website. Spends credits unless `dry_run` is true (API default false). Name-only is `no_decision`. `result.operator` (0 credits) names a product brand's operator (fizzy.do → 37signals) without changing `company_name` |
 | `company_domain` | `POST /v1/company/domain` | Write-safe CRM domain decision |
 | `company_hierarchy` | `POST /v1/company/hierarchy` | Immediate / ultimate parent + capped subsidiaries |
 | `company_b2b_social` | `POST /v1/company/b2b-social` | LinkedIn company page URL; balance = websearch → house AI Ark; accuracy/coverage stack LeadMagic / AI Ark / Wiza / Findymail |

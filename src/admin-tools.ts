@@ -14,6 +14,7 @@ export const ADMIN_TOOL_NAMES = [
   "abuse_report",
   "partner_report",
   "partner_payout",
+  "feedback_report",
 ] as const;
 
 export function isAdminBearer(bearer: string | undefined): boolean {
@@ -188,6 +189,68 @@ export function registerAdminTools(
       }
       const { action: _a, confirm: _c, ...body } = args;
       return call("POST", "/v1/admin/partners/payouts", {}, body, extra.signal);
+    },
+  );
+
+  server.registerTool(
+    "feedback_report",
+    {
+      description:
+        "Admin only. Feedback triage feed from D1 (GET /v1/admin/feedback/summary): groups of product feedback with counts and status breakdown, grouped by category + requested (provider/endpoint requests), category + capability (data_quality), or category + lower(summary). Returns count, representative summary, capability/requested, and sample run_ids — never the free-text details/task_context (PII); list them with GET /v1/admin/feedback?status=&category=&days=&limit=. Scope note: a feedback:read scoped kmadm_ token can call this and the feedback list only.",
+      inputSchema: {
+        days: z
+          .number()
+          .int()
+          .min(0)
+          .max(365)
+          .optional()
+          .describe("Window in days (default 30)."),
+        category: z
+          .enum([
+            "api_schema",
+            "mcp",
+            "data_quality",
+            "provider_request",
+            "endpoint_request",
+            "workflow_friction",
+            "product_idea",
+          ])
+          .optional(),
+        status: z
+          .enum(["new", "triaged", "planned", "shipped", "wontfix"])
+          .optional(),
+        format: z
+          .enum(["summary", "list"])
+          .optional()
+          .describe("summary (grouped counts, default) or list (raw rows)."),
+      },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (args, extra) => {
+      if (args.format === "list") {
+        return call(
+          "GET",
+          "/v1/admin/feedback",
+          {
+            status: args.status,
+            category: args.category,
+            days: args.days === undefined ? undefined : String(args.days),
+          },
+          undefined,
+          extra.signal,
+        );
+      }
+      return call(
+        "GET",
+        "/v1/admin/feedback/summary",
+        { days: args.days === undefined ? undefined : String(args.days) },
+        undefined,
+        extra.signal,
+      );
     },
   );
 }

@@ -694,6 +694,76 @@ export const ListEventsInput = {
     .describe("Keyset cursor from a previous next_cursor."),
 };
 
+export const FEEDBACK_CATEGORY_VALUES = [
+  "api_schema",
+  "mcp",
+  "data_quality",
+  "provider_request",
+  "endpoint_request",
+  "workflow_friction",
+  "product_idea",
+] as const;
+
+export const FEEDBACK_CAPABILITY_VALUES = [
+  "company.resolve",
+  "person.verify_employment",
+  "person.language",
+  "company.domain",
+  "company.hierarchy",
+  "company.b2b_social",
+  "company.icon",
+  "company.description",
+] as const;
+
+export const SubmitFeedbackInput = {
+  category: z
+    .enum(FEEDBACK_CATEGORY_VALUES)
+    .describe(
+      "api_schema = request/response shape, naming, errors, docs. mcp = MCP tools and setup. data_quality = wrong/stale/missing values on a field. provider_request = a data vendor KingMinos should include. endpoint_request = a new endpoint or field. workflow_friction = it worked but was hard. product_idea = anything else.",
+    ),
+  summary: z
+    .string()
+    .min(15)
+    .max(150)
+    .describe(
+      "Plain-English headline, 15-150 chars, no IDs and no error text - similar reports group together under it.",
+    ),
+  details: z
+    .string()
+    .max(4000)
+    .describe(
+      "What happened, up to 4000 chars. Free text; never sent to Linear by triage. No personal data, no secrets.",
+    ),
+  source: z
+    .enum(["user", "agent"])
+    .describe(
+      "user = the person's own words. agent = something you (the agent) noticed.",
+    ),
+  capability: z
+    .enum(FEEDBACK_CAPABILITY_VALUES)
+    .optional()
+    .describe("Which KingMinos capability. Required for data_quality."),
+  run_id: z
+    .string()
+    .optional()
+    .describe(
+      "Run id from the response you are reporting on - links the report to the exact call. Important for data_quality.",
+    ),
+  requested: z
+    .string()
+    .max(200)
+    .optional()
+    .describe(
+      "The provider, endpoint or field you wanted. Required for provider_request / endpoint_request.",
+    ),
+  task_context: z
+    .string()
+    .max(1000)
+    .optional()
+    .describe("What you were trying to do, without the actual values."),
+  sentiment: z.enum(["positive", "negative", "neutral"]).optional(),
+};
+
 export function stripMeta<T extends Record<string, unknown>>(
   args: T,
 ): {

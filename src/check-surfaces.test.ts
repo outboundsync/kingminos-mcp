@@ -45,6 +45,7 @@ const EXPECTED_TOOLS = [
   "list_webhook_deliveries",
   "replay_webhook_delivery",
   "list_events",
+  "submit_feedback",
 ] as const;
 
 const BEARER = [{ bearer: [] }];

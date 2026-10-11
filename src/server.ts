@@ -35,6 +35,7 @@ import {
   PutCredentialInput,
   ReplayDeliveryInput,
   ResolveCompanyInput,
+  SubmitFeedbackInput,
   stripMeta,
   VerifyEmploymentInput,
   WebhookIdInput,
@@ -556,6 +557,28 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       },
     }),
   },
+  submit_feedback: {
+    description: [
+      "POST /v1/feedback — file KingMinos product feedback. Free: never costs credits, and it is not a support channel.",
+      "Use it when a call misses or comes back low-confidence, when you had to work around KingMinos, or when you wanted a field or provider we don't have — responses that miss also carry a feedback_hint pointing here.",
+      "category: api_schema (request/response shape, naming, errors, docs) | mcp (tools, behavior, setup) | data_quality (wrong/stale/missing values on a field) | provider_request (a data vendor KingMinos should include) | endpoint_request (a new endpoint or field) | workflow_friction (it worked but was hard) | product_idea (anything else).",
+      "summary is a 15-150-char plain-English headline with no IDs and no error text, so similar reports group together; details up to 4000 chars; source: user (the person's own words) or agent (you noticed).",
+      "Optional: capability (required for data_quality), run_id (links the exact call — important for data_quality), requested (the provider/endpoint/field wanted — required for provider_request and endpoint_request), task_context, sentiment.",
+      "No personal data and no secrets — secret-shaped content is rejected. ~20 reports per key per 24h; an identical same-day retry is deduped for free. Rate limit 429 includes Retry-After.",
+    ].join(" "),
+    inputSchema: SubmitFeedbackInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+    },
+    buildRequest: (args) => ({
+      body: Object.fromEntries(
+        Object.entries(args).filter(([, value]) => value !== undefined),
+      ),
+    }),
+  },
 };
 
 function asApiMethod(method: string): ApiMethod {
@@ -586,6 +609,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
             "Webhook mutations (create/patch/delete/rotate/test/replay) also need confirmation; signing secrets are shown once.",
             PUT_CREDENTIALS_WARNING,
             "Say SFDC, never SF. Branch automations on answer.outcome / es_decision — business misses stay HTTP 200.",
+            "File feedback when a call misses, errors, comes back low-confidence, or you had to work around us or wanted a field or provider we don't have — submit_feedback is free and never costs credits.",
           ].join(" "),
     },
   );

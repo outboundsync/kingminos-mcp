@@ -106,6 +106,12 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   list_webhook_deliveries: { id: "kmwhk_1" },
   replay_webhook_delivery: { id: "kmwhk_1", delivery_id: "kmwhd_1" },
   list_events: {},
+  submit_feedback: {
+    category: "product_idea",
+    summary: "Working a list and the usual way does not work",
+    details: "Filed from the server.test catalog-driven handler pass.",
+    source: "agent",
+  },
 };
 
 describe("catalog-driven handlers", () => {
@@ -137,6 +143,24 @@ describe("catalog-driven handlers", () => {
       assert.equal(url.pathname, expectedPath, route.tool);
       assert.equal(call.authorization, `Bearer ${BEARER}`);
     }
+  });
+
+  it("rejects a submit_feedback call missing required fields before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const result = await client.callTool({
+        name: "submit_feedback",
+        arguments: {
+          category: "mcp",
+          details: "no summary here",
+          source: "agent",
+        },
+      });
+      assert.equal(result.isError, true);
+      const text = toolText(result);
+      assert.match(text, /summary/);
+    });
+    assert.equal(calls.length, 0, "zod validation happens client-side");
   });
 
   it("encodes delete_subject as /v1/subjects/email%3Aa%40b.com", async () => {

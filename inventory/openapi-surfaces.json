@@ -81,7 +81,10 @@
     "lusha",
     "starbridge",
     "clay",
-    "databar"
+    "databar",
+    "quickenrich",
+    "getleads",
+    "blitzapi"
   ],
   "capabilityProviders": {
     "company.icon": ["dns", "site_probe", "brandfetch", "zoominfo"],

@@ -56,10 +56,20 @@ describe("provider enum contract", () => {
     assert.equal(fileInventory.providers.includes("snovio"), false);
   });
 
-  it("pins the five credential-only vendors on credentialProviders only", () => {
-    // Cognism / Lusha / Starbridge / Clay / Databar (Harris 2026-10-10):
-    // store/verify via put_credentials, no routing hop — never in providers[].
-    for (const id of ["cognism", "lusha", "starbridge", "clay", "databar"]) {
+  it("pins the eight credential-only vendors on credentialProviders only", () => {
+    // Cognism / Lusha / Starbridge / Clay / Databar (Harris 2026-10-10) and
+    // QuickEnrich / GetLeads / BlitzAPI (Harris 2026-10-12): store/verify via
+    // put_credentials, no routing hop — never in providers[].
+    for (const id of [
+      "cognism",
+      "lusha",
+      "starbridge",
+      "clay",
+      "databar",
+      "quickenrich",
+      "getleads",
+      "blitzapi",
+    ]) {
       assert.ok(fileInventory.credentialProviders.includes(id));
       assert.equal(fileInventory.providers.includes(id), false);
     }

@@ -47,6 +47,9 @@ export const CREDENTIAL_PROVIDER_VALUES = [
   "starbridge",
   "clay",
   "databar",
+  "quickenrich",
+  "getleads",
+  "blitzapi",
 ] as const;
 
 /** put_credentials OAuth vendors ({ clientId, clientSecret }). Keep in lockstep with application OAUTH_PROVIDER_NAMES. */
@@ -588,7 +591,7 @@ export const PutCredentialInput = {
     .string()
     .optional()
     .describe(
-      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, apollo, companyurlfinder, peopledatalabs, hginsights, brandfetch, enrichcrm, lemlist, cognism, lusha, starbridge, clay, or databar. Alias: api_key. Do not send for zoominfo or snovio.",
+      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, apollo, companyurlfinder, peopledatalabs, hginsights, brandfetch, enrichcrm, lemlist, cognism, lusha, starbridge, clay, databar, quickenrich, getleads, or blitzapi. Alias: api_key. Do not send for zoominfo or snovio.",
     ),
   api_key: z
     .string()

@@ -542,6 +542,15 @@ export const PersonLanguageInput = {
   ...CommonRunOptions,
 };
 
+/** person.phone `format` (API 2026-10-13): which format fills `number`. */
+export const PHONE_FORMAT_VALUES = [
+  "e164",
+  "international",
+  "national",
+  "digits",
+  "digits_national",
+] as const;
+
 export const PHONE_TYPE_VALUES = [
   "mobile",
   "landline",
@@ -589,6 +598,12 @@ export const PersonPhoneInput = {
     .max(10)
     .optional()
     .describe("Cap on the ranked result.phones list (1–10, API default 3)."),
+  format: z
+    .enum(PHONE_FORMAT_VALUES)
+    .optional()
+    .describe(
+      "Which format fills `number` on best_phone and phones[]: e164 (default) | international | national | digits | digits_national. Every phone also carries e164 and all five under `formats`. Presentation only — not part of the cache key.",
+    ),
   routing: z
     .object({
       only: z
@@ -788,6 +803,7 @@ export const FEEDBACK_CAPABILITY_VALUES = [
   "company.resolve",
   "person.verify_employment",
   "person.language",
+  "person.phone",
   "company.domain",
   "company.hierarchy",
   "company.b2b_social",

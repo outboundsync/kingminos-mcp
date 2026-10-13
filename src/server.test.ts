@@ -311,6 +311,7 @@ describe("catalog-driven handlers", () => {
           first_name: "Anna",
           phone_types: ["mobile"],
           max_results: 3,
+          format: "national",
           routing: { only: ["wiza"] },
           cache_bypass: true,
         },
@@ -325,6 +326,7 @@ describe("catalog-driven handlers", () => {
     const body = JSON.parse(call.body ?? "{}") as Record<string, unknown>;
     assert.deepEqual(body.phone_types, ["mobile"]);
     assert.equal(body.max_results, 3);
+    assert.equal(body.format, "national");
     assert.deepEqual(body.routing, { only: ["wiza"] });
     assert.equal(body.first_name, "Anna");
     assert.equal(body.cache_bypass, undefined);
@@ -343,6 +345,11 @@ describe("catalog-driven handlers", () => {
         arguments: { email: "a@b.com", max_results: 11 },
       });
       assert.equal(badMax.isError, true);
+      const badFormat = await client.callTool({
+        name: "person_phone",
+        arguments: { email: "a@b.com", format: "dots" },
+      });
+      assert.equal(badFormat.isError, true);
     });
     assert.equal(calls.length, 0);
   });

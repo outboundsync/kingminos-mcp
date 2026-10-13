@@ -91,6 +91,7 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   company_description: { domain: "acme.com" },
   person_verify_employment: { email: "a@b.com" },
   person_language: { email: "a@b.com" },
+  person_phone: { email: "a@b.com" },
   get_run: { id: "run_1" },
   list_credentials: {},
   put_credentials: { provider: "leadmagic", apiKey: "vendor-key" },
@@ -297,6 +298,65 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /accuracy \(cap 4/);
       assert.match(description, /coverage.*400 invalid_routing/);
       assert.match(description, /match-only/i);
+    });
+  });
+
+  it("sends person_phone to POST /v1/person/phone with filter, routing.only, and cache bypass", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      await client.callTool({
+        name: "person_phone",
+        arguments: {
+          linkedin_url: "https://www.linkedin.com/in/example",
+          first_name: "Anna",
+          phone_types: ["mobile"],
+          max_results: 3,
+          routing: { only: ["wiza"] },
+          cache_bypass: true,
+        },
+      });
+    });
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    assert.ok(call);
+    assert.equal(call.method, "POST");
+    assert.match(call.url, /\/v1\/person\/phone$/);
+    assert.equal(call.headers["x-router-cache"], "bypass");
+    const body = JSON.parse(call.body ?? "{}") as Record<string, unknown>;
+    assert.deepEqual(body.phone_types, ["mobile"]);
+    assert.equal(body.max_results, 3);
+    assert.deepEqual(body.routing, { only: ["wiza"] });
+    assert.equal(body.first_name, "Anna");
+    assert.equal(body.cache_bypass, undefined);
+  });
+
+  it("rejects invalid phone_types and max_results on person_phone before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const badType = await client.callTool({
+        name: "person_phone",
+        arguments: { email: "a@b.com", phone_types: ["fax"] },
+      });
+      assert.equal(badType.isError, true);
+      const badMax = await client.callTool({
+        name: "person_phone",
+        arguments: { email: "a@b.com", max_results: 11 },
+      });
+      assert.equal(badMax.isError, true);
+    });
+    assert.equal(calls.length, 0);
+  });
+
+  it("documents the person.phone contract on person_phone", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const tool = listed.tools.find((t) => t.name === "person_phone");
+      const description = tool?.description ?? "";
+      assert.match(description, /POST \/v1\/person\/phone/);
+      assert.match(description, /work email or LinkedIn URL/);
+      assert.match(description, /38 credits on a hit, 0 on a miss/);
+      assert.match(description, /match-only/i);
+      assert.match(description, /conflicting_numbers/);
     });
   });
 

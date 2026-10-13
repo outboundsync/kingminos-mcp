@@ -32,6 +32,7 @@ import {
   PatchWebhookInput,
   PERCENT_ENCODED,
   PersonLanguageInput,
+  PersonPhoneInput,
   PutCredentialInput,
   ReplayDeliveryInput,
   ResolveCompanyInput,
@@ -309,6 +310,23 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "Spends credits unless dry_run is true. Does not write SFDC.",
     ].join(" "),
     inputSchema: PersonLanguageInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
+    buildRequest: capabilityRequest,
+  },
+  person_phone: {
+    description: [
+      "POST /v1/person/phone — one dialable phone number for a person by work email or LinkedIn URL, plus the ranked rest. Input email or linkedin_url (one required, else 400 email_or_linkedin_required); first_name / last_name are match-only (reject someone else's profile → person_mismatch), never used to infer anything.",
+      "phone_types filters the answer (mobile | landline | other | unknown; omit = any); max_results caps result.phones (1–10, default 3). result.best_phone {number (E.164), type, source} or null; result.phones ranked and deduped (mobile first), honoring the filter; result.flags [conflicting_numbers] or null; result.person.",
+      "Locked ladder: Wiza phone reveal by email, then by LinkedIn URL when there is no email or the email hop found no matching number. routing.only / routing.ignore are honored (vendor isolation); path / preset / order are ignored.",
+      "Cost: 38 credits on a hit, 0 on a miss (ceiling 38). decision.outcome hit iff a matching number was found; nothing found → zero_hits (es_decision miss); no vendor answered → provider_error (error) or a skip reason (noop). answer.safe_to_write.best_phone is false when result.flags has conflicting_numbers — a wrong number is worse than none.",
+      "30-day cache keyed on the request (filter included): repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers. Phone numbers are contact PII.",
+      "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
+    ].join(" "),
+    inputSchema: PersonPhoneInput,
     annotations: {
       readOnlyHint: false,
       openWorldHint: true,

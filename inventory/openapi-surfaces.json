@@ -81,7 +81,10 @@
     "lusha",
     "starbridge",
     "clay",
-    "databar"
+    "databar",
+    "quickenrich",
+    "getleads",
+    "blitzapi"
   ],
   "capabilityProviders": {
     "company.icon": ["dns", "site_probe", "brandfetch", "zoominfo"],
@@ -149,6 +152,11 @@
       "operationId": "person_language",
       "method": "POST",
       "path": "/v1/person/language"
+    },
+    {
+      "operationId": "person_phone",
+      "method": "POST",
+      "path": "/v1/person/phone"
     },
     {
       "operationId": "get_run",

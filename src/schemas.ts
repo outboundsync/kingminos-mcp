@@ -47,6 +47,9 @@ export const CREDENTIAL_PROVIDER_VALUES = [
   "starbridge",
   "clay",
   "databar",
+  "quickenrich",
+  "getleads",
+  "blitzapi",
 ] as const;
 
 /** put_credentials OAuth vendors ({ clientId, clientSecret }). Keep in lockstep with application OAUTH_PROVIDER_NAMES. */
@@ -539,6 +542,98 @@ export const PersonLanguageInput = {
   ...CommonRunOptions,
 };
 
+/** person.phone `format` (API 2026-10-13): which format fills `number`. */
+export const PHONE_FORMAT_VALUES = [
+  "e164",
+  "international",
+  "national",
+  "digits",
+  "digits_national",
+] as const;
+
+export const PHONE_TYPE_VALUES = [
+  "mobile",
+  "landline",
+  "other",
+  "unknown",
+] as const;
+
+export const PersonPhoneInput = {
+  email: z
+    .string()
+    .optional()
+    .describe("Work email. One of email / linkedin_url is required."),
+  linkedin_url: z
+    .string()
+    .optional()
+    .describe(
+      "LinkedIn profile URL or slug. One of email / linkedin_url is required; an unparseable URL is 400 invalid_linkedin_url.",
+    ),
+  first_name: z
+    .string()
+    .optional()
+    .describe(
+      "Match-only: rejects a profile that belongs to someone else (person_mismatch). A name never infers anything.",
+    ),
+  last_name: z.string().optional().describe("Match-only (see first_name)."),
+  person: z
+    .object({
+      email: z.string().optional(),
+      linkedin_url: z.string().optional(),
+      first_name: z.string().optional(),
+      last_name: z.string().optional(),
+    })
+    .optional()
+    .describe("Nested alternative to the top-level person fields."),
+  phone_types: z
+    .array(z.enum(PHONE_TYPE_VALUES))
+    .optional()
+    .describe(
+      "Answer filter: mobile | landline | other | unknown. Omit = any type. A number outside the filter is a miss for this request. Part of the cache key.",
+    ),
+  max_results: z
+    .number()
+    .int()
+    .min(1)
+    .max(10)
+    .optional()
+    .describe("Cap on the ranked result.phones list (1–10, API default 3)."),
+  format: z
+    .enum(PHONE_FORMAT_VALUES)
+    .optional()
+    .describe(
+      "Which format fills `number` on best_phone and phones[]: e164 (default) | international | national | digits | digits_national. Every phone also carries e164 and all five under `formats`. Presentation only — not part of the cache key.",
+    ),
+  routing: z
+    .object({
+      only: z
+        .array(ProviderName)
+        .optional()
+        .describe(
+          "Vendor isolation: run only these providers. A known provider with no phone hop empties the ladder (not_configured).",
+        ),
+      ignore: z
+        .array(ProviderName)
+        .optional()
+        .describe("Skip these providers."),
+    })
+    .optional()
+    .describe(
+      "Only routing.only / routing.ignore are honored (part of the cache key). path / preset / order are ignored — the ladder is locked.",
+    ),
+  skip_cache: z
+    .boolean()
+    .optional()
+    .describe(
+      "Skip the 30-day cache read (still writes). Same as cache_bypass (X-Router-Cache: bypass).",
+    ),
+  cache_bypass: z
+    .boolean()
+    .optional()
+    .describe("When true, send X-Router-Cache: bypass (same as skip_cache)."),
+  ...CommonRunOptions,
+};
+
 export const VerifyEmploymentInput = {
   email: z.string().optional(),
   first_name: z.string().optional(),
@@ -588,7 +683,7 @@ export const PutCredentialInput = {
     .string()
     .optional()
     .describe(
-      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, apollo, companyurlfinder, peopledatalabs, hginsights, brandfetch, enrichcrm, lemlist, cognism, lusha, starbridge, clay, or databar. Alias: api_key. Do not send for zoominfo or snovio.",
+      "API key for leadmagic, findymail, wiza, aiark, builtwith, prospeo, apollo, companyurlfinder, peopledatalabs, hginsights, brandfetch, enrichcrm, lemlist, cognism, lusha, starbridge, clay, databar, quickenrich, getleads, or blitzapi. Alias: api_key. Do not send for zoominfo or snovio.",
     ),
   api_key: z
     .string()
@@ -708,6 +803,7 @@ export const FEEDBACK_CAPABILITY_VALUES = [
   "company.resolve",
   "person.verify_employment",
   "person.language",
+  "person.phone",
   "company.domain",
   "company.hierarchy",
   "company.b2b_social",

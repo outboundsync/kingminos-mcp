@@ -586,6 +586,9 @@ export const CREDENTIAL_ONLY_PROVIDERS: readonly string[] = [
   "starbridge",
   "clay",
   "databar",
+  "quickenrich",
+  "getleads",
+  "blitzapi",
 ];
 
 export function routableProviders(names: readonly string[]): string[] {

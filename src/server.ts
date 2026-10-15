@@ -32,6 +32,7 @@ import {
   PatchWebhookInput,
   PERCENT_ENCODED,
   PersonLanguageInput,
+  PersonPhoneInput,
   PutCredentialInput,
   ReplayDeliveryInput,
   ResolveCompanyInput,
@@ -316,6 +317,24 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     },
     buildRequest: capabilityRequest,
   },
+  person_phone: {
+    description: [
+      "POST /v1/person/phone — one dialable phone number for a person by work email or LinkedIn URL, plus the ranked rest. Input email or linkedin_url (one required, else 400 email_or_linkedin_required); first_name / last_name are match-only (reject someone else's profile → person_mismatch), never used to infer anything.",
+      "phone_types filters the answer (mobile | landline | other | unknown; omit = any); max_results caps result.phones (1–10, default 3); format picks the `number` string (e164 default | international | national | digits | digits_national). result.best_phone and each result.phones[] entry: {number, e164, formats {e164, international, national, digits, digits_national}, country_code, calling_code, type, line_type, source, sources, confidence, flags, safe_to_write}, or best_phone null; phones ranked safe-to-write first, then mobile, deduped, honoring the filter; result.flags [conflicting_numbers, numbers_dropped] or null; result.person (null on a miss).",
+      "Verification at no extra cost: libphonenumber validity (invalid and junk numbers dropped), numbering-plan line type (toll-free / premium / pager and the company switchboard are not a direct dial — dropped), country consistency with the person's or company's location (country_mismatch lowers confidence), cross-source agreement (multi_source). Write only when answer.safe_to_write.best_phone is true.",
+      "Agent-managed router, answers in < 10 s: every eligible vendor (ZoomInfo / QuickEnrich / Blitz BYOK, LeadMagic, AI Ark, Findymail US-only, Wiza) runs in parallel under a ~8.5 s budget; late vendors are dropped (bill 0). Four modes via routing.path: speed (LeadMagic first with a 3 s head start, then the cheapest fallbacks race it; cap 10, never Wiza), balance (default: best single number by vendor prior / region / line type, no waiting for agreement), accuracy (agreement required, exactly one number; conflicting_numbers → not safe), coverage (up to 5 ranked numbers, each with source, line type, confidence, consensus). consensus and do_not_call on every number; routing.only / ignore filter the pool. Only vendors behind returned numbers bill (coverage: each returned number), capped at 38 credits; 0 on a miss; BYOK 0.1. A filter no vendor can serve is not called (0 credits, insufficient_input / noop).",
+      "Cost: 38 credits on a hit, 0 on a miss (ceiling 38). decision.outcome hit iff a usable number was found; nothing found → zero_hits (es_decision miss); no vendor answered → provider_error (error) or a skip reason (noop). answer.safe_to_write.best_phone is false when result.flags has conflicting_numbers or best_phone.safe_to_write is false — a wrong number is worse than none.",
+      "30-day cache keyed on the request (filter included, format excluded): repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers. Phone numbers are contact PII.",
+      "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
+    ].join(" "),
+    inputSchema: PersonPhoneInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
+    buildRequest: capabilityRequest,
+  },
   get_run: {
     description:
       "GET /v1/runs/{id} — fetch a recorded run. Completed runs match the capability POST envelope plus candidates. running/failed return a subset (decision/result/es_decision are null). 404 only for missing or another tenant's run.",
@@ -353,7 +372,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "PUT /v1/credentials/{provider} — upsert tenant Your Keys (ciphertext).",
       "ZoomInfo and Snov.io use { clientId, clientSecret }. Other vendors use { apiKey }.",
       "Response never echoes the raw key. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors; storing those keys is optional.",
-      "ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, Snov.io, Cognism, Lusha, Starbridge, Clay, and Databar are BYOK. Websearch cannot be stored.",
+      "ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, Snov.io, Cognism, Lusha, Starbridge, Clay, Databar, QuickEnrich, GetLeads, and BlitzAPI are BYOK. Websearch cannot be stored.",
       PUT_CREDENTIALS_WARNING,
       "Confirm with the user first.",
     ].join(" "),
@@ -603,7 +622,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
         : [
             `${PRODUCT_NAME} wraps the live enrichment API at https://api.kingminos.com.`,
             "Call get_capabilities before the first resolve so routing defaults are current.",
-            "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, Snov.io, Cognism, Lusha, Starbridge, Clay, and Databar are BYOK via put_credentials.",
+            "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, Snov.io, Cognism, Lusha, Starbridge, Clay, Databar, QuickEnrich, GetLeads, and BlitzAPI are BYOK via put_credentials.",
             "Websearch is house-only and cannot be stored.",
             "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
             "Webhook mutations (create/patch/delete/rotate/test/replay) also need confirmation; signing secrets are shown once.",

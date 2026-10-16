@@ -33,6 +33,7 @@ import {
   PERCENT_ENCODED,
   PersonLanguageInput,
   PersonPhoneInput,
+  PersonTitleInput,
   PutCredentialInput,
   ReplayDeliveryInput,
   ResolveCompanyInput,
@@ -328,6 +329,23 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
     ].join(" "),
     inputSchema: PersonPhoneInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
+    buildRequest: capabilityRequest,
+  },
+  person_title: {
+    description: [
+      "POST /v1/person/title — a person's current job title, seniority and function by work email or LinkedIn URL. Input email or linkedin_url (one required, else 400 email_or_linkedin_required); first_name / last_name are match-only (reject someone else's profile → person_mismatch), never used to infer anything; company_domain is match-only (a title at another employer is never a hit → employer_mismatch).",
+      "fields picks the answer (title | seniority | function; omit = all three) and drives the ladder: it walks until every requested field is answered. result.title (cleaned), result.seniority (founder | c_suite | partner | vp | head | director | manager | senior | ic | entry | intern), result.function (sales | marketing | revenue_operations | customer_success | engineering | product | design | data | it | security | finance | people | legal | operations | executive | other), result.field_sources {method vendor | derived | jev, provider}, result.sources (accuracy / coverage), result.flags.",
+      "routing.path: speed (one profile read, keywords only) | balance (default; ZoomInfo search on a BYOK key only, LeadMagic, AI Ark, Findymail) | accuracy (two independent sources + one judge call, 10 s cap) | coverage (adds AI Ark people search and Findymail whenever a second source is wanted). routing.only / routing.ignore are honored.",
+      "Cost is outcome-priced: 1 / 2 / 3 / 5 credits on a hit (speed / balance / accuracy / coverage), 0 on a miss, a partial (fields_incomplete) or a timeout. decision.outcome hit iff every requested field is answered at medium or high confidence; some but not all → fields_incomplete (es_decision ambiguous, values withheld, result.answered_fields names what was found); nothing → zero_hits (miss, result.person null). answer.safe_to_write.title / seniority / function are false on conflicting_titles, unconfirmed_identity or employer_mismatch.",
+      "30-day cache keyed on path, fields, company_domain and routing.only / ignore: repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers.",
+      "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
+    ].join(" "),
+    inputSchema: PersonTitleInput,
     annotations: {
       readOnlyHint: false,
       openWorldHint: true,

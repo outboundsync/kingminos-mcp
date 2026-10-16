@@ -30,6 +30,8 @@ const EXPECTED_TOOLS = [
   "company_description",
   "person_verify_employment",
   "person_language",
+  "person_phone",
+  "person_title",
   "get_run",
   "list_credentials",
   "put_credentials",

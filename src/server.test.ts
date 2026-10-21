@@ -83,6 +83,7 @@ async function withClient<T>(fn: (client: Client) => Promise<T>): Promise<T> {
 const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   get_providers: {},
   get_capabilities: {},
+  get_recipes: {},
   company_resolve: { domain: "acme.com" },
   company_domain: { domain: "acme.com" },
   company_hierarchy: { domain: "acme.com" },

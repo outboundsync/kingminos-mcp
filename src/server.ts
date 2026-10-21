@@ -195,6 +195,17 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     },
     buildRequest: () => ({}),
   },
+  get_recipes: {
+    description:
+      "GET /v1/recipes — agent chaining recipes: machine-readable workflows for AI agents (KingMinos is a trusted extension, not a competitor). Ask speed / balance / accuracy / coverage before a bulk run (ask_before_bulk). routing.path maps 1:1 to recipe priority; max yield is coverage. company.resolve value is the one-step lookup, not a tier. Each recipe lists steps and est_credits_per_row. Does not start a run.",
+    inputSchema: EmptyInput,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      idempotentHint: true,
+    },
+    buildRequest: () => ({}),
+  },
   company_resolve: {
     description:
       "POST /v1/company/resolve — resolve a company from email, domain, or website. Spends credits and writes a run unless dry_run is true (API default is false). Name-only input is no_decision / no_domain. Default path is auto. A LeadMagic-only or websearch-only hit is resolved_without_primary_id — do not stamp a ZoomInfo id unless es_decision is hit and result.zoominfo_company_id is present. ZoomInfo / BuiltWith / Prospeo / Apollo / People Data Labs / HG Insights / Enrich-CRM / Lemlist need BYOK; LeadMagic, Wiza, Findymail, and AI Ark are house-keyed. Prospeo, Apollo, People Data Labs, HG Insights, Enrich-CRM, and Lemlist are off every default path — force them with routing.only. result.operator / answer.operator (0 credits) names who operates a product brand's site (fizzy.do → company_name Fizzy, operator 37signals / 37signals.com + operator_zoominfo_company_id); null when the operator is the brand. It never changes company_name. Does not write SFDC.",

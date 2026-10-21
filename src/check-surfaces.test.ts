@@ -22,6 +22,7 @@ import {
 const EXPECTED_TOOLS = [
   "get_providers",
   "get_capabilities",
+  "get_recipes",
   "company_resolve",
   "company_domain",
   "company_hierarchy",

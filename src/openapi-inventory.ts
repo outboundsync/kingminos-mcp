@@ -78,10 +78,15 @@ export function defaultInventoryPath(cwd: string = process.cwd()): string {
   return resolve(cwd, DEFAULT_INVENTORY_RELATIVE);
 }
 
+/**
+ * Same rule as kingminos-application `mcpToolFromOperationId`: every capital
+ * after the first character starts a word, so `companyXAccount` is
+ * `company_x_account` (not `company_xaccount`) in both repos.
+ */
 export function toolNameFromOperationId(operationId: string): string {
   return operationId
     .replace(/\./g, "_")
-    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[A-Z]/g, (ch, index: number) => (index === 0 ? ch : `_${ch}`))
     .toLowerCase();
 }
 

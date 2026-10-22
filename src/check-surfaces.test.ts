@@ -74,6 +74,14 @@ describe("toolNameFromOperationId", () => {
       "person_verify_employment",
     );
   });
+
+  it("splits every capital like the application (single-letter words)", () => {
+    assert.equal(
+      toolNameFromOperationId("companyXAccount"),
+      "company_x_account",
+    );
+    assert.equal(toolNameFromOperationId("CompanyResolve"), "company_resolve");
+  });
 });
 
 describe("OpenAPI inventory contract", () => {

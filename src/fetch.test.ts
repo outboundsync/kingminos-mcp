@@ -31,6 +31,20 @@ describe("handleFetch public routes", () => {
     assert.deepEqual(await response.json(), healthCard());
   });
 
+  it("reports git_sha on /health from the GIT_SHA var", async () => {
+    const unset = await handleFetch(new Request("http://127.0.0.1/health"));
+    assert.equal(((await unset.json()) as { git_sha: unknown }).git_sha, null);
+    const response = await handleFetch(
+      new Request("http://127.0.0.1/health"),
+      { GIT_SHA: "abc1234" },
+      { mode: "worker" },
+    );
+    assert.equal(
+      ((await response.json()) as { git_sha: unknown }).git_sha,
+      "abc1234",
+    );
+  });
+
   it("serves GET /", async () => {
     const response = await handleFetch(new Request("http://127.0.0.1/"));
     assert.equal(response.status, 200);

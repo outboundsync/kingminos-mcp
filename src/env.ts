@@ -6,6 +6,7 @@ export interface RuntimeEnv {
   KINGMINOS_MCP_ALLOWED_ORIGINS?: string;
   KINGMINOS_MCP_PUBLIC_URL?: string;
   KINGMINOS_MCP_ALLOW_ENV_BEARER?: string;
+  GIT_SHA?: string;
   PORT?: string;
   HOST?: string;
 }
@@ -17,6 +18,7 @@ const NODE_ENV_KEYS = [
   "KINGMINOS_MCP_ALLOWED_ORIGINS",
   "KINGMINOS_MCP_PUBLIC_URL",
   "KINGMINOS_MCP_ALLOW_ENV_BEARER",
+  "GIT_SHA",
   "PORT",
   "HOST",
 ] as const;
@@ -27,6 +29,7 @@ const WORKER_ENV_KEYS = [
   "KINGMINOS_MCP_ALLOWED_HOSTS",
   "KINGMINOS_MCP_ALLOWED_ORIGINS",
   "KINGMINOS_MCP_PUBLIC_URL",
+  "GIT_SHA",
 ] as const;
 
 export function processRuntimeEnv(): RuntimeEnv {
@@ -37,6 +40,7 @@ export function processRuntimeEnv(): RuntimeEnv {
     KINGMINOS_MCP_ALLOWED_ORIGINS: process.env.KINGMINOS_MCP_ALLOWED_ORIGINS,
     KINGMINOS_MCP_PUBLIC_URL: process.env.KINGMINOS_MCP_PUBLIC_URL,
     KINGMINOS_MCP_ALLOW_ENV_BEARER: process.env.KINGMINOS_MCP_ALLOW_ENV_BEARER,
+    GIT_SHA: process.env.GIT_SHA,
     PORT: process.env.PORT,
     HOST: process.env.HOST,
   };

@@ -634,6 +634,95 @@ export const PersonPhoneInput = {
   ...CommonRunOptions,
 };
 
+export const TITLE_FIELD_VALUES = ["title", "seniority", "function"] as const;
+
+export const PersonTitlePath = z.enum([
+  "speed",
+  "balance",
+  "accuracy",
+  "coverage",
+]);
+
+export const PersonTitleInput = {
+  email: z
+    .string()
+    .optional()
+    .describe("Work email. One of email / linkedin_url is required."),
+  linkedin_url: z
+    .string()
+    .optional()
+    .describe(
+      "LinkedIn profile URL or slug. One of email / linkedin_url is required; an unparseable URL is 400 invalid_linkedin_url.",
+    ),
+  first_name: z
+    .string()
+    .optional()
+    .describe(
+      "Match-only: rejects a profile that belongs to someone else (person_mismatch). A name never infers anything.",
+    ),
+  last_name: z.string().optional().describe("Match-only (see first_name)."),
+  company_domain: z
+    .string()
+    .optional()
+    .describe(
+      "Match-only current employer. A title at a different employer is never a hit (employer_mismatch). Never steers routing.",
+    ),
+  person: z
+    .object({
+      email: z.string().optional(),
+      linkedin_url: z.string().optional(),
+      first_name: z.string().optional(),
+      last_name: z.string().optional(),
+      company_domain: z.string().optional(),
+    })
+    .optional()
+    .describe("Nested alternative to the top-level person fields."),
+  fields: z
+    .array(z.enum(TITLE_FIELD_VALUES))
+    .optional()
+    .describe(
+      "Which answers you want: title | seniority | function. Omit = all three. The ladder walks until every requested field is answered; part of the cache key.",
+    ),
+  routing: z
+    .object({
+      path: PersonTitlePath.optional().describe(
+        "speed (1 credit on a hit) | balance (default, 2) | accuracy (3) | coverage (5). 0 on a miss or partial.",
+      ),
+      only: z
+        .array(ProviderName)
+        .optional()
+        .describe(
+          "Vendor isolation: run only these providers on the path's stack.",
+        ),
+      ignore: z
+        .array(ProviderName)
+        .optional()
+        .describe("Skip these providers."),
+      max_provider_credits: z
+        .number()
+        .min(0)
+        .optional()
+        .describe(
+          "Below the path price the call is a 0-credit max_credits_reached noop.",
+        ),
+    })
+    .optional()
+    .describe(
+      "path picks the ladder; only / ignore isolate vendors (part of the cache key).",
+    ),
+  skip_cache: z
+    .boolean()
+    .optional()
+    .describe(
+      "Skip the 30-day cache read (still writes). Same as cache_bypass (X-Router-Cache: bypass).",
+    ),
+  cache_bypass: z
+    .boolean()
+    .optional()
+    .describe("When true, send X-Router-Cache: bypass (same as skip_cache)."),
+  ...CommonRunOptions,
+};
+
 export const VerifyEmploymentInput = {
   email: z.string().optional(),
   first_name: z.string().optional(),

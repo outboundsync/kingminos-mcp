@@ -15,7 +15,7 @@ import {
   VERSION,
 } from "./config.js";
 import type { RuntimeEnv } from "./env.js";
-import { mergeRuntimeEnv, workerRuntimeEnv } from "./env.js";
+import { envString, mergeRuntimeEnv, workerRuntimeEnv } from "./env.js";
 import { hostnameFromHostHeader, hostnameFromOrigin } from "./hosts.js";
 import { createKingMinosServer } from "./server.js";
 
@@ -61,8 +61,18 @@ export function serviceCard(): {
   };
 }
 
-export function healthCard(): { ok: true; service: string; version: string } {
-  return { ok: true, service: SERVICE_NAME, version: VERSION };
+export function healthCard(env: RuntimeEnv = {}): {
+  ok: true;
+  service: string;
+  version: string;
+  git_sha: string | null;
+} {
+  return {
+    ok: true,
+    service: SERVICE_NAME,
+    version: VERSION,
+    git_sha: envString(env, "GIT_SHA") ?? null,
+  };
 }
 
 export function serverCard(env: RuntimeEnv): {
@@ -248,7 +258,7 @@ export async function handleFetch(
     return jsonResponse(200, serviceCard());
   }
   if (request.method === "GET" && path === "/health") {
-    return jsonResponse(200, healthCard());
+    return jsonResponse(200, healthCard(runtime));
   }
   if (
     request.method === "GET" &&

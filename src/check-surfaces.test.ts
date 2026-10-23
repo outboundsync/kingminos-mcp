@@ -22,6 +22,7 @@ import {
 const EXPECTED_TOOLS = [
   "get_providers",
   "get_capabilities",
+  "get_recipes",
   "company_resolve",
   "company_domain",
   "company_hierarchy",
@@ -31,6 +32,7 @@ const EXPECTED_TOOLS = [
   "person_verify_employment",
   "person_language",
   "person_phone",
+  "person_title",
   "get_run",
   "list_credentials",
   "put_credentials",
@@ -71,6 +73,14 @@ describe("toolNameFromOperationId", () => {
       toolNameFromOperationId("person.verify_employment"),
       "person_verify_employment",
     );
+  });
+
+  it("splits every capital like the application (single-letter words)", () => {
+    assert.equal(
+      toolNameFromOperationId("companyXAccount"),
+      "company_x_account",
+    );
+    assert.equal(toolNameFromOperationId("CompanyResolve"), "company_resolve");
   });
 });
 

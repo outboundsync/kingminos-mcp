@@ -83,6 +83,7 @@ async function withClient<T>(fn: (client: Client) => Promise<T>): Promise<T> {
 const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   get_providers: {},
   get_capabilities: {},
+  get_recipes: {},
   company_resolve: { domain: "acme.com" },
   company_domain: { domain: "acme.com" },
   company_hierarchy: { domain: "acme.com" },
@@ -92,6 +93,7 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   person_verify_employment: { email: "a@b.com" },
   person_language: { email: "a@b.com" },
   person_phone: { email: "a@b.com" },
+  person_title: { email: "a@b.com" },
   get_run: { id: "run_1" },
   list_credentials: {},
   put_credentials: { provider: "leadmagic", apiKey: "vendor-key" },
@@ -364,6 +366,63 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /38 credits on a hit, 0 on a miss/);
       assert.match(description, /match-only/i);
       assert.match(description, /conflicting_numbers/);
+    });
+  });
+
+  it("sends person_title to POST /v1/person/title with fields, path, and cache bypass", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      await client.callTool({
+        name: "person_title",
+        arguments: {
+          email: "anna@example.com",
+          company_domain: "example.com",
+          fields: ["seniority", "function"],
+          routing: { path: "accuracy", ignore: ["wiza"] },
+          cache_bypass: true,
+        },
+      });
+    });
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    assert.ok(call);
+    assert.equal(call.method, "POST");
+    assert.match(call.url, /\/v1\/person\/title$/);
+    assert.equal(call.headers["x-router-cache"], "bypass");
+    const body = JSON.parse(call.body ?? "{}") as Record<string, unknown>;
+    assert.deepEqual(body.fields, ["seniority", "function"]);
+    assert.deepEqual(body.routing, { path: "accuracy", ignore: ["wiza"] });
+    assert.equal(body.company_domain, "example.com");
+    assert.equal(body.cache_bypass, undefined);
+  });
+
+  it("rejects invalid fields and paths on person_title before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const badField = await client.callTool({
+        name: "person_title",
+        arguments: { email: "a@b.com", fields: ["salary"] },
+      });
+      assert.equal(badField.isError, true);
+      const badPath = await client.callTool({
+        name: "person_title",
+        arguments: { email: "a@b.com", routing: { path: "turbo" } },
+      });
+      assert.equal(badPath.isError, true);
+    });
+    assert.equal(calls.length, 0);
+  });
+
+  it("documents the person.title contract on person_title", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const tool = listed.tools.find((t) => t.name === "person_title");
+      const description = tool?.description ?? "";
+      assert.match(description, /POST \/v1\/person\/title/);
+      assert.match(description, /1 \/ 2 \/ 3 \/ 5 credits on a hit/);
+      assert.match(description, /fields_incomplete/);
+      assert.match(description, /match-only/i);
+      assert.match(description, /employer_mismatch/);
     });
   });
 

@@ -3,6 +3,7 @@ import type { HttpMethod, SurfaceOperation } from "./openapi-inventory.js";
 export type ToolName =
   | "get_providers"
   | "get_capabilities"
+  | "get_recipes"
   | "company_resolve"
   | "company_domain"
   | "company_hierarchy"
@@ -12,6 +13,7 @@ export type ToolName =
   | "person_verify_employment"
   | "person_language"
   | "person_phone"
+  | "person_title"
   | "get_run"
   | "list_credentials"
   | "put_credentials"
@@ -42,6 +44,7 @@ export interface ResourceRoute {
 export const LIVE_RESOURCE_ROUTES: readonly ResourceRoute[] = [
   { method: "GET", path: "/v1/providers", tool: "get_providers" },
   { method: "GET", path: "/v1/capabilities", tool: "get_capabilities" },
+  { method: "GET", path: "/v1/recipes", tool: "get_recipes" },
   { method: "POST", path: "/v1/company/resolve", tool: "company_resolve" },
   { method: "POST", path: "/v1/company/domain", tool: "company_domain" },
   { method: "POST", path: "/v1/company/hierarchy", tool: "company_hierarchy" },
@@ -74,6 +77,11 @@ export const LIVE_RESOURCE_ROUTES: readonly ResourceRoute[] = [
     method: "POST",
     path: "/v1/person/phone",
     tool: "person_phone",
+  },
+  {
+    method: "POST",
+    path: "/v1/person/title",
+    tool: "person_title",
   },
   { method: "GET", path: "/v1/runs/{id}", tool: "get_run" },
   { method: "GET", path: "/v1/credentials", tool: "list_credentials" },

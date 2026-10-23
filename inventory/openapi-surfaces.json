@@ -119,6 +119,11 @@
       "path": "/v1/capabilities"
     },
     {
+      "operationId": "get_recipes",
+      "method": "GET",
+      "path": "/v1/recipes"
+    },
+    {
       "operationId": "company_resolve",
       "method": "POST",
       "path": "/v1/company/resolve"
@@ -157,6 +162,11 @@
       "operationId": "person_phone",
       "method": "POST",
       "path": "/v1/person/phone"
+    },
+    {
+      "operationId": "person_title",
+      "method": "POST",
+      "path": "/v1/person/title"
     },
     {
       "operationId": "get_run",

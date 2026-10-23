@@ -31,6 +31,7 @@ import {
   OAUTH_CREDENTIAL_PROVIDER_VALUES,
   PatchWebhookInput,
   PERCENT_ENCODED,
+  PersonB2bSocialInput,
   PersonLanguageInput,
   PersonNameInput,
   PersonPhoneInput,
@@ -358,6 +359,24 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
     ].join(" "),
     inputSchema: PersonTitleInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
+    buildRequest: capabilityRequest,
+  },
+  person_b2b_social: {
+    description: [
+      "POST /v1/person/b2b-social — a person's LinkedIn profile URL from an email address, for CRM profile-URL stamps and social sequencing. email is required (the one discovery key, else 400 email_required); linkedin_url, first_name and last_name are match-only (a profile with another slug or a conflicting name is rejected → person_mismatch, 0 credits), never used to discover or score anything. A LinkedIn company page is 400 invalid_linkedin_url.",
+      "result.status found | not_found, result.linkedin_url (canonical https://www.linkedin.com/in/<slug>; hit only), result.linkedin_slug, result.source (vendor_email), result.candidates [{provider, linkedin_url, agrees}] (every profile the ladder returned, winner first), result.confidence, result.flags (single_source, conflicting_profiles, person_mismatch, unconfirmed_identity), result.person (null on a miss), result.identifiers. not_found carries every non-answer; the answer's reason says why (zero_hits, person_mismatch, below_min_confidence, …).",
+      "routing.path: speed (one email-keyed reverse lookup; a second source only when the first answered nothing) | balance (default; same ladder, stops at the first profile) | accuracy (always two independent email-keyed sources, 10 s cap). No coverage tier (400 invalid_routing). routing.only / routing.ignore are honored.",
+      "Cost is outcome-priced: 2 / 3 / 5 credits on a hit (speed / balance / accuracy), once on the deciding attempt; 0 on a miss, a person mismatch, a below-floor withhold or a timeout.",
+      "Write signal is confidence only (there are no safe_to_write fields): two agreeing sources are high, one source is medium, disagreeing sources are the best guess at low with conflicting_profiles. Default floors: speed low, balance medium, accuracy high; min_confidence overrides. Below the floor linkedin_url is blank (reason below_min_confidence), confidence and candidates kept.",
+      "30-day cache keyed on path, min_confidence and routing.only / ignore: repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers. A suppressed email / linkedin_url is 451 subject_suppressed at 0 credits.",
+      "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
+    ].join(" "),
+    inputSchema: PersonB2bSocialInput,
     annotations: {
       readOnlyHint: false,
       openWorldHint: true,

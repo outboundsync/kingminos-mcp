@@ -169,6 +169,11 @@
       "path": "/v1/person/title"
     },
     {
+      "operationId": "person_b2b_social",
+      "method": "POST",
+      "path": "/v1/person/b2b-social"
+    },
+    {
       "operationId": "person_name",
       "method": "POST",
       "path": "/v1/person/name"

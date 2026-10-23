@@ -17,6 +17,7 @@ import {
   planRelease,
   RELEASE_COMMIT_PATTERN,
   renderGroupedNotes,
+  resolveNotesRange,
   sortCalverTags,
   stampReleaseVersion,
 } from "../scripts/release-calver.mjs";
@@ -98,6 +99,34 @@ test("planRelease builds the tag and notes", () => {
     now: NOW,
   });
   assert.equal(plan.nextTag, "2026.09.28.0");
+  assert.equal(
+    plan.releaseNotes,
+    "## [2026.09.28.0] - 2026-09-28\n\n### Features\n- feat: x (abc1234)",
+  );
+});
+
+test("notes range reuses the previous tag when HEAD is already tagged", () => {
+  assert.equal(
+    resolveNotesRange(["2026.09.02.1", "2026.09.28.0"], true),
+    "2026.09.02.1",
+  );
+  assert.equal(resolveNotesRange(["2026.09.28.0"], true), "");
+  assert.equal(
+    resolveNotesRange(["2026.09.02.1", "2026.09.28.0"], false),
+    "2026.09.28.0",
+  );
+  assert.equal(resolveNotesRange([], false), "");
+});
+
+test("planRelease reuses nextTag when provided so a retry can republish", () => {
+  const plan = planRelease({
+    tags: ["2026.09.02.1", "2026.09.28.0"],
+    commitLog: "abc1234def\tfeat: x\n",
+    now: NOW,
+    nextTag: "2026.09.28.0",
+  });
+  assert.equal(plan.nextTag, "2026.09.28.0");
+  assert.equal(plan.hasChanges, true);
   assert.equal(
     plan.releaseNotes,
     "## [2026.09.28.0] - 2026-09-28\n\n### Features\n- feat: x (abc1234)",

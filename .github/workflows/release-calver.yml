@@ -55,7 +55,7 @@ jobs:
         run: |
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
             echo "created=false" >> "$GITHUB_OUTPUT"
-            echo "Tag $TAG already exists, skipping."
+            echo "Tag $TAG already exists; will still publish the GitHub release."
             exit 0
           fi
           git tag -a "$TAG" -m "Release $TAG" "$RELEASE_SHA"
@@ -63,7 +63,7 @@ jobs:
           echo "created=true" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub release
-        if: steps.calver.outputs.has_changes == 'true' && steps.tag.outputs.created == 'true'
+        if: steps.calver.outputs.has_changes == 'true'
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ steps.calver.outputs.next_tag }}

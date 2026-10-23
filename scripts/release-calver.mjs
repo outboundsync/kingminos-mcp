@@ -222,12 +222,25 @@ export function githubOutputLine(
   return `${name}<<${delimiter}\n${value}\n${delimiter}\n`;
 }
 
-export function planRelease({ tags, commitLog, now }) {
+/** Git log start (exclusive) for release notes. Empty means the full HEAD history. */
+export function resolveNotesRange(sortedTags, lastTagPointsAtHead) {
+  if (sortedTags.length === 0) return "";
+  return lastTagPointsAtHead
+    ? (sortedTags.at(-2) ?? "")
+    : (sortedTags.at(-1) ?? "");
+}
+
+export function planRelease({
+  tags,
+  commitLog,
+  now,
+  nextTag: nextTagOverride = "",
+}) {
   const sorted = sortCalverTags(tags);
   const lastTag = sorted.at(-1) ?? "";
   const commits = parseCommits(commitLog);
   if (commits.length === 0) return { hasChanges: false, lastTag };
-  const nextTag = getNextTag(sorted, now);
+  const nextTag = nextTagOverride || getNextTag(sorted, now);
   const date = now.toISOString().slice(0, 10);
   const notes = renderGroupedNotes(commits);
   return {
@@ -255,13 +268,25 @@ function main() {
   }
 
   const tags = git(["tag", "--list"]).split("\n").filter(Boolean);
-  const lastTag = sortCalverTags(tags).at(-1) ?? "";
+  const sorted = sortCalverTags(tags);
+  const lastTag = sorted.at(-1) ?? "";
+  // Retry after a tag push with a failed GitHub release: HEAD is already
+  // that tag, so reuse it and keep has_changes so publish can run.
+  const lastTagPointsAtHead =
+    lastTag !== "" &&
+    git(["rev-parse", `${lastTag}^{commit}`]) === git(["rev-parse", "HEAD"]);
+  const rangeStart = resolveNotesRange(sorted, lastTagPointsAtHead);
   const commitLog = git([
     "log",
     "--pretty=format:%H%x09%s",
-    lastTag ? `${lastTag}..HEAD` : "HEAD",
+    rangeStart ? `${rangeStart}..HEAD` : "HEAD",
   ]);
-  const plan = planRelease({ tags, commitLog, now: new Date() });
+  const plan = planRelease({
+    tags,
+    commitLog,
+    now: new Date(),
+    nextTag: lastTagPointsAtHead ? lastTag : "",
+  });
 
   const output = (name, value) => {
     if (process.env.GITHUB_OUTPUT)

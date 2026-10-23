@@ -1,0 +1,80 @@
+name: CalVer Release
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: calver-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      || (github.event.workflow_run.conclusion == 'success'
+          && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Generate release metadata and stamp versions
+        id: calver
+        run: node scripts/release-calver.mjs --apply --stamp-version --notes-file release-notes.md
+
+      - name: Configure git
+        if: steps.calver.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit version stamps on main
+        if: steps.calver.outputs.has_changes == 'true' && steps.calver.outputs.version_stamped == 'true'
+        env:
+          TAG: ${{ steps.calver.outputs.next_tag }}
+        run: |
+          git add package.json package-lock.json src/config.ts
+          git commit -m "chore(release): $TAG"
+          git push origin HEAD:refs/heads/main
+
+      - name: Create and push tag
+        id: tag
+        if: steps.calver.outputs.has_changes == 'true'
+        env:
+          TAG: ${{ steps.calver.outputs.next_tag }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG already exists, skipping."
+            exit 0
+          fi
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "refs/tags/$TAG"
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub release
+        if: steps.calver.outputs.has_changes == 'true' && steps.tag.outputs.created == 'true'
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ steps.calver.outputs.next_tag }}
+          name: ${{ steps.calver.outputs.next_tag }}
+          body_path: release-notes.md

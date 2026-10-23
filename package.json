@@ -21,10 +21,12 @@
     "check:providers:live": "tsx src/check-providers.ts --live",
     "inventory:refresh": "tsx src/check-surfaces.ts --refresh",
     "smoke": "tsx src/smoke.ts",
-    "test": "tsx --test src/*.test.ts",
+    "test": "tsx --test src/*.test.ts && node --test test/**/*.test.mjs",
     "check:worker": "wrangler deploy --dry-run",
     "cf-typegen": "wrangler types --include-runtime false --strict-vars false",
     "deploy": "wrangler deploy --var GIT_SHA:${WORKERS_CI_COMMIT_SHA:-}",
+    "release:preview": "node scripts/release-calver.mjs --dry-run",
+    "release:apply": "node scripts/release-calver.mjs --apply --stamp-version",
     "ci": "npm run typecheck && npm run lint && npm run check:surfaces && npm run check:providers && npm test && npm run smoke && npm run build && npm run check:worker",
     "prepare": "simple-git-hooks || true"
   },

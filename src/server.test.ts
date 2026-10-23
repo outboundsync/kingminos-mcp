@@ -95,6 +95,7 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   person_phone: { email: "a@b.com" },
   person_title: { email: "a@b.com" },
   person_b2b_social: { email: "a@b.com" },
+  person_name: { email: "a@b.com" },
   get_run: { id: "run_1" },
   list_credentials: {},
   put_credentials: { provider: "leadmagic", apiKey: "vendor-key" },
@@ -165,6 +166,48 @@ describe("catalog-driven handlers", () => {
       assert.match(text, /summary/);
     });
     assert.equal(calls.length, 0, "zod validation happens client-side");
+  });
+
+  it("accepts person.name capability on submit_feedback before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const result = await client.callTool({
+        name: "submit_feedback",
+        arguments: {
+          category: "data_quality",
+          summary: "Returned wrong name for the contact",
+          details: "Full name did not match CRM for this email.",
+          source: "agent",
+          capability: "person.name",
+          run_id: "kmrun_test",
+        },
+      });
+      assert.equal(result.isError, undefined);
+    });
+    assert.equal(calls.length, 1);
+    const body = JSON.parse(calls[0]?.body ?? "{}");
+    assert.equal(body.capability, "person.name");
+  });
+
+  it("accepts person.b2b_social capability on submit_feedback before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const result = await client.callTool({
+        name: "submit_feedback",
+        arguments: {
+          category: "data_quality",
+          summary: "LinkedIn URL did not match the profile",
+          details: "Returned slug disagreed with the known profile.",
+          source: "agent",
+          capability: "person.b2b_social",
+          run_id: "kmrun_test",
+        },
+      });
+      assert.equal(result.isError, undefined);
+    });
+    assert.equal(calls.length, 1);
+    const body = JSON.parse(calls[0]?.body ?? "{}");
+    assert.equal(body.capability, "person.b2b_social");
   });
 
   it("encodes delete_subject as /v1/subjects/email%3Aa%40b.com", async () => {
@@ -484,6 +527,62 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /match-only/i);
       assert.match(description, /No coverage tier/);
       assert.match(description, /no safe_to_write/);
+    });
+  });
+
+  it("sends person_name to POST /v1/person/name with min_confidence, path, and cache bypass", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      await client.callTool({
+        name: "person_name",
+        arguments: {
+          linkedin_url: "https://www.linkedin.com/in/example",
+          min_confidence: "high",
+          routing: { path: "accuracy", ignore: ["wiza"] },
+          cache_bypass: true,
+        },
+      });
+    });
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    assert.ok(call);
+    assert.equal(call.method, "POST");
+    assert.match(call.url, /\/v1\/person\/name$/);
+    assert.equal(call.headers["x-router-cache"], "bypass");
+    const body = JSON.parse(call.body ?? "{}") as Record<string, unknown>;
+    assert.equal(body.linkedin_url, "https://www.linkedin.com/in/example");
+    assert.equal(body.min_confidence, "high");
+    assert.deepEqual(body.routing, { path: "accuracy", ignore: ["wiza"] });
+    assert.equal(body.cache_bypass, undefined);
+  });
+
+  it("rejects invalid min_confidence and paths on person_name before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const badFloor = await client.callTool({
+        name: "person_name",
+        arguments: { email: "a@b.com", min_confidence: "certain" },
+      });
+      assert.equal(badFloor.isError, true);
+      const badPath = await client.callTool({
+        name: "person_name",
+        arguments: { email: "a@b.com", routing: { path: "turbo" } },
+      });
+      assert.equal(badPath.isError, true);
+    });
+    assert.equal(calls.length, 0);
+  });
+
+  it("documents the person.name contract on person_name", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const tool = listed.tools.find((t) => t.name === "person_name");
+      const description = tool?.description ?? "";
+      assert.match(description, /POST \/v1\/person\/name/);
+      assert.match(description, /1 \/ 2 \/ 3 \/ 5 credits on a hit/);
+      assert.match(description, /answer\.confidence only/);
+      assert.match(description, /no safe_to_write/);
+      assert.match(description, /role_address/);
     });
   });
 

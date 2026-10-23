@@ -94,6 +94,7 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   person_language: { email: "a@b.com" },
   person_phone: { email: "a@b.com" },
   person_title: { email: "a@b.com" },
+  person_b2b_social: { email: "a@b.com" },
   get_run: { id: "run_1" },
   list_credentials: {},
   put_credentials: { provider: "leadmagic", apiKey: "vendor-key" },
@@ -423,6 +424,66 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /fields_incomplete/);
       assert.match(description, /match-only/i);
       assert.match(description, /employer_mismatch/);
+    });
+  });
+
+  it("sends person_b2b_social to POST /v1/person/b2b-social with match-only names, path, and cache bypass", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      await client.callTool({
+        name: "person_b2b_social",
+        arguments: {
+          email: "anna@example.com",
+          first_name: "Anna",
+          last_name: "Example",
+          min_confidence: "medium",
+          routing: { path: "accuracy", ignore: ["wiza"] },
+          cache_bypass: true,
+        },
+      });
+    });
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    assert.ok(call);
+    assert.equal(call.method, "POST");
+    assert.match(call.url, /\/v1\/person\/b2b-social$/);
+    assert.equal(call.headers["x-router-cache"], "bypass");
+    const body = JSON.parse(call.body ?? "{}") as Record<string, unknown>;
+    assert.equal(body.email, "anna@example.com");
+    assert.equal(body.first_name, "Anna");
+    assert.equal(body.min_confidence, "medium");
+    assert.deepEqual(body.routing, { path: "accuracy", ignore: ["wiza"] });
+    assert.equal(body.cache_bypass, undefined);
+  });
+
+  it("rejects coverage and invalid min_confidence on person_b2b_social before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const coverage = await client.callTool({
+        name: "person_b2b_social",
+        arguments: { email: "a@b.com", routing: { path: "coverage" } },
+      });
+      assert.equal(coverage.isError, true);
+      const badFloor = await client.callTool({
+        name: "person_b2b_social",
+        arguments: { email: "a@b.com", min_confidence: "certain" },
+      });
+      assert.equal(badFloor.isError, true);
+    });
+    assert.equal(calls.length, 0);
+  });
+
+  it("documents the person.b2b_social contract on person_b2b_social", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const tool = listed.tools.find((t) => t.name === "person_b2b_social");
+      const description = tool?.description ?? "";
+      assert.match(description, /POST \/v1\/person\/b2b-social/);
+      assert.match(description, /2 \/ 3 \/ 5 credits on a hit/);
+      assert.match(description, /email is required/);
+      assert.match(description, /match-only/i);
+      assert.match(description, /No coverage tier/);
+      assert.match(description, /no safe_to_write/);
     });
   });
 

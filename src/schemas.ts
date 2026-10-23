@@ -978,6 +978,7 @@ export const FEEDBACK_CAPABILITY_VALUES = [
   "company.resolve",
   "person.verify_employment",
   "person.language",
+  "person.name",
   "person.phone",
   "company.domain",
   "company.hierarchy",

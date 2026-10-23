@@ -167,6 +167,27 @@ describe("catalog-driven handlers", () => {
     assert.equal(calls.length, 0, "zod validation happens client-side");
   });
 
+  it("accepts person.name capability on submit_feedback before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const result = await client.callTool({
+        name: "submit_feedback",
+        arguments: {
+          category: "data_quality",
+          summary: "Returned wrong name for the contact",
+          details: "Full name did not match CRM for this email.",
+          source: "agent",
+          capability: "person.name",
+          run_id: "kmrun_test",
+        },
+      });
+      assert.equal(result.isError, undefined);
+    });
+    assert.equal(calls.length, 1);
+    const body = JSON.parse(calls[0]?.body ?? "{}");
+    assert.equal(body.capability, "person.name");
+  });
+
   it("encodes delete_subject as /v1/subjects/email%3Aa%40b.com", async () => {
     const { calls } = captureFetch();
     await withClient(async (client) => {

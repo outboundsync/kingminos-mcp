@@ -52,18 +52,33 @@ jobs:
         if: steps.calver.outputs.has_changes == 'true'
         env:
           TAG: ${{ steps.calver.outputs.next_tag }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" 2>/dev/null || true
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            EXISTING_SHA=$(git rev-parse "refs/tags/$TAG^{commit}")
+            if [ "$EXISTING_SHA" != "$RELEASE_SHA" ]; then
+              echo "Tag $TAG already exists at $EXISTING_SHA (expected $RELEASE_SHA)." >&2
+              exit 1
+            fi
             echo "created=false" >> "$GITHUB_OUTPUT"
-            echo "Tag $TAG already exists, skipping."
-            exit 0
+            echo "Tag $TAG already exists at RELEASE_SHA."
+          else
+            git tag -a "$TAG" -m "Release $TAG" "$RELEASE_SHA"
+            git push origin "refs/tags/$TAG"
+            echo "created=true" >> "$GITHUB_OUTPUT"
           fi
-          git tag -a "$TAG" -m "Release $TAG" "$RELEASE_SHA"
-          git push origin "refs/tags/$TAG"
-          echo "created=true" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_exists=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Publish GitHub release
-        if: steps.calver.outputs.has_changes == 'true' && steps.tag.outputs.created == 'true'
+        if: >-
+          steps.calver.outputs.has_changes == 'true'
+          && steps.tag.outputs.release_exists != 'true'
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ steps.calver.outputs.next_tag }}

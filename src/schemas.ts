@@ -723,6 +723,92 @@ export const PersonTitleInput = {
   ...CommonRunOptions,
 };
 
+export const MinConfidence = z
+  .enum(["high", "medium", "low"])
+  .describe(
+    "Optional write floor; overrides the path default. A below-floor answer is withheld (blank, confidence kept) and bills 0.",
+  );
+
+export const PersonNamePath = z.enum([
+  "speed",
+  "balance",
+  "accuracy",
+  "coverage",
+]);
+
+export const PersonNameInput = {
+  email: z
+    .string()
+    .optional()
+    .describe(
+      "Email address. One of email / linkedin_url is required; a role address (admin@, info@) is never a person (role_address, 0 credits).",
+    ),
+  linkedin_url: z
+    .string()
+    .optional()
+    .describe(
+      "LinkedIn profile URL or slug. One of email / linkedin_url is required; an unparseable URL is 400 invalid_linkedin_url.",
+    ),
+  phone: z
+    .string()
+    .optional()
+    .describe(
+      "Accepted, never looked up: phone-only is unsupported_input (0 credits).",
+    ),
+  x_handle: z
+    .string()
+    .optional()
+    .describe(
+      "Accepted, never looked up: X-only is unsupported_input (0 credits).",
+    ),
+  person: z
+    .object({
+      email: z.string().optional(),
+      linkedin_url: z.string().optional(),
+    })
+    .optional()
+    .describe("Nested alternative to the top-level person fields."),
+  min_confidence: MinConfidence.optional(),
+  routing: z
+    .object({
+      path: PersonNamePath.optional().describe(
+        "speed (1 credit on a hit) | balance (default, 2) | accuracy (3) | coverage (5). 0 on a miss, conflict or below-floor withhold.",
+      ),
+      only: z
+        .array(ProviderName)
+        .optional()
+        .describe(
+          "Vendor isolation: run only these providers on the path's stack.",
+        ),
+      ignore: z
+        .array(ProviderName)
+        .optional()
+        .describe("Skip these providers."),
+      max_provider_credits: z
+        .number()
+        .min(0)
+        .optional()
+        .describe(
+          "Below the path price the call is a 0-credit max_credits_reached noop.",
+        ),
+    })
+    .optional()
+    .describe(
+      "path picks the ladder; only / ignore isolate vendors (part of the cache key).",
+    ),
+  skip_cache: z
+    .boolean()
+    .optional()
+    .describe(
+      "Skip the 30-day cache read (still writes). Same as cache_bypass (X-Router-Cache: bypass).",
+    ),
+  cache_bypass: z
+    .boolean()
+    .optional()
+    .describe("When true, send X-Router-Cache: bypass (same as skip_cache)."),
+  ...CommonRunOptions,
+};
+
 export const VerifyEmploymentInput = {
   email: z.string().optional(),
   first_name: z.string().optional(),
@@ -892,6 +978,7 @@ export const FEEDBACK_CAPABILITY_VALUES = [
   "company.resolve",
   "person.verify_employment",
   "person.language",
+  "person.name",
   "person.phone",
   "company.domain",
   "company.hierarchy",

@@ -32,6 +32,7 @@ import {
   PatchWebhookInput,
   PERCENT_ENCODED,
   PersonLanguageInput,
+  PersonNameInput,
   PersonPhoneInput,
   PersonTitleInput,
   PutCredentialInput,
@@ -357,6 +358,24 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
     ].join(" "),
     inputSchema: PersonTitleInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
+    buildRequest: capabilityRequest,
+  },
+  person_name: {
+    description: [
+      "POST /v1/person/name — a person's proper-cased first / last / full name by email or LinkedIn URL, for CRM name stamps and personalization. Input email or linkedin_url (one required, else 400 email_or_linkedin_required); phone / x_handle are accepted but never looked up (unsupported_input, 0 credits). A role address (admin@, info@, …) is never a person (role_address, 0 credits).",
+      "Salutations, titles, honorifics, suffixes, pronouns, emoji and URLs are stripped deterministically on every candidate at no cost; a judge call classifies only an ambiguous multi-token split (balance and above). result.first_name / last_name / full_name (proper-cased), result.name_source (vendor | email_local_parse), result.matched_on (which of email / linkedin_url the name came from), result.email_type (role | freemail | work), result.person (null on a miss), result.flags (email_local_parse, first_name_only, freemail, role_address, conflicting_names, unconfirmed_identity, single_source), result.evidence (candidates kept when a name is withheld below the floor).",
+      "routing.path: speed (one profile read; never high) | balance (default; stops at the first usable name) | accuracy (same ladder + the judge on ambiguous splits; two agreeing independent sources are high, a disagreement is a conflict flagged conflicting_names) | coverage (balance ladder + a second source). routing.only / routing.ignore are honored.",
+      "Cost is outcome-priced: 1 / 2 / 3 / 5 credits on a hit (speed / balance / accuracy / coverage), once on the deciding attempt; 0 on a miss, a conflict, a below-floor withhold or a timeout. answer.outcome resolved | parsed_only | role_address | not_found | conflict | unsupported_input; an email local-part split is a last resort only (parsed_only, low confidence, flagged email_local_parse).",
+      "Write signal is answer.confidence only (there are no safe_to_write fields). Default floors: speed / coverage low, balance medium, accuracy high; min_confidence overrides. Below the floor the name fields are blank and the candidates stay in result.evidence.",
+      "30-day cache keyed on path, min_confidence and routing.only / ignore: repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers. A suppressed email / linkedin_url is 451 subject_suppressed at 0 credits.",
+      "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
+    ].join(" "),
+    inputSchema: PersonNameInput,
     annotations: {
       readOnlyHint: false,
       openWorldHint: true,

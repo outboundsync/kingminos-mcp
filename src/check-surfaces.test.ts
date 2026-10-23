@@ -33,6 +33,7 @@ const EXPECTED_TOOLS = [
   "person_language",
   "person_phone",
   "person_title",
+  "person_name",
   "get_run",
   "list_credentials",
   "put_credentials",

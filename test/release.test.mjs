@@ -126,6 +126,15 @@ test("args: --dry-run and --apply are exclusive; file flags need a value", () =>
     notesFile: "",
     tagFile: "",
   });
+  assert.deepEqual(
+    parseArgs(["--dry-run", "--notes-file", "release-notes.md"]),
+    {
+      apply: false,
+      stampVersion: false,
+      notesFile: "release-notes.md",
+      tagFile: "",
+    },
+  );
 });
 
 test("GITHUB_OUTPUT uses a delimiter that cannot collide with the value", () => {

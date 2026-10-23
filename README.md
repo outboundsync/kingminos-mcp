@@ -100,6 +100,14 @@ npm run ci
 
 That is exactly what the required `OpenAPI tool contract` check runs on PRs and `main` (branches must be up to date; protection applies to admins, so no direct pushes to `main`). `npm install` also installs git hooks (`simple-git-hooks`): pre-commit runs `biome check --write` on staged files, pre-push runs typecheck + tests. The nightly live drift job opens a `Live OpenAPI drift` issue instead of blocking PRs. CI map for all kingminos-* repos: [`kingminos-application/docs/ci.md`](https://github.com/outboundsync/kingminos-application/blob/main/docs/ci.md).
 
+## Releases (CalVer)
+
+After **CI** succeeds on a push to `main`, the **CalVer Release** workflow tags that commit (`YYYY.MM.DD.N`, UTC) and opens a GitHub release with generated notes. It does not push commits to `main` (Workers Builds deploys `kingminos-mcp-prod` on every `main` push).
+
+The runtime version (`/health`, service card, MCP `serverInfo`) comes from `export const VERSION` in `src/config.ts` (kept in sync with `package.json`; see `src/fetch.test.ts`). Bump both in a normal PR when you want production to advertise a newer version than the last tag. Optional local helper: `npm run release:apply` stamps those files to the next CalVer tag without creating a release.
+
+Preview the next tag and notes: `npm run release:preview`.
+
 ## Tenant Bearer
 
 The KingMinos tenant Bearer is sent by the client as **`Authorization: Bearer <token>`**. The server never mints, embeds, or logs that value.

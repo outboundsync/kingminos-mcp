@@ -5,10 +5,10 @@
 //   npm run release:preview           # print tag + notes; writes nothing
 //   node scripts/release-calver.mjs --dry-run --notes-file notes.md --tag-file tag.txt
 //                                      # CI: also write notes/tag files
-//   npm run release:apply             # stamp package.json, package-lock.json, src/config.ts
+//   npm run release:apply             # optional: stamp package.json, package-lock.json, src/config.ts
 //
-// CI (.github/workflows/release-calver.yml) runs --apply --stamp-version, commits
-// the version bump on main, tags, and publishes a GitHub release.
+// CI (.github/workflows/release-calver.yml) runs --dry-run, tags the CI head commit,
+// and publishes a GitHub release (no commits to main).
 //
 // GITHUB_OUTPUT (when set) receives has_changes, next_tag, previous_tag,
 // release_date, and version_stamped.

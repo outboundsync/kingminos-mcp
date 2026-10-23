@@ -37,24 +37,15 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Generate release metadata and stamp versions
+      - name: Generate release metadata
         id: calver
-        run: node scripts/release-calver.mjs --apply --stamp-version --notes-file release-notes.md
+        run: node scripts/release-calver.mjs --dry-run --notes-file release-notes.md
 
       - name: Configure git
         if: steps.calver.outputs.has_changes == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Commit version stamps on main
-        if: steps.calver.outputs.has_changes == 'true' && steps.calver.outputs.version_stamped == 'true'
-        env:
-          TAG: ${{ steps.calver.outputs.next_tag }}
-        run: |
-          git add package.json package-lock.json src/config.ts
-          git commit -m "chore(release): $TAG"
-          git push origin HEAD:refs/heads/main
 
       - name: Create and push tag
         id: tag
@@ -67,7 +58,7 @@ jobs:
             echo "Tag $TAG already exists, skipping."
             exit 0
           fi
-          git tag -a "$TAG" -m "Release $TAG"
+          git tag -a "$TAG" -m "Release $TAG" "$RELEASE_SHA"
           git push origin "refs/tags/$TAG"
           echo "created=true" >> "$GITHUB_OUTPUT"
 

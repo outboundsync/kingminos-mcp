@@ -5,10 +5,12 @@ import {
   allowedOriginHosts,
   apiBaseUrl,
   MCP_PROTOCOL,
+  PRIVACY_URL,
   PRODUCT_NAME,
   publicMcpUrl,
   SERVICE_NAME,
   TENANT_BEARER_ENV,
+  TERMS_URL,
   tenantBearerFromEnv,
   VERSION,
 } from "./config.js";
@@ -45,6 +47,8 @@ export function serviceCard(): {
   version: string;
   docs: string;
   protocol: string;
+  privacy_url: string;
+  terms_url: string;
 } {
   return {
     name: SERVICE_NAME,
@@ -52,6 +56,8 @@ export function serviceCard(): {
     version: VERSION,
     docs: "https://api.kingminos.com/openapi.yaml",
     protocol: MCP_PROTOCOL,
+    privacy_url: PRIVACY_URL,
+    terms_url: TERMS_URL,
   };
 }
 
@@ -74,12 +80,16 @@ export function serverCard(env: RuntimeEnv): {
   endpoint: string;
   transport: string;
   capabilities: { tools: object; resources: object; prompts: object };
+  privacy_url: string;
+  terms_url: string;
 } {
   return {
     serverInfo: { name: PRODUCT_NAME, version: VERSION },
     endpoint: publicMcpUrl(env),
     transport: "streamable-http",
     capabilities: { tools: {}, resources: {}, prompts: {} },
+    privacy_url: PRIVACY_URL,
+    terms_url: TERMS_URL,
   };
 }
 

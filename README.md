@@ -30,7 +30,7 @@ Fly is not the production host. `fly.example.toml` / `Dockerfile` are a local No
 | --- | --- |
 | `GET /health` | Liveness |
 | `GET /` | Service card |
-| `GET /.well-known/mcp/server-card.json` | MCP server card (advertises `https://mcp.kingminos.com/mcp`) |
+| `GET /.well-known/mcp/server-card.json` | MCP server card (advertises `https://mcp.kingminos.com/mcp`, plus `privacy_url` / `terms_url`) |
 | `POST /mcp` | Streamable HTTP MCP |
 | `OPTIONS /mcp` | Advertises `Allow: POST, OPTIONS` |
 | `GET` / `DELETE /mcp` | `405 Method Not Allowed` |

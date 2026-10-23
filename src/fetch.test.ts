@@ -65,6 +65,19 @@ describe("handleFetch public routes", () => {
     assert.doesNotMatch(body.endpoint ?? "", /evil\.example/);
   });
 
+  it("advertises privacy and terms URLs on the server card", async () => {
+    const response = await handleFetch(
+      new Request("http://127.0.0.1/.well-known/mcp/server-card.json"),
+    );
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      privacy_url?: string;
+      terms_url?: string;
+    };
+    assert.equal(body.privacy_url, "https://kingminos.com/privacy");
+    assert.equal(body.terms_url, "https://kingminos.com/terms");
+  });
+
   it("advertises the documented public MCP URL when configured", async () => {
     const response = await handleFetch(
       new Request("http://127.0.0.1/.well-known/mcp/server-card.json"),

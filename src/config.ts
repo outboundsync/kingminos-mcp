@@ -30,6 +30,10 @@ export const ALLOW_ENV_BEARER_ENV = "KINGMINOS_MCP_ALLOW_ENV_BEARER";
 /** Documented public MCP URL (custom domain attached in Cloudflare / wrangler.jsonc). */
 export const DOCUMENTED_PUBLIC_MCP_URL = "https://mcp.kingminos.com/mcp";
 
+/** Legal links advertised on the service and server cards (301 to OutboundSync policies). */
+export const PRIVACY_URL = "https://kingminos.com/privacy";
+export const TERMS_URL = "https://kingminos.com/terms";
+
 const DEFAULT_ORIGIN_HOSTS = [
   "localhost",
   "127.0.0.1",

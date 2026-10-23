@@ -94,6 +94,7 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   person_language: { email: "a@b.com" },
   person_phone: { email: "a@b.com" },
   person_title: { email: "a@b.com" },
+  person_name: { email: "a@b.com" },
   get_run: { id: "run_1" },
   list_credentials: {},
   put_credentials: { provider: "leadmagic", apiKey: "vendor-key" },
@@ -423,6 +424,62 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /fields_incomplete/);
       assert.match(description, /match-only/i);
       assert.match(description, /employer_mismatch/);
+    });
+  });
+
+  it("sends person_name to POST /v1/person/name with min_confidence, path, and cache bypass", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      await client.callTool({
+        name: "person_name",
+        arguments: {
+          linkedin_url: "https://www.linkedin.com/in/example",
+          min_confidence: "high",
+          routing: { path: "accuracy", ignore: ["wiza"] },
+          cache_bypass: true,
+        },
+      });
+    });
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    assert.ok(call);
+    assert.equal(call.method, "POST");
+    assert.match(call.url, /\/v1\/person\/name$/);
+    assert.equal(call.headers["x-router-cache"], "bypass");
+    const body = JSON.parse(call.body ?? "{}") as Record<string, unknown>;
+    assert.equal(body.linkedin_url, "https://www.linkedin.com/in/example");
+    assert.equal(body.min_confidence, "high");
+    assert.deepEqual(body.routing, { path: "accuracy", ignore: ["wiza"] });
+    assert.equal(body.cache_bypass, undefined);
+  });
+
+  it("rejects invalid min_confidence and paths on person_name before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const badFloor = await client.callTool({
+        name: "person_name",
+        arguments: { email: "a@b.com", min_confidence: "certain" },
+      });
+      assert.equal(badFloor.isError, true);
+      const badPath = await client.callTool({
+        name: "person_name",
+        arguments: { email: "a@b.com", routing: { path: "turbo" } },
+      });
+      assert.equal(badPath.isError, true);
+    });
+    assert.equal(calls.length, 0);
+  });
+
+  it("documents the person.name contract on person_name", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const tool = listed.tools.find((t) => t.name === "person_name");
+      const description = tool?.description ?? "";
+      assert.match(description, /POST \/v1\/person\/name/);
+      assert.match(description, /1 \/ 2 \/ 3 \/ 5 credits on a hit/);
+      assert.match(description, /answer\.confidence only/);
+      assert.match(description, /no safe_to_write/);
+      assert.match(description, /role_address/);
     });
   });
 

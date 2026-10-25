@@ -262,6 +262,36 @@
       "operationId": "company_description",
       "method": "POST",
       "path": "/v1/company/description"
+    },
+    {
+      "operationId": "get_balance",
+      "method": "GET",
+      "path": "/v1/balance"
+    },
+    {
+      "operationId": "get_balance_ledger",
+      "method": "GET",
+      "path": "/v1/balance/ledger"
+    },
+    {
+      "operationId": "get_balance_history",
+      "method": "GET",
+      "path": "/v1/balance/history"
+    },
+    {
+      "operationId": "get_balance_forecast",
+      "method": "GET",
+      "path": "/v1/balance/forecast"
+    },
+    {
+      "operationId": "get_balance_health",
+      "method": "GET",
+      "path": "/v1/balance/health"
+    },
+    {
+      "operationId": "get_usage",
+      "method": "GET",
+      "path": "/v1/usage"
     }
   ]
 }

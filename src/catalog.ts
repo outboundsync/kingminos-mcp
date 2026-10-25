@@ -4,6 +4,12 @@ export type ToolName =
   | "get_providers"
   | "get_capabilities"
   | "get_recipes"
+  | "get_balance"
+  | "get_balance_ledger"
+  | "get_balance_history"
+  | "get_balance_forecast"
+  | "get_balance_health"
+  | "get_usage"
   | "company_resolve"
   | "company_domain"
   | "company_hierarchy"
@@ -47,6 +53,12 @@ export const LIVE_RESOURCE_ROUTES: readonly ResourceRoute[] = [
   { method: "GET", path: "/v1/providers", tool: "get_providers" },
   { method: "GET", path: "/v1/capabilities", tool: "get_capabilities" },
   { method: "GET", path: "/v1/recipes", tool: "get_recipes" },
+  { method: "GET", path: "/v1/balance", tool: "get_balance" },
+  { method: "GET", path: "/v1/balance/ledger", tool: "get_balance_ledger" },
+  { method: "GET", path: "/v1/balance/history", tool: "get_balance_history" },
+  { method: "GET", path: "/v1/balance/forecast", tool: "get_balance_forecast" },
+  { method: "GET", path: "/v1/balance/health", tool: "get_balance_health" },
+  { method: "GET", path: "/v1/usage", tool: "get_usage" },
   { method: "POST", path: "/v1/company/resolve", tool: "company_resolve" },
   { method: "POST", path: "/v1/company/domain", tool: "company_domain" },
   { method: "POST", path: "/v1/company/hierarchy", tool: "company_hierarchy" },

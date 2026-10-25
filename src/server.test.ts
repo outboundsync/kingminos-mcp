@@ -84,6 +84,12 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   get_providers: {},
   get_capabilities: {},
   get_recipes: {},
+  get_balance: {},
+  get_balance_ledger: {},
+  get_balance_history: {},
+  get_balance_forecast: {},
+  get_balance_health: {},
+  get_usage: {},
   company_resolve: { domain: "acme.com" },
   company_domain: { domain: "acme.com" },
   company_hierarchy: { domain: "acme.com" },
@@ -148,6 +154,50 @@ describe("catalog-driven handlers", () => {
       assert.equal(url.pathname, expectedPath, route.tool);
       assert.equal(call.authorization, `Bearer ${BEARER}`);
     }
+  });
+
+  it("forwards balance and usage query filters on the GET tools", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const ledger = await client.callTool({
+        name: "get_balance_ledger",
+        arguments: {
+          since: "2026-10-01T00:00:00.000Z",
+          kind: "run",
+          limit: 25,
+        },
+      });
+      const history = await client.callTool({
+        name: "get_balance_history",
+        arguments: { interval: "hour", since: "2026-10-20T00:00:00.000Z" },
+      });
+      const health = await client.callTool({
+        name: "get_balance_health",
+        arguments: { capability: "company.resolve" },
+      });
+      const usage = await client.callTool({
+        name: "get_usage",
+        arguments: { group_by: "capability", capability: "person.phone" },
+      });
+      for (const result of [ledger, history, health, usage]) {
+        assert.equal(result.isError, undefined);
+      }
+    });
+    assert.equal(calls.length, 4);
+    assert.equal(new URL(calls[0]?.url ?? "").searchParams.get("kind"), "run");
+    assert.equal(new URL(calls[0]?.url ?? "").searchParams.get("limit"), "25");
+    assert.equal(
+      new URL(calls[1]?.url ?? "").searchParams.get("interval"),
+      "hour",
+    );
+    assert.equal(
+      new URL(calls[2]?.url ?? "").searchParams.get("capability"),
+      "company.resolve",
+    );
+    assert.equal(
+      new URL(calls[3]?.url ?? "").searchParams.get("group_by"),
+      "capability",
+    );
   });
 
   it("rejects a submit_feedback call missing required fields before calling the API", async () => {

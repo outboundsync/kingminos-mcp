@@ -906,6 +906,58 @@ export const VerifyEmploymentInput = {
   ...CommonRunOptions,
 };
 
+export const GetBalanceLedgerInput = {
+  since: z.string().optional().describe("Inclusive start instant (ISO-8601)."),
+  until: z.string().optional().describe("Exclusive end instant (ISO-8601)."),
+  kind: z
+    .string()
+    .optional()
+    .describe("Ledger kind filter (e.g. run, refund)."),
+  key_id: z.string().optional().describe("Filter to one workspace API key."),
+  user_id: z
+    .string()
+    .optional()
+    .describe("Filter to one workspace member. Owners only see others."),
+  before: z
+    .string()
+    .optional()
+    .describe("Keyset cursor from a previous page (newest-first)."),
+  limit: z.number().int().optional().describe("Page size."),
+};
+
+export const GetBalanceHistoryInput = {
+  interval: z
+    .enum(["day", "hour"])
+    .optional()
+    .describe(
+      "UTC day (default, window ≤ 400d) or hour (window ≤ 7d) buckets. Hourly with the default 30-day since is 400 invalid_window — pass since within 7 days.",
+    ),
+  since: z.string().optional().describe("Inclusive start instant (ISO-8601)."),
+  until: z.string().optional().describe("Exclusive end instant (ISO-8601)."),
+};
+
+export const GetBalanceHealthInput = {
+  capability: z
+    .string()
+    .optional()
+    .describe(
+      "Optional capability id (e.g. company.resolve). Checks whether the workspace can afford one call without reserving credits.",
+    ),
+};
+
+export const GetUsageInput = {
+  since: z.string().optional().describe("Inclusive start instant (ISO-8601)."),
+  until: z.string().optional().describe("Exclusive end instant (ISO-8601)."),
+  capability: z
+    .string()
+    .optional()
+    .describe("Filter aggregates to one capability id."),
+  group_by: z
+    .string()
+    .optional()
+    .describe("Optional grouping dimension on the usage aggregates."),
+};
+
 export const GetRunInput = {
   id: z.string().describe("Run id returned by a capability POST."),
   explain: ExplainMode.optional(),

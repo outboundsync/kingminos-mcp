@@ -25,7 +25,11 @@ import {
   DeleteCredentialInput,
   EmptyInput,
   EraseSubjectInput,
+  GetBalanceHealthInput,
+  GetBalanceHistoryInput,
+  GetBalanceLedgerInput,
   GetRunInput,
+  GetUsageInput,
   ListEventsInput,
   ListWebhookDeliveriesInput,
   OAUTH_CREDENTIAL_PROVIDER_VALUES,
@@ -207,6 +211,103 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       idempotentHint: true,
     },
     buildRequest: () => ({}),
+  },
+  get_balance: {
+    description:
+      "GET /v1/balance — workspace credit snapshot: available and in-flight credits, bucket breakdown, expirations, free-daily status (will_grant_on_next_call does not grant), plan/PAYG estimates, refills, and per-key rolling-24h spend. Needs billing:read (not implied by capability:*). Sessions and km_ keys only; osr_ is 401 not_signed_in. Read-only — does not spend or grant credits.",
+    inputSchema: EmptyInput,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      idempotentHint: true,
+    },
+    buildRequest: () => ({}),
+  },
+  get_balance_ledger: {
+    description:
+      "GET /v1/balance/ledger — paginated user_credit_ledger rows (newest first) with signed delta. source/ref are allow-listed (raw Stripe/promo memos are never echoed). Filters: since, until, kind, key_id, user_id, before cursor. Member keys see only their own run/refund rows (visibility: self); owners and sessions see everything. Needs billing:read. Read-only.",
+    inputSchema: GetBalanceLedgerInput,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      idempotentHint: true,
+    },
+    buildRequest: (args) => ({
+      query: {
+        since: args.since === undefined ? undefined : String(args.since),
+        until: args.until === undefined ? undefined : String(args.until),
+        kind: args.kind === undefined ? undefined : String(args.kind),
+        key_id: args.key_id === undefined ? undefined : String(args.key_id),
+        user_id: args.user_id === undefined ? undefined : String(args.user_id),
+        before: args.before === undefined ? undefined : String(args.before),
+        limit: args.limit === undefined ? undefined : String(args.limit),
+      },
+    }),
+  },
+  get_balance_history: {
+    description:
+      "GET /v1/balance/history — owner/session only (403 owner_required for members). UTC day (≤400d) or hour (≤7d) buckets from ledger balance_after, with carry-forward on quiet periods and a window summary. interval=day|hour; since/until instants. Balances exclude in-flight holds. Needs billing:read. Read-only.",
+    inputSchema: GetBalanceHistoryInput,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      idempotentHint: true,
+    },
+    buildRequest: (args) => ({
+      query: {
+        interval:
+          args.interval === undefined ? undefined : String(args.interval),
+        since: args.since === undefined ? undefined : String(args.since),
+        until: args.until === undefined ? undefined : String(args.until),
+      },
+    }),
+  },
+  get_balance_forecast: {
+    description:
+      "GET /v1/balance/forecast — conservative vs refill-aware runout from trailing run: debit-only rates (d1/d7/d30). Pure projection (draw order, bucket expiry, optional refills; frozen PAYG excluded): status thresholds, shortfall, and fixed advice. Needs billing:read. Read-only — does not reserve credits.",
+    inputSchema: EmptyInput,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      idempotentHint: true,
+    },
+    buildRequest: () => ({}),
+  },
+  get_balance_health: {
+    description:
+      "GET /v1/balance/health — billing health from the same forecast math. Optional capability query checks whether one call is affordable without reserving credits. Needs billing:read. Read-only.",
+    inputSchema: GetBalanceHealthInput,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      idempotentHint: true,
+    },
+    buildRequest: (args) => ({
+      query: {
+        capability:
+          args.capability === undefined ? undefined : String(args.capability),
+      },
+    }),
+  },
+  get_usage: {
+    description:
+      "GET /v1/usage — workspace run aggregates: charged vs no-charge buckets, optional group_by, ledger reconciliation. Charged means charged_credits > 0 (or a legacy provider_credits_json sum), not run status. Filters: since, until, capability. Member keys get reduced visibility. Needs billing:read. Read-only.",
+    inputSchema: GetUsageInput,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      idempotentHint: true,
+    },
+    buildRequest: (args) => ({
+      query: {
+        since: args.since === undefined ? undefined : String(args.since),
+        until: args.until === undefined ? undefined : String(args.until),
+        capability:
+          args.capability === undefined ? undefined : String(args.capability),
+        group_by:
+          args.group_by === undefined ? undefined : String(args.group_by),
+      },
+    }),
   },
   company_resolve: {
     description:

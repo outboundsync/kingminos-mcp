@@ -182,6 +182,12 @@ Every tool is the snake_case `operationId` of one bearer-authenticated KingMinos
 | `get_providers` | `GET /v1/providers` | Registry + configured flags |
 | `get_capabilities` | `GET /v1/capabilities` | Call before the first resolve |
 | `get_recipes` | `GET /v1/recipes` | Agent chaining recipes; ask speed / balance / accuracy / coverage before a bulk run |
+| `get_balance` | `GET /v1/balance` | Workspace credit snapshot (available, in-flight, buckets, plan/PAYG, refills, per-key 24h spend). Needs `billing:read`. Read-only; does not grant credits |
+| `get_balance_ledger` | `GET /v1/balance/ledger` | Paginated credit ledger (newest first, signed `delta`). Filters `since` / `until` / `kind` / `key_id` / `user_id` / `before`. Members see only their own run/refund rows |
+| `get_balance_history` | `GET /v1/balance/history` | Owner/session only. UTC `interval` day (≤400d) or hour (≤7d) buckets from `balance_after`. Excludes in-flight holds |
+| `get_balance_forecast` | `GET /v1/balance/forecast` | Conservative vs refill-aware runout from trailing `run:` debit rates. Does not reserve credits |
+| `get_balance_health` | `GET /v1/balance/health` | Billing health + optional `capability` affordance check (no reservation) |
+| `get_usage` | `GET /v1/usage` | Charged vs no-charge run aggregates; optional `group_by` / `capability` / `since` / `until`. Charged = `charged_credits > 0`, not run status |
 | `company_resolve` | `POST /v1/company/resolve` | Email / domain / website. Spends credits unless `dry_run` is true (API default false). Name-only is `no_decision`. `result.operator` (0 credits) names a product brand's operator (fizzy.do → 37signals) without changing `company_name` |
 | `company_domain` | `POST /v1/company/domain` | Write-safe CRM domain decision |
 | `company_hierarchy` | `POST /v1/company/hierarchy` | Immediate / ultimate parent + capped subsidiaries |

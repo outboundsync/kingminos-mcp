@@ -4,7 +4,11 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { LIVE_RESOURCE_ROUTES, type ToolName } from "./catalog.js";
 import { handleFetch } from "./fetch.js";
-import { DecideCompanyIconInput, stripMeta } from "./schemas.js";
+import {
+  DecideCompanyIconInput,
+  DecideCompanyXAccountInput,
+  stripMeta,
+} from "./schemas.js";
 import { credentialPutBody, encodePath, rawSubjectKey } from "./server.js";
 
 const originalFetch = globalThis.fetch;
@@ -94,6 +98,7 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   company_domain: { domain: "acme.com" },
   company_hierarchy: { domain: "acme.com" },
   company_b2b_social: { domain: "acme.com" },
+  company_x_account: { domain: "acme.com" },
   company_icon: { domain: "acme.com" },
   company_description: { domain: "acme.com" },
   person_verify_employment: { email: "a@b.com" },
@@ -634,6 +639,92 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /no safe_to_write/);
       assert.match(description, /role_address/);
     });
+  });
+
+  it("sends company_x_account to POST /v1/company/x-account with min_confidence and path", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      await client.callTool({
+        name: "company_x_account",
+        arguments: {
+          name: "Stripe",
+          x_url: "https://x.com/stripe",
+          min_confidence: "high",
+          routing: { path: "accuracy", ignore: ["wiza"] },
+          dry_run: true,
+        },
+      });
+    });
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    assert.ok(call);
+    assert.equal(call.method, "POST");
+    assert.match(call.url, /\/v1\/company\/x-account$/);
+    const body = JSON.parse(call.body ?? "{}") as Record<string, unknown>;
+    assert.equal(body.name, "Stripe");
+    assert.equal(body.x_url, "https://x.com/stripe");
+    assert.equal(body.min_confidence, "high");
+    assert.deepEqual(body.routing, { path: "accuracy", ignore: ["wiza"] });
+    assert.equal(body.dry_run, true);
+  });
+
+  it("rejects invalid min_confidence and paths on company_x_account before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const badFloor = await client.callTool({
+        name: "company_x_account",
+        arguments: { domain: "acme.com", min_confidence: "certain" },
+      });
+      assert.equal(badFloor.isError, true);
+      const badPath = await client.callTool({
+        name: "company_x_account",
+        arguments: { domain: "acme.com", routing: { path: "turbo" } },
+      });
+      assert.equal(badPath.isError, true);
+    });
+    assert.equal(calls.length, 0);
+  });
+
+  it("documents the company.x_account contract on company_x_account", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const tool = listed.tools.find((t) => t.name === "company_x_account");
+      const description = tool?.description ?? "";
+      assert.match(description, /POST \/v1\/company\/x-account/);
+      assert.match(
+        description,
+        /speed 1 \/ balance 1\.3 \/ accuracy 1\.6 \/ coverage 1\.7/,
+      );
+      assert.match(
+        description,
+        /Confidence is the only write signal \(no safe_to_write\)/,
+      );
+      assert.match(description, /never twitter\.com/);
+    });
+  });
+
+  it("company_x_account input schema matches CompanyXAccountRequest", () => {
+    const keys = new Set(Object.keys(DecideCompanyXAccountInput));
+    for (const key of [
+      "name",
+      "domain",
+      "website",
+      "email",
+      "country",
+      "hint",
+      "x_url",
+      "min_confidence",
+      "routing",
+      "path",
+      "preset",
+      "dry_run",
+      "external_ref",
+      "compliance",
+    ]) {
+      assert.ok(keys.has(key), key);
+    }
+    assert.equal(keys.has("linkedin_url"), false);
+    assert.equal(keys.has("skip_cache"), false);
   });
 
   it("shapes put_credentials bodies and aliases api_key", async () => {

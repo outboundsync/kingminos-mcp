@@ -22,6 +22,7 @@ import {
   DecideCompanyDomainInput,
   DecideCompanyHierarchyInput,
   DecideCompanyIconInput,
+  DecideCompanyXAccountInput,
   DeleteCredentialInput,
   EmptyInput,
   EraseSubjectInput,
@@ -346,6 +347,23 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     description:
       "POST /v1/company/b2b-social — decide the company LinkedIn page URL (or null). Domain/website/email required; name-only is 400. speed is websearch only (cap 1). balance (default) runs websearch then house AI Ark even after a search candidate (cap 2). accuracy adds LeadMagic, house AI Ark, then Wiza (cap 18). coverage adds Findymail (cap 19). Default stacks are house keys only. BYOK ZoomInfo / Apollo / Prospeo / Company URL Finder need routing.only. Output result.linkedin_url is Serper-confirmed https://www.linkedin.com/company/{slug} or null. Spends credits unless dry_run is true. Does not write SFDC.",
     inputSchema: DecideCompanyB2bSocialInput,
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
+    buildRequest: capabilityRequest,
+  },
+  company_x_account: {
+    description: [
+      "POST /v1/company/x-account — decide the company's own X (formerly Twitter) account URL (result.x_url) and handle (result.x_handle), or null.",
+      "Subject is domain / website / email or name (400 missing_subject when all four are blank). Name-only is allowed, but name→domain runs on accuracy / coverage only; speed / balance miss rather than guess.",
+      "Every path starts homepage-first (site fetch, then /contact and /about), with Serper site:x.com as the search fallback. speed = homepage + one Serper host (cap 1); balance (default) adds Wikidata + house AI Ark (cap 2); accuracy / coverage add handle-confirm + ZoomInfo BYOK (caps 3 / 4). House ZoomInfo is skipped unless the key is BYOK; Wiza / LeadMagic / Findymail are not on the default stacks.",
+      "Confidence is the only write signal (no safe_to_write). Default floors: speed and coverage low, balance medium, accuracy high; min_confidence (high | medium | low) overrides. Below the floor the field is blank (es_decision miss) and candidates are in evidence.",
+      "Outcome-priced speed 1 / balance 1.3 / accuracy 1.6 / coverage 1.7 credits on a floor-passing hit; withheld and miss bill 0; BYOK on a delivered hit is 0.1. Hard 10 s server budget.",
+      "result.x_url is https://x.com/{handle} (lowercase, no @) or null, never twitter.com. Spends credits unless dry_run is true. Does not write SFDC.",
+    ].join(" "),
+    inputSchema: DecideCompanyXAccountInput,
     annotations: {
       readOnlyHint: false,
       openWorldHint: true,

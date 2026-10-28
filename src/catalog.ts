@@ -14,6 +14,7 @@ export type ToolName =
   | "company_domain"
   | "company_hierarchy"
   | "company_b2b_social"
+  | "company_x_account"
   | "company_icon"
   | "company_description"
   | "person_verify_employment"
@@ -66,6 +67,11 @@ export const LIVE_RESOURCE_ROUTES: readonly ResourceRoute[] = [
     method: "POST",
     path: "/v1/company/b2b-social",
     tool: "company_b2b_social",
+  },
+  {
+    method: "POST",
+    path: "/v1/company/x-account",
+    tool: "company_x_account",
   },
   {
     method: "POST",

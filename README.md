@@ -1,6 +1,6 @@
 # KingMinos by OutboundSync — MCP
 
-Streamable HTTP MCP server that wraps the live KingMinos enrichment API at `https://api.kingminos.com`. One tool per bearer-authenticated resource route. Session and cookie routes under `/v1/auth/*` and `/v1/account/*` are permanently out of scope. This is not the OutboundSync product MCP and does not expose OutboundSync account, source, or sync tools.
+Streamable HTTP MCP server that wraps the live KingMinos enrichment API at `https://api.kingminos.com`. One tool per bearer-authenticated resource route. Session and cookie routes under `/v1/auth/*` and `/v1/account/*`, and operator routes under `/v1/admin/*`, are not OpenAPI resource tools. This is not the OutboundSync product MCP and does not expose OutboundSync account, source, or sync tools.
 
 LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, and Snov.io are BYOK via `put_credentials`. Websearch is house-only and cannot be stored. Snov.io is OAuth (`clientId`/`clientSecret`) and is a credential vendor only. Cognism, Lusha, Starbridge, Clay, Databar, QuickEnrich, GetLeads, and BlitzAPI are API-key credential vendors only — no routing hop yet. The server never embeds vendor keys and never logs the tenant Bearer or credential bodies.
 
@@ -12,7 +12,7 @@ Say **SFDC**, never SF.
 
 ## Admin tools (admin token only)
 
-`abuse_report`, `partner_report`, `partner_payout`, `feedback_report` and `partner_admin` wrap `/v1/admin/abuse/daily`, `/v1/admin/partners/analytics`, `/v1/admin/partners/payouts`, `/v1/admin/feedback` and `/v1/admin/partners` (list, create partner + code, add/deactivate code). They are registered **only** when the MCP bearer is a KingMinos admin token (`kmadm_…`, hashed in the API's D1, minted by Harris with `scripts/mint-admin-token.ts` in kingminos-application). Any other bearer never sees them in `tools/list`; an admin bearer sees only these admin tools. The API re-checks the token on every call. They are not OpenAPI resource operations, so `check:surfaces` ignores them.
+`abuse_report`, `partner_report`, `partner_payout`, `feedback_report` and `partner_admin` wrap `/v1/admin/abuse/daily`, `/v1/admin/partners/analytics`, `/v1/admin/partners/payouts`, `/v1/admin/feedback` and `/v1/admin/partners` (list, create partner + code, add/deactivate code). They are registered **only** when the MCP bearer is a KingMinos admin token (`kmadm_…`, hashed in the API's D1, minted by Harris with `scripts/mint-admin-token.ts` in kingminos-application). Any other bearer never sees them in `tools/list`; an admin bearer sees only these admin tools. The API re-checks the token on every call. They are not OpenAPI resource tools: the live spec also lists a few `/v1/admin/*` operations (privacy suppressions, signups), and `check:surfaces` skips every `/v1/admin/*` path through `nonToolPathPrefixes` plus the reviewed `excludedOperationIds` catalog, so they never show up as drift.
 
 Production is Cloudflare Worker **`kingminos-mcp-prod`** on the existing OutboundSync Cloudflare account. Janus deploys it with Wrangler:
 
@@ -62,7 +62,7 @@ npm run check:providers
 
 `check:surfaces` compares advertised MCP tools to `operations[]`. `check:providers` compares the Zod `ProviderName` / `CredentialProvider` enums to the pinned `providers[]` / `credentialProviders[]`. A new BYOK id such as `prospeo`, `companyurlfinder`, `peopledatalabs`, `hginsights`, `brandfetch`, `enrichcrm`, or `lemlist` fails CI until both Zod enums and the pin list it — that is how `routing.only: ["prospeo"]` and `put_credentials({ provider: "prospeo" })` stay accepted.
 
-`/v1/auth/*` and `/v1/account/*` are intentionally not MCP tools (cookie/session app surfaces). They are denied by `nonToolPathPrefixes` plus the reviewed `excludedOperationIds` catalog. Do not implement those ~24 operations as tools.
+`/v1/auth/*` and `/v1/account/*` are intentionally not MCP tools (cookie/session app surfaces), and `/v1/admin/*` is the operator API (the admin-token tools above are hand-written, not generated from OpenAPI). All three prefixes are denied by `nonToolPathPrefixes` plus the reviewed `excludedOperationIds` catalog. Do not implement the ~24 auth/account operations as tools.
 
 Live OpenAPI drift check (scheduled CI / `workflow_dispatch`, or local). Surfaces compare only bearer resource operations after the deny-list — account/auth on the live spec is not a failure. Provider live check is one-way: it fails only when production lists a provider Zod does not have. Production lagging the pin (missing `prospeo`) does not fail. Override the spec URL with `KINGMINOS_OPENAPI_JSON_URL` (default `https://api.kingminos.com/openapi.json`):
 

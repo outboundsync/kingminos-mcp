@@ -149,6 +149,11 @@
       "path": "/v1/company/b2b-social"
     },
     {
+      "operationId": "company_x_account",
+      "method": "POST",
+      "path": "/v1/company/x-account"
+    },
+    {
       "operationId": "company_icon",
       "method": "POST",
       "path": "/v1/company/icon"

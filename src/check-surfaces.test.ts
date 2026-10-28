@@ -33,6 +33,7 @@ const EXPECTED_TOOLS = [
   "company_domain",
   "company_hierarchy",
   "company_b2b_social",
+  "company_x_account",
   "company_icon",
   "company_description",
   "person_verify_employment",

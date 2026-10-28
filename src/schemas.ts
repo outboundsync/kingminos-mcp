@@ -729,6 +729,65 @@ export const MinConfidence = z
     "Optional write floor; overrides the path default. A below-floor answer is withheld (blank, confidence kept) and bills 0.",
   );
 
+export const DecideCompanyXAccountInput = {
+  name: z
+    .string()
+    .optional()
+    .describe(
+      "Unit/brand corroboration. Sufficient as the only subject on accuracy/coverage (name→domain runs there); speed/balance miss rather than guess when domain/website/email are absent.",
+    ),
+  domain: z
+    .string()
+    .optional()
+    .describe(
+      "Preferred subject (or website/email that hygiene-normalize to the same registrable).",
+    ),
+  website: z.string().optional(),
+  email: z.string().optional(),
+  country: z.string().optional(),
+  hint: z.string().optional(),
+  x_url: z
+    .string()
+    .optional()
+    .describe(
+      "Optional account hint, agree-check only. Must be https://x.com/{handle}.",
+    ),
+  min_confidence: MinConfidence.optional(),
+  routing: CompanyDomainRoutingRequest.optional(),
+  path: z
+    .enum([
+      "speed",
+      "balance",
+      "accuracy",
+      "coverage",
+      "value",
+      "auto",
+      "fast",
+      "name_only",
+    ])
+    .optional()
+    .describe(
+      "Flattened alias of routing.path. Omit = balance. Nested routing.path wins when both are sent.",
+    ),
+  preset: z
+    .enum([
+      "speed",
+      "balance",
+      "accuracy",
+      "coverage",
+      "value",
+      "auto",
+      "name_only",
+      "zi_stamp",
+      "fast",
+    ])
+    .optional()
+    .describe(
+      "Flattened alias of routing.preset. Nested wins when both are sent.",
+    ),
+  ...CommonRunOptions,
+};
+
 export const PersonB2bSocialPath = z.enum(["speed", "balance", "accuracy"]);
 
 export const PersonB2bSocialInput = {

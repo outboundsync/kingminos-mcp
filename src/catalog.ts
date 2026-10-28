@@ -23,6 +23,8 @@ export type ToolName =
   | "person_title"
   | "person_b2b_social"
   | "person_name"
+  | "person_email"
+  | "email_verify"
   | "get_run"
   | "list_credentials"
   | "put_credentials"
@@ -112,6 +114,16 @@ export const LIVE_RESOURCE_ROUTES: readonly ResourceRoute[] = [
     method: "POST",
     path: "/v1/person/name",
     tool: "person_name",
+  },
+  {
+    method: "POST",
+    path: "/v1/person/email",
+    tool: "person_email",
+  },
+  {
+    method: "POST",
+    path: "/v1/email/verify",
+    tool: "email_verify",
   },
   { method: "GET", path: "/v1/runs/{id}", tool: "get_run" },
   { method: "GET", path: "/v1/credentials", tool: "list_credentials" },

@@ -42,6 +42,8 @@ const EXPECTED_TOOLS = [
   "person_title",
   "person_b2b_social",
   "person_name",
+  "person_email",
+  "email_verify",
   "get_run",
   "list_credentials",
   "put_credentials",

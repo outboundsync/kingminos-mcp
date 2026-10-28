@@ -940,6 +940,75 @@ export const PersonNameInput = {
   ...CommonRunOptions,
 };
 
+export const EmailPath = z.enum(["speed", "balance", "accuracy", "coverage"]);
+
+export const EmailVerifyInput = {
+  email: z
+    .string()
+    .max(320)
+    .describe(
+      "The mailbox to check (required). Canonicalized before any check. A malformed address is answered (invalid, source local, 0 credits), not rejected.",
+    ),
+  min_confidence: MinConfidence.optional(),
+  routing: z
+    .object({
+      path: EmailPath.optional().describe(
+        "speed | balance (default) | accuracy | coverage. 0.5–1.5 credits on a delivered answer.",
+      ),
+    })
+    .optional()
+    .describe("path picks the ladder."),
+  ...CommonRunOptions,
+};
+
+export const PersonEmailInput = {
+  first_name: z
+    .string()
+    .optional()
+    .describe(
+      "Name route: first_name + last_name + company_domain together. A packed full name here (last_name blank) is split.",
+    ),
+  last_name: z.string().optional().describe("Name route (see first_name)."),
+  company_domain: z
+    .string()
+    .optional()
+    .describe(
+      "Name route: the company website domain. A name without a domain is 400 (no guessed patterns).",
+    ),
+  linkedin_url: z
+    .string()
+    .optional()
+    .describe(
+      "LinkedIn route: the person's profile URL. A company page is 400 invalid_linkedin_url.",
+    ),
+  person: z
+    .object({
+      first_name: z.string().optional(),
+      last_name: z.string().optional(),
+      company_domain: z.string().optional(),
+      domain: z.string().optional(),
+      linkedin_url: z.string().optional(),
+    })
+    .optional()
+    .describe(
+      "Nested alternative to the top-level fields; domain is an alias for company_domain.",
+    ),
+  min_confidence: MinConfidence.optional(),
+  routing: z
+    .object({
+      path: EmailPath.optional().describe(
+        "speed | balance (default) | accuracy | coverage. 1.5–5 credits on a delivered email.",
+      ),
+    })
+    .optional()
+    .describe("path picks the ladder."),
+  skip_cache: z
+    .boolean()
+    .optional()
+    .describe("Skip the 30-day cache read (a fresh hit is still written)."),
+  ...CommonRunOptions,
+};
+
 export const VerifyEmploymentInput = {
   email: z.string().optional(),
   first_name: z.string().optional(),
@@ -1163,7 +1232,9 @@ export const FEEDBACK_CAPABILITY_VALUES = [
   "person.b2b_social",
   "person.language",
   "person.name",
+  "person.email",
   "person.phone",
+  "email.verify",
   "company.domain",
   "company.hierarchy",
   "company.b2b_social",

@@ -13,7 +13,7 @@ Mechanical four-repo rollout for **one** BYOK vendor. Optimized for cheap agents
 
 **Golden path:** Apollo — `kingminos-application` #158, `kingminos-website` #34, `kingminos-skills` #6, `kingminos-mcp` #10. Prior: Prospeo (app main, website #33, skills #4, mcp #8).
 
-**Full narrative, patterns, traps, smoke tests, and DeepSeek prompt template:** [`docs/byok-provider-playbook.md`](../../docs/byok-provider-playbook.md) in this repo (`kingminos-mcp`). In-repo plan example: `kingminos-application/docs/future/apollo-byok-four-repos.md`. Sibling repos: **application** (enums + adapter), **website** (Your Keys + MDX), **skills** (`providers.yaml` + skill copy).
+In-repo plan example: `kingminos-application/docs/future/apollo-byok-four-repos.md`. Sibling repos: **application** (enums + adapter), **website** (Your Keys + MDX), **skills** (`providers.yaml` + skill copy).
 
 Prefer `gh pr view` / `gh pr diff` / `gh api repos/…/contents/…` over cloning whole trees.
 
@@ -52,7 +52,7 @@ Stop if any are missing:
 3. **mcp** (Zod + inventory pin)
 4. **skills** (`providers.yaml` + copy + version bumps)
 5. Redeploy website/MCP if auto-deploy did not run
-6. Smoke tests — see playbook §6
+6. Smoke tests below
 
 Branch: `{provider_id}-byok`. One PR per repo. Squash merge when green.
 
@@ -131,7 +131,7 @@ House-key prose: LeadMagic, Wiza, Findymail, AI Ark = house (optional BYOK overr
 
 ## Traps
 
-See playbook §5 for detail. High-signal:
+High-signal:
 
 - Missing `presetProvidersFor` → `routing.only` 400 `invalid_routing` (Prospeo / AI Ark).
 - Stale “LeadMagic only house-key” copy after Wiza/Findymail house (#156).
@@ -152,8 +152,8 @@ See playbook §5 for detail. High-signal:
 ## Minimal agent prompt
 
 ```
-Add BYOK provider [{provider_id}] using skill byok-provider-rollout and
-kingminos-mcp/docs/byok-provider-playbook.md. Auth [{…}]; docs [{…}];
+Add BYOK provider [{provider_id}] using skill byok-provider-rollout.
+Auth [{…}]; docs [{…}];
 endpoints [{…}]; capability [{…}]; verify [{…}]; credits [{…}].
 API first → website → mcp → skills. resaleAllowed false; presetProvidersFor;
 no default routing; no HOUSE_KEY_RESALE; SFDC not SF; no secrets.

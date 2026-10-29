@@ -184,7 +184,7 @@ const PUT_CREDENTIALS_WARNING =
 const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   get_providers: {
     description:
-      "GET /v1/providers — static provider registry plus configured flags, billing_mode, and credit estimates. Does not start a run. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors; other paid vendors are BYOK.",
+      "GET /v1/providers — static provider registry plus configured flags, billing_mode, and credit estimates. Does not start a run. Default paths run on house keys; other paid vendors are BYOK.",
     inputSchema: EmptyInput,
     annotations: {
       readOnlyHint: true,
@@ -314,7 +314,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   company_resolve: {
     description:
-      "POST /v1/company/resolve — resolve a company from email, domain, or website. Spends credits and writes a run unless dry_run is true (API default is false). Name-only input is no_decision / no_domain. Default path is auto. A LeadMagic-only or websearch-only hit is resolved_without_primary_id — do not stamp a ZoomInfo id unless es_decision is hit and result.zoominfo_company_id is present. ZoomInfo / BuiltWith / Prospeo / Apollo / People Data Labs / HG Insights / Enrich-CRM / Lemlist need BYOK; LeadMagic, Wiza, Findymail, and AI Ark are house-keyed. Prospeo, Apollo, People Data Labs, HG Insights, Enrich-CRM, and Lemlist are off every default path — force them with routing.only. result.operator / answer.operator (0 credits) names who operates a product brand's site (fizzy.do → company_name Fizzy, operator 37signals / 37signals.com + operator_zoominfo_company_id); null when the operator is the brand. It never changes company_name. Does not write SFDC.",
+      "POST /v1/company/resolve — resolve a company from email, domain, or website. Spends credits and writes a run unless dry_run is true (API default is false). Name-only input is no_decision / no_domain. Default path is auto. A hit without a primary company id is resolved_without_primary_id — do not stamp a ZoomInfo id unless es_decision is hit and result.zoominfo_company_id is present. Connect your own ZoomInfo key for stampable ids. ZoomInfo / BuiltWith / Prospeo / Apollo / People Data Labs / HG Insights / Enrich-CRM / Lemlist need BYOK. Prospeo, Apollo, People Data Labs, HG Insights, Enrich-CRM, and Lemlist are off every default path — force them with routing.only. result.operator / answer.operator (0 credits) names who operates a product brand's site (fizzy.do → company_name Fizzy, operator 37signals / 37signals.com + operator_zoominfo_company_id); null when the operator is the brand. It never changes company_name. Does not write SFDC.",
     inputSchema: ResolveCompanyInput,
     annotations: {
       readOnlyHint: false,
@@ -325,7 +325,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   company_domain: {
     description:
-      'POST /v1/company/domain — decide what the CRM domain field should say and whether it is safe to write. Outcomes: verified | corrected | discovered | rejected | unverified | no_decision. Write-safe stamps live on result.account_primary_domain + additional_domains. coverage needs BuiltWith BYOK. Company URL Finder is BYOK and off every default path — force with routing.only: ["companyurlfinder"] (name→domain). Spends credits unless dry_run is true. Does not write SFDC.',
+      'POST /v1/company/domain — decide what the CRM domain field should say and whether it is safe to write. Outcomes: verified | corrected | discovered | rejected | unverified | no_decision. Write-safe stamps live on result.account_primary_domain + additional_domains. Company URL Finder is BYOK and off every default path — force with routing.only: ["companyurlfinder"] (name→domain). Spends credits unless dry_run is true. Does not write SFDC.',
     inputSchema: DecideCompanyDomainInput,
     annotations: {
       readOnlyHint: false,
@@ -336,7 +336,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   company_hierarchy: {
     description:
-      "POST /v1/company/hierarchy — decide corporate family (immediate / ultimate parent + capped subsidiaries). Outcomes: subsidiary | ultimate_parent | no_decision. Never standalone. speed is Wikidata only (0 credits); balance/accuracy use ZoomInfo BYOK. coverage is invalid_routing. Spends credits unless dry_run is true. Does not write SFDC.",
+      "POST /v1/company/hierarchy — decide corporate family (immediate / ultimate parent + capped subsidiaries). Outcomes: subsidiary | ultimate_parent | no_decision. Never standalone. speed is 0 credits; balance/accuracy work best with your own ZoomInfo key. coverage is invalid_routing. Spends credits unless dry_run is true. Does not write SFDC.",
     inputSchema: DecideCompanyHierarchyInput,
     annotations: {
       readOnlyHint: false,
@@ -347,7 +347,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   company_b2b_social: {
     description:
-      "POST /v1/company/b2b-social — decide the company LinkedIn page URL (or null). Domain/website/email required; name-only is 400. speed is websearch only (cap 1). balance (default) runs websearch then house AI Ark even after a search candidate (cap 2). accuracy adds LeadMagic, house AI Ark, then Wiza (cap 18). coverage adds Findymail (cap 19). Default stacks are house keys only. BYOK ZoomInfo / Apollo / Prospeo / Company URL Finder need routing.only. Output result.linkedin_url is Serper-confirmed https://www.linkedin.com/company/{slug} or null. Spends credits unless dry_run is true. Does not write SFDC.",
+      "POST /v1/company/b2b-social — decide the company LinkedIn page URL (or null). Domain/website/email required; name-only is 400. speed cap 1; balance (default) cap 2; accuracy cap 18; coverage cap 19. Default paths are house keys only. BYOK ZoomInfo / Apollo / Prospeo / Company URL Finder need routing.only. Output result.linkedin_url is a search-confirmed https://www.linkedin.com/company/{slug} or null. Spends credits unless dry_run is true. Does not write SFDC.",
     inputSchema: DecideCompanyB2bSocialInput,
     annotations: {
       readOnlyHint: false,
@@ -360,7 +360,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     description: [
       "POST /v1/company/x-account — decide the company's own X (formerly Twitter) account URL (result.x_url) and handle (result.x_handle), or null.",
       "Subject is domain / website / email or name (400 missing_subject when all four are blank). Name-only is allowed, but name→domain runs on accuracy / coverage only; speed / balance miss rather than guess.",
-      "Every path starts homepage-first (site fetch, then /contact and /about), with Serper site:x.com as the search fallback. speed = homepage + one Serper host (cap 1); balance (default) adds Wikidata + house AI Ark (cap 2); accuracy / coverage add handle-confirm + ZoomInfo BYOK (caps 3 / 4). House ZoomInfo is skipped unless the key is BYOK; Wiza / LeadMagic / Findymail are not on the default stacks.",
+      "Paths: speed (cap 1); balance (default, cap 2); accuracy / coverage add handle confirmation (caps 3 / 4). Connect your own ZoomInfo key for more fill on accuracy / coverage.",
       "Confidence is the only write signal (no safe_to_write). Default floors: speed and coverage low, balance medium, accuracy high; min_confidence (high | medium | low) overrides. Below the floor the field is blank (es_decision miss) and candidates are in evidence.",
       "Outcome-priced speed 1 / balance 1.3 / accuracy 1.6 / coverage 1.7 credits on a floor-passing hit; withheld and miss bill 0; BYOK on a delivered hit is 0.1. Hard 10 s server budget.",
       "result.x_url is https://x.com/{handle} (lowercase, no @) or null, never twitter.com. Spends credits unless dry_run is true. Does not write SFDC.",
@@ -377,14 +377,13 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     description: [
       "POST /v1/company/icon — fetch, validate, normalize, and host a 256×256 PNG company icon for a domain.",
       "Request body is required domain, optional name, and run options (routing, path, and preset are not part of the contract; the API silently ignores them if sent). website and email are not accepted — use domain directly.",
-      "One implementation ladder (0–2 paid credits): house favicon-fetch (dns/site_probe, 0) → Brandfetch BYOK (1, soft-fail) → ZoomInfo enrich logo (1). Brandfetch and ZoomInfo need put_credentials.",
-      "On a hit, result.icon_url is always the KingMinos-hosted URL https://logos.kingminos.com/i/<sha256>.png (256×256 PNG in R2), never a third-party, site, Brandfetch, or ZoomInfo URL.",
+      "One implementation ladder (0–2 paid credits). Connecting your own Brandfetch or ZoomInfo key (put_credentials) adds larger logos for more companies.",
+      "On a hit, result.icon_url is always the KingMinos-hosted URL https://logos.kingminos.com/i/<sha256>.png (256×256 PNG in R2), never a third-party or site URL.",
       "Optional result.icon_source_url holds the original winning source URL before hosting.",
       "Hard rejects are wrong-company, junk, and empty only.",
       "A source under 64px is still a hosted hit: answer.confidence low, result.flags.low_res true, and answer.safe_to_write.icon_url true (upscaled to 256×256 in R2).",
       "Fetch or store failure is a miss with result.icon_url null.",
       "answer.safe_to_write.icon_url is true on any hosted logos.kingminos.com hit (including low-res); false on misses.",
-      "Not sourced from LeadMagic, AI Ark, Prospeo, or Enrich-CRM.",
       "Spends credits unless dry_run is true. Does not write SFDC.",
     ].join(" "),
     inputSchema: DecideCompanyIconInput,
@@ -401,12 +400,11 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "Domain/website/email required; name-only is 400.",
       "Engine first_acceptable; hits-first on every path. Hard rejects are wrong company (identity < 0.85), junk/PII, and empty.",
       "Paths speed | balance | accuracy | coverage are distinct ladders (not aliases), each under ~10s; always pass path explicitly (omit runs balance at cap 6; path balance is cap 2).",
-      "speed = homepage meta/og with deterministic gates, then house AI Ark (cap 1).",
-      "balance = Jev-ranked homepage extracts + meta/og + AI Ark, optional websearch rewrite (cap 2 when path is balance explicitly).",
-      "accuracy = xAI neutral third-person compose from homepage evidence with one Jev identity judge (cap 3); falls back to the cheaper hit.",
-      "coverage = accuracy compose plus off-homepage Serper / ZoomInfo BYOK evidence (cap 6); cannot miss where accuracy hit.",
-      "AI Ark is the only firmographic vendor. LeadMagic, Wiza, Findymail, Brandfetch, Lemlist, and Snov.io are not company.description vendors.",
-      "ZoomInfo is BYOK-only via put_credentials (never the house key).",
+      "speed = homepage meta/og with deterministic gates, then a data-provider description (cap 1).",
+      "balance = judge-ranked homepage extracts + meta/og + data-provider text, optional rewrite (cap 2 when path is balance explicitly).",
+      "accuracy = neutral third-person compose from homepage evidence with one identity judge (cap 3); falls back to the cheaper hit.",
+      "coverage = accuracy compose plus off-homepage evidence, including your own ZoomInfo key when stored (cap 6); cannot miss where accuracy hit.",
+      "ZoomInfo runs only with your own key (put_credentials).",
       "result.flags hype, first_person, tagline, same_as_speed, truncated, cta, grammar are quality flags, not misses (flags may gain new keys; do not reject unknown ones); truncated and cta force answer.confidence low; grammar is informational only and does not affect confidence or safe_to_write.",
       "answer.confidence is high | medium | low. answer.identity {method: jev | name_domain | own_homepage, score} is the identity basis (null when not identity-judged).",
       "answer.safe_to_write.description is true only on a hit with non-low confidence and a non-null answer.identity; low is never safe to write.",
@@ -424,7 +422,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   person_verify_employment: {
     description:
-      "POST /v1/person/verify-employment — pre-flight whether to send to this person. Default path is balance (LeadMagic email validate + optional paid LinkedIn lookup). speed is LeadMagic validate only. accuracy adds AI Ark (house-keyed). Findymail is a house-key Layer-1 alternate only when routing.only selects it — never stacked after LeadMagic. Outcomes: high_confidence_send | low_confidence_send | low_confidence_block | high_confidence_block | no_decision. Spends credits unless dry_run is true. Does not write SFDC.",
+      "POST /v1/person/verify-employment — pre-flight whether to send to this person. Default path is balance (email validation + optional paid LinkedIn lookup). speed is email validation only. accuracy adds another source. Outcomes: high_confidence_send | low_confidence_send | low_confidence_block | high_confidence_block | no_decision. Spends credits unless dry_run is true. Does not write SFDC.",
     inputSchema: VerifyEmploymentInput,
     annotations: {
       readOnlyHint: false,
@@ -438,9 +436,9 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "POST /v1/person/language — can we engage this person in English, and if not, in what language? Input email or linkedin_url (one required, else 400 email_or_linkedin_required); first_name / last_name are match-only (reject someone else's profile → person_mismatch), never used to infer a language.",
       "result.english is yes | likely | unconfirmed | unknown (never no). result.recommended_language (ISO 639-1; English whenever english=yes) and result.local_language (strongest non-English) are set only at medium or high; low guesses stay in result.languages [{code, name, confidence, level, evidence[]}]. result.detected, result.flags (weak_signals, multilingual_country, conflicting_signals, unconfirmed_identity), result.person.",
       "Confidence is a heuristic 0–1 score (high ≥ 0.75, medium ≥ 0.5), not a calibrated probability.",
-      "routing.path: speed (cap 1: one profile read + language judge) | balance (default, cap 3: LeadMagic by URL → AI Ark by email → Findymail only if AI Ark found no one → LeadMagic on a resolved URL) | accuracy (cap 4: every structured source, no early stop, + language judge). Only path/preset is read; coverage and anything else is 400 invalid_routing.",
+      "routing.path: speed (cap 1: one profile read + language judge) | balance (default, cap 3: structured sources in turn, stops once languages land) | accuracy (cap 4: every structured source, no early stop, + language judge). Only path/preset is read; coverage and anything else is 400 invalid_routing.",
       "decision.outcome hit iff recommended_language is set; low-only → no_decision/ambiguous; nothing found → zero_hits; no vendor answered → provider_error; skips → compliance_blocked | status_down | max_credits_reached | not_configured. answer.safe_to_write.recommended_language only on hit without conflicting_signals or unconfirmed_identity.",
-      "Under compliance.soc2 LeadMagic and AI Ark are skipped; Findymail is the only source. Misses, vendor errors, and unconfigured cost 0.",
+      "Under compliance.soc2 only attested sources run. Misses, vendor errors, and unconfigured cost 0.",
       "30-day cache: repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers.",
       "Spends credits unless dry_run is true. Does not write SFDC.",
     ].join(" "),
@@ -457,7 +455,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "POST /v1/person/phone — one dialable phone number for a person by work email or LinkedIn URL, plus the ranked rest. Input email or linkedin_url (one required, else 400 email_or_linkedin_required); first_name / last_name are match-only (reject someone else's profile → person_mismatch), never used to infer anything.",
       "phone_types filters the answer (mobile | landline | other | unknown; omit = any); max_results caps result.phones (1–10, default 3); format picks the `number` string (e164 default | international | national | digits | digits_national). result.best_phone and each result.phones[] entry: {number, e164, formats {e164, international, national, digits, digits_national}, country_code, calling_code, type, line_type, source, sources, confidence, flags, safe_to_write}, or best_phone null; phones ranked safe-to-write first, then mobile, deduped, honoring the filter; result.flags [conflicting_numbers, numbers_dropped] or null; result.person (null on a miss).",
       "Verification at no extra cost: libphonenumber validity (invalid and junk numbers dropped), numbering-plan line type (toll-free / premium / pager and the company switchboard are not a direct dial — dropped), country consistency with the person's or company's location (country_mismatch lowers confidence), cross-source agreement (multi_source). Write only when answer.safe_to_write.best_phone is true.",
-      "Agent-managed router, answers in < 10 s: every eligible vendor (ZoomInfo / QuickEnrich / Blitz BYOK, LeadMagic, AI Ark, Findymail US-only, Wiza) runs in parallel under a ~8.5 s budget; late vendors are dropped (bill 0). Four modes via routing.path: speed (LeadMagic first with a 3 s head start, then the cheapest fallbacks race it; cap 10, never Wiza), balance (default: best single number by vendor prior / region / line type, no waiting for agreement), accuracy (agreement required, exactly one number; conflicting_numbers → not safe), coverage (up to 5 ranked numbers, each with source, line type, confidence, consensus). consensus and do_not_call on every number; routing.only / ignore filter the pool. Only vendors behind returned numbers bill (coverage: each returned number), capped at 38 credits; 0 on a miss; BYOK 0.1. A filter no vendor can serve is not called (0 credits, insufficient_input / noop).",
+      "Agent-managed router, answers in < 10 s: every eligible vendor (including your own stored keys) runs in parallel under a ~8.5 s budget; late vendors are dropped (bill 0). Four modes via routing.path: speed (the cheapest vendors race; first number back wins; cap 10), balance (default: best single number by vendor prior / region / line type, no waiting for agreement), accuracy (agreement required, exactly one number; conflicting_numbers → not safe), coverage (up to 5 ranked numbers, each with source, line type, confidence, consensus). consensus and do_not_call on every number; routing.only / ignore filter the pool. Only vendors behind returned numbers bill (coverage: each returned number), capped at 38 credits; 0 on a miss; BYOK 0.1. A filter no vendor can serve is not called (0 credits, insufficient_input / noop).",
       "Cost: 38 credits on a hit, 0 on a miss (ceiling 38). decision.outcome hit iff a usable number was found; nothing found → zero_hits (es_decision miss); no vendor answered → provider_error (error) or a skip reason (noop). answer.safe_to_write.best_phone is false when result.flags has conflicting_numbers or best_phone.safe_to_write is false — a wrong number is worse than none.",
       "30-day cache keyed on the request (filter included, format excluded): repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers. Phone numbers are contact PII.",
       "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
@@ -474,7 +472,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     description: [
       "POST /v1/person/title — a person's current job title, seniority and function by work email or LinkedIn URL. Input email or linkedin_url (one required, else 400 email_or_linkedin_required); first_name / last_name are match-only (reject someone else's profile → person_mismatch), never used to infer anything; company_domain is match-only (a title at another employer is never a hit → employer_mismatch).",
       "fields picks the answer (title | seniority | function; omit = all three) and drives the ladder: it walks until every requested field is answered. result.title (cleaned), result.seniority (founder | c_suite | partner | vp | head | director | manager | senior | ic | entry | intern), result.function (sales | marketing | revenue_operations | customer_success | engineering | product | design | data | it | security | finance | people | legal | operations | executive | other), result.field_sources {method vendor | derived | jev, provider}, result.sources (accuracy / coverage), result.flags.",
-      "routing.path: speed (one profile read, keywords only) | balance (default; ZoomInfo search on a BYOK key only, LeadMagic, AI Ark, Findymail) | accuracy (two independent sources + one judge call, 10 s cap) | coverage (adds AI Ark people search and Findymail whenever a second source is wanted). routing.only / routing.ignore are honored.",
+      "routing.path: speed (one profile read, keywords only) | balance (default; data-provider sources in turn; your own ZoomInfo key improves fill) | accuracy (two independent sources + one judge call, 10 s cap) | coverage (adds more sources whenever a second source is wanted). routing.only / routing.ignore are honored.",
       "Cost is outcome-priced: 1 / 2 / 3 / 5 credits on a hit (speed / balance / accuracy / coverage), 0 on a miss, a partial (fields_incomplete) or a timeout. decision.outcome hit iff every requested field is answered at medium or high confidence; some but not all → fields_incomplete (es_decision ambiguous, values withheld, result.answered_fields names what was found); nothing → zero_hits (miss, result.person null). answer.safe_to_write.title / seniority / function are false on conflicting_titles, unconfirmed_identity or employer_mismatch.",
       "30-day cache keyed on path, fields, company_domain and routing.only / ignore: repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers.",
       "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
@@ -579,7 +577,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   list_credentials: {
     description:
-      "GET /v1/credentials — masked Your Keys catalog (provider, status, mask). Never returns raw keys. A tenant Bearer lists tenant_provider_credentials. LeadMagic, Wiza, Findymail, and AI Ark without a stored row are managed (house key). Other vendors are unset until stored.",
+      "GET /v1/credentials — masked Your Keys catalog (provider, status, mask). Never returns raw keys. A tenant Bearer lists tenant_provider_credentials. House-keyed vendors without a stored row are managed. Other vendors are unset until stored.",
     inputSchema: EmptyInput,
     annotations: {
       readOnlyHint: true,
@@ -592,7 +590,7 @@ const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     description: [
       "PUT /v1/credentials/{provider} — upsert tenant Your Keys (ciphertext).",
       "ZoomInfo and Snov.io use { clientId, clientSecret }. Other vendors use { apiKey }.",
-      "Response never echoes the raw key. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors; storing those keys is optional.",
+      "Response never echoes the raw key. Storing keys for managed (house-keyed) vendors is optional.",
       "ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, Snov.io, Cognism, Lusha, Starbridge, Clay, Databar, QuickEnrich, GetLeads, and BlitzAPI are BYOK. Websearch cannot be stored.",
       PUT_CREDENTIALS_WARNING,
       "Confirm with the user first.",
@@ -843,7 +841,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
         : [
             `${PRODUCT_NAME} wraps the live enrichment API at https://api.kingminos.com.`,
             "Call get_capabilities before the first resolve so routing defaults are current.",
-            "LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, Snov.io, Cognism, Lusha, Starbridge, Clay, Databar, QuickEnrich, GetLeads, and BlitzAPI are BYOK via put_credentials.",
+            "Managed vendors run on house keys. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, Snov.io, Cognism, Lusha, Starbridge, Clay, Databar, QuickEnrich, GetLeads, and BlitzAPI are BYOK via put_credentials.",
             "Websearch is house-only and cannot be stored.",
             "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
             "Webhook mutations (create/patch/delete/rotate/test/replay) also need confirmation; signing secrets are shown once.",

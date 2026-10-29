@@ -6,8 +6,6 @@ Default paths run on house keys. ZoomInfo, BuiltWith, Prospeo, Apollo, Company U
 
 Say **SFDC**, never SF.
 
-**BYOK provider rollout:** four-repo checklist and narrative live in [`docs/byok-provider-playbook.md`](docs/byok-provider-playbook.md); Cursor agents can load [`.cursor/skills/byok-provider-rollout/SKILL.md`](.cursor/skills/byok-provider-rollout/SKILL.md).
-
 ## Production host
 
 ## Admin tools (admin token only)

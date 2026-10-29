@@ -58,13 +58,13 @@ export const OAUTH_CREDENTIAL_PROVIDER_VALUES = ["zoominfo", "snovio"] as const;
 export const ProviderName = z
   .enum(PROVIDER_NAME_VALUES)
   .describe(
-    "Stable provider id. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, and Lemlist are BYOK. Websearch is house-only.",
+    "Stable provider id. Default paths run on house keys. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, and Lemlist are BYOK. Websearch is house-only.",
   );
 
 export const CredentialProvider = z
   .enum(CREDENTIAL_PROVIDER_VALUES)
   .describe(
-    "Vendor for tenant Your Keys. Websearch is rejected (house-only). LeadMagic, Wiza, Findymail, and AI Ark are house-keyed; storing those keys is an optional override.",
+    "Vendor for tenant Your Keys. Websearch is rejected (house-only). Storing a key for a managed (house-keyed) vendor is an optional override.",
   );
 
 export const ExplainMode = z
@@ -143,7 +143,7 @@ export const RoutingRequest = z
       .boolean()
       .optional()
       .describe(
-        "LeadMagic email→profile when no LinkedIn URL is known. Default-on for balance/accuracy. Speed stays off.",
+        "Email→profile lookup when no LinkedIn URL is known. Default-on for balance/accuracy. Speed stays off.",
       ),
   })
   .strict();
@@ -163,7 +163,7 @@ export const CompanyDomainRoutingRequest = z
       ])
       .optional()
       .describe(
-        "company.domain path. Omit = balance. coverage is accuracy + BuiltWith (BYOK). Legacy: fast/value/name_only → speed, auto → balance.",
+        "company.domain path. Omit = balance. coverage is accuracy plus more sources. Legacy: fast/value/name_only → speed, auto → balance.",
       ),
     preset: z
       .enum([
@@ -447,7 +447,7 @@ export const DecideCompanyDescriptionInput = {
     ])
     .optional()
     .describe(
-      "Flattened alias of routing.path. Always pass explicitly; omit runs balance at cap 6; path balance is cap 2. Nested routing.path wins when both are sent. company.description paths (not aliases): speed = homepage meta/og then AI Ark (cap 1) | balance = Jev-ranked homepage extracts + meta/og + AI Ark, optional rewrite (cap 2 when sent explicitly) | accuracy (cap 3) = xAI third-person compose from homepage evidence | coverage (cap 6) = accuracy compose plus off-homepage Serper / ZoomInfo BYOK evidence.",
+      "Flattened alias of routing.path. Always pass explicitly; omit runs balance at cap 6; path balance is cap 2. Nested routing.path wins when both are sent. company.description paths (not aliases): speed = homepage meta/og then a data-provider description (cap 1) | balance = judge-ranked homepage extracts + meta/og + data-provider text, optional rewrite (cap 2 when sent explicitly) | accuracy (cap 3) = third-person compose from homepage evidence | coverage (cap 6) = accuracy compose plus off-homepage evidence (your own ZoomInfo key when stored).",
     ),
   preset: z
     .enum([

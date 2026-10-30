@@ -2,7 +2,7 @@
   "source": "KingMinos OpenAPI resource inventory (public contract). Paths verified against live GET https://api.kingminos.com/openapi.json. Tool names are snake_case resource operationIds. Only operations whose effective security includes the bearer scheme are required MCP tools. This file is not application source.",
   "spec": "https://api.kingminos.com/openapi.yaml",
   "liveOpenApiJson": "https://api.kingminos.com/openapi.json",
-  "exclusionPolicy": "Session/cookie routes under /v1/auth/* and /v1/account/* are permanently out of scope for MCP. MCP authenticates with a tenant Bearer; those routes are app/session surfaces (login, workspaces, members, invites, tokens). nonToolPathPrefixes is the durable deny-list; excludedOperationIds is the reviewed catalog of omitted operationIds. Excluding a route is a reviewed decision, not a silent skip. Do not add account/auth MCP tools.",
+  "exclusionPolicy": "Session/cookie routes under /v1/auth/* and /v1/account/* and operator routes under /v1/admin/* are permanently out of scope for the OpenAPI resource tools. MCP authenticates with a tenant Bearer; auth/account routes are app/session surfaces (login, workspaces, members, invites, tokens) and /v1/admin/* is the operator API (privacy suppressions, signups, partners, abuse). Admin-token tools such as abuse_report and partner_admin are separate hand-written tools registered only for a kmadm_ bearer (src/admin-tools.ts); they are not OpenAPI resource tools. nonToolPathPrefixes is the durable deny-list; excludedOperationIds is the reviewed catalog of omitted operationIds. Excluding a route is a reviewed decision, not a silent skip. Do not add account/auth MCP tools.",
   "providersPolicy": "Pinned KingMinos OpenAPI provider enums for MCP Zod. CI fails when a pinned name is missing from ProviderName (routing.only) or CredentialProvider (put_credentials). Production OpenAPI may lag a merged BYOK provider (e.g. prospeo before the API Worker redeploys); npm run inventory:refresh unions live enums into this pin and never drops names. Live check (--live) is one-way: it fails only when the served spec lists a provider MCP Zod does not have.",
   "publicNonToolPaths": [
     "/health",
@@ -12,7 +12,7 @@
     "/v1/openapi.json",
     "/api/v1/openapi.json"
   ],
-  "nonToolPathPrefixes": ["/v1/auth", "/v1/account"],
+  "nonToolPathPrefixes": ["/v1/auth", "/v1/account", "/v1/admin"],
   "excludedOperationIds": [
     "startLogin",
     "verifyLogin",
@@ -36,7 +36,12 @@
     "listAccountTokens",
     "createAccountToken",
     "rotateAccountToken",
-    "deleteAccountToken"
+    "deleteAccountToken",
+    "adminPrivacyErase",
+    "adminListPrivacySuppressions",
+    "adminCheckPrivacySuppression",
+    "adminDeletePrivacySuppression",
+    "adminListSignups"
   ],
   "providers": [
     "zoominfo",
@@ -144,6 +149,11 @@
       "path": "/v1/company/b2b-social"
     },
     {
+      "operationId": "company_x_account",
+      "method": "POST",
+      "path": "/v1/company/x-account"
+    },
+    {
       "operationId": "company_icon",
       "method": "POST",
       "path": "/v1/company/icon"
@@ -177,6 +187,16 @@
       "operationId": "person_name",
       "method": "POST",
       "path": "/v1/person/name"
+    },
+    {
+      "operationId": "person_email",
+      "method": "POST",
+      "path": "/v1/person/email"
+    },
+    {
+      "operationId": "email_verify",
+      "method": "POST",
+      "path": "/v1/email/verify"
     },
     {
       "operationId": "get_run",

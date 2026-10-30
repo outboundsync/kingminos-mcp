@@ -57,9 +57,8 @@ describe("provider enum contract", () => {
   });
 
   it("pins the eight credential-only vendors on credentialProviders only", () => {
-    // Cognism / Lusha / Starbridge / Clay / Databar (Harris 2026-10-10) and
-    // QuickEnrich / GetLeads / BlitzAPI (Harris 2026-10-12): store/verify via
-    // put_credentials, no routing hop — never in providers[].
+    // Credential-only vendors: store/verify via put_credentials, no routing
+    // hop — never in providers[].
     for (const id of [
       "cognism",
       "lusha",

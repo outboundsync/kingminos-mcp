@@ -5,9 +5,9 @@ import { apiRequest, okText } from "./kingminos-client.js";
 import { FEEDBACK_CATEGORY_VALUES } from "./schemas.js";
 
 /**
- * Admin-only tools (Harris 2026-10-10). Registered ONLY when the MCP bearer is
- * a KingMinos admin token (`kmadm_…`, stored as a hash in the API's D1 and
- * minted by Harris). Normal tenant/user bearers never see them in tools/list;
+ * Admin-only tools. Registered ONLY when the MCP bearer is a KingMinos admin
+ * token (`kmadm_…`, stored as a hash in the API). Normal tenant/user bearers
+ * never see them in tools/list;
  * the API re-checks the token on every call (403 otherwise).
  */
 export const ADMIN_TOKEN_PREFIX = "kmadm_";

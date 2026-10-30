@@ -58,13 +58,13 @@ export const OAUTH_CREDENTIAL_PROVIDER_VALUES = ["zoominfo", "snovio"] as const;
 export const ProviderName = z
   .enum(PROVIDER_NAME_VALUES)
   .describe(
-    "Stable provider id. LeadMagic, Wiza, Findymail, and AI Ark are the approved house-key vendors. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, and Lemlist are BYOK. Websearch is house-only.",
+    "Stable provider id. Default paths run on house keys. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, and Lemlist are BYOK. Websearch is house-only.",
   );
 
 export const CredentialProvider = z
   .enum(CREDENTIAL_PROVIDER_VALUES)
   .describe(
-    "Vendor for tenant Your Keys. Websearch is rejected (house-only). LeadMagic, Wiza, Findymail, and AI Ark are house-keyed; storing those keys is an optional override.",
+    "Vendor for tenant Your Keys. Websearch is rejected (house-only). Storing a key for a managed (house-keyed) vendor is an optional override.",
   );
 
 export const ExplainMode = z
@@ -143,7 +143,7 @@ export const RoutingRequest = z
       .boolean()
       .optional()
       .describe(
-        "LeadMagic email→profile when no LinkedIn URL is known. Default-on for balance/accuracy. Speed stays off.",
+        "Email→profile lookup when no LinkedIn URL is known. Default-on for balance/accuracy. Speed stays off.",
       ),
   })
   .strict();
@@ -163,7 +163,7 @@ export const CompanyDomainRoutingRequest = z
       ])
       .optional()
       .describe(
-        "company.domain path. Omit = balance. coverage is accuracy + BuiltWith (BYOK). Legacy: fast/value/name_only → speed, auto → balance.",
+        "company.domain path. Omit = balance. coverage is accuracy plus more sources. Legacy: fast/value/name_only → speed, auto → balance.",
       ),
     preset: z
       .enum([
@@ -447,7 +447,7 @@ export const DecideCompanyDescriptionInput = {
     ])
     .optional()
     .describe(
-      "Flattened alias of routing.path. Always pass explicitly; omit runs balance at cap 6; path balance is cap 2. Nested routing.path wins when both are sent. company.description paths (not aliases): speed = homepage meta/og then AI Ark (cap 1) | balance = Jev-ranked homepage extracts + meta/og + AI Ark, optional rewrite (cap 2 when sent explicitly) | accuracy (cap 3) = xAI third-person compose from homepage evidence | coverage (cap 6) = accuracy compose plus off-homepage Serper / ZoomInfo BYOK evidence.",
+      "Flattened alias of routing.path. Always pass explicitly; omit runs balance at cap 6; path balance is cap 2. Nested routing.path wins when both are sent. company.description paths (not aliases): speed = homepage meta/og then a data-provider description (cap 1) | balance = judge-ranked homepage extracts + meta/og + data-provider text, optional rewrite (cap 2 when sent explicitly) | accuracy (cap 3) = third-person compose from homepage evidence | coverage (cap 6) = accuracy compose plus off-homepage evidence (your own ZoomInfo key when stored).",
     ),
   preset: z
     .enum([
@@ -729,6 +729,65 @@ export const MinConfidence = z
     "Optional write floor; overrides the path default. A below-floor answer is withheld (blank, confidence kept) and bills 0.",
   );
 
+export const DecideCompanyXAccountInput = {
+  name: z
+    .string()
+    .optional()
+    .describe(
+      "Unit/brand corroboration. Sufficient as the only subject on accuracy/coverage (name→domain runs there); speed/balance miss rather than guess when domain/website/email are absent.",
+    ),
+  domain: z
+    .string()
+    .optional()
+    .describe(
+      "Preferred subject (or website/email that hygiene-normalize to the same registrable).",
+    ),
+  website: z.string().optional(),
+  email: z.string().optional(),
+  country: z.string().optional(),
+  hint: z.string().optional(),
+  x_url: z
+    .string()
+    .optional()
+    .describe(
+      "Optional account hint, agree-check only. Must be https://x.com/{handle}.",
+    ),
+  min_confidence: MinConfidence.optional(),
+  routing: CompanyDomainRoutingRequest.optional(),
+  path: z
+    .enum([
+      "speed",
+      "balance",
+      "accuracy",
+      "coverage",
+      "value",
+      "auto",
+      "fast",
+      "name_only",
+    ])
+    .optional()
+    .describe(
+      "Flattened alias of routing.path. Omit = balance. Nested routing.path wins when both are sent.",
+    ),
+  preset: z
+    .enum([
+      "speed",
+      "balance",
+      "accuracy",
+      "coverage",
+      "value",
+      "auto",
+      "name_only",
+      "zi_stamp",
+      "fast",
+    ])
+    .optional()
+    .describe(
+      "Flattened alias of routing.preset. Nested wins when both are sent.",
+    ),
+  ...CommonRunOptions,
+};
+
 export const PersonB2bSocialPath = z.enum(["speed", "balance", "accuracy"]);
 
 export const PersonB2bSocialInput = {
@@ -878,6 +937,75 @@ export const PersonNameInput = {
     .boolean()
     .optional()
     .describe("When true, send X-Router-Cache: bypass (same as skip_cache)."),
+  ...CommonRunOptions,
+};
+
+export const EmailPath = z.enum(["speed", "balance", "accuracy", "coverage"]);
+
+export const EmailVerifyInput = {
+  email: z
+    .string()
+    .max(320)
+    .describe(
+      "The mailbox to check (required). Canonicalized before any check. A malformed address is answered (invalid, source local, 0 credits), not rejected.",
+    ),
+  min_confidence: MinConfidence.optional(),
+  routing: z
+    .object({
+      path: EmailPath.optional().describe(
+        "speed | balance (default) | accuracy | coverage. 0.5–1.5 credits on a delivered answer.",
+      ),
+    })
+    .optional()
+    .describe("path picks the ladder."),
+  ...CommonRunOptions,
+};
+
+export const PersonEmailInput = {
+  first_name: z
+    .string()
+    .optional()
+    .describe(
+      "Name route: first_name + last_name + company_domain together. A packed full name here (last_name blank) is split.",
+    ),
+  last_name: z.string().optional().describe("Name route (see first_name)."),
+  company_domain: z
+    .string()
+    .optional()
+    .describe(
+      "Name route: the company website domain. A name without a domain is 400 (no guessed patterns).",
+    ),
+  linkedin_url: z
+    .string()
+    .optional()
+    .describe(
+      "LinkedIn route: the person's profile URL. A company page is 400 invalid_linkedin_url.",
+    ),
+  person: z
+    .object({
+      first_name: z.string().optional(),
+      last_name: z.string().optional(),
+      company_domain: z.string().optional(),
+      domain: z.string().optional(),
+      linkedin_url: z.string().optional(),
+    })
+    .optional()
+    .describe(
+      "Nested alternative to the top-level fields; domain is an alias for company_domain.",
+    ),
+  min_confidence: MinConfidence.optional(),
+  routing: z
+    .object({
+      path: EmailPath.optional().describe(
+        "speed | balance (default) | accuracy | coverage. 1.5–5 credits on a delivered email.",
+      ),
+    })
+    .optional()
+    .describe("path picks the ladder."),
+  skip_cache: z
+    .boolean()
+    .optional()
+    .describe("Skip the 30-day cache read (a fresh hit is still written)."),
   ...CommonRunOptions,
 };
 
@@ -1104,7 +1232,9 @@ export const FEEDBACK_CAPABILITY_VALUES = [
   "person.b2b_social",
   "person.language",
   "person.name",
+  "person.email",
   "person.phone",
+  "email.verify",
   "company.domain",
   "company.hierarchy",
   "company.b2b_social",

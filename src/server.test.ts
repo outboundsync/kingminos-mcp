@@ -4,7 +4,13 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { LIVE_RESOURCE_ROUTES, type ToolName } from "./catalog.js";
 import { handleFetch } from "./fetch.js";
-import { DecideCompanyIconInput, stripMeta } from "./schemas.js";
+import {
+  DecideCompanyIconInput,
+  DecideCompanyXAccountInput,
+  EmailVerifyInput,
+  PersonEmailInput,
+  stripMeta,
+} from "./schemas.js";
 import { credentialPutBody, encodePath, rawSubjectKey } from "./server.js";
 
 const originalFetch = globalThis.fetch;
@@ -94,6 +100,7 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   company_domain: { domain: "acme.com" },
   company_hierarchy: { domain: "acme.com" },
   company_b2b_social: { domain: "acme.com" },
+  company_x_account: { domain: "acme.com" },
   company_icon: { domain: "acme.com" },
   company_description: { domain: "acme.com" },
   person_verify_employment: { email: "a@b.com" },
@@ -102,6 +109,12 @@ const TOOL_ARGS: Record<ToolName, Record<string, unknown>> = {
   person_title: { email: "a@b.com" },
   person_b2b_social: { email: "a@b.com" },
   person_name: { email: "a@b.com" },
+  person_email: {
+    first_name: "Anna",
+    last_name: "Example",
+    company_domain: "example.com",
+  },
+  email_verify: { email: "a@b.com" },
   get_run: { id: "run_1" },
   list_credentials: {},
   put_credentials: { provider: "leadmagic", apiKey: "vendor-key" },
@@ -636,6 +649,265 @@ describe("catalog-driven handlers", () => {
     });
   });
 
+  it("sends person_email to POST /v1/person/email with both routes, path, and skip_cache", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      await client.callTool({
+        name: "person_email",
+        arguments: {
+          first_name: "Anna",
+          last_name: "Example",
+          company_domain: "example.com",
+          linkedin_url: "https://www.linkedin.com/in/example",
+          min_confidence: "high",
+          routing: { path: "coverage" },
+          skip_cache: true,
+          external_ref: "row-7",
+          compliance: { soc2: true },
+        },
+      });
+    });
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    assert.ok(call);
+    assert.equal(call.method, "POST");
+    assert.match(call.url, /\/v1\/person\/email$/);
+    const body = JSON.parse(call.body ?? "{}") as Record<string, unknown>;
+    assert.equal(body.first_name, "Anna");
+    assert.equal(body.last_name, "Example");
+    assert.equal(body.company_domain, "example.com");
+    assert.equal(body.linkedin_url, "https://www.linkedin.com/in/example");
+    assert.equal(body.min_confidence, "high");
+    assert.deepEqual(body.routing, { path: "coverage" });
+    assert.equal(body.skip_cache, true);
+    assert.equal(body.external_ref, "row-7");
+    assert.deepEqual(body.compliance, { soc2: true });
+  });
+
+  it("sends email_verify to POST /v1/email/verify with path and dry_run", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      await client.callTool({
+        name: "email_verify",
+        arguments: {
+          email: "anna@example.com",
+          min_confidence: "medium",
+          routing: { path: "accuracy" },
+          dry_run: true,
+          external_ref: "row-8",
+        },
+      });
+    });
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    assert.ok(call);
+    assert.equal(call.method, "POST");
+    assert.match(call.url, /\/v1\/email\/verify$/);
+    const body = JSON.parse(call.body ?? "{}") as Record<string, unknown>;
+    assert.equal(body.email, "anna@example.com");
+    assert.equal(body.min_confidence, "medium");
+    assert.deepEqual(body.routing, { path: "accuracy" });
+    assert.equal(body.dry_run, true);
+    assert.equal(body.external_ref, "row-8");
+  });
+
+  it("rejects a missing email, legacy paths and invalid min_confidence on email_verify / person_email before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const noEmail = await client.callTool({
+        name: "email_verify",
+        arguments: {},
+      });
+      assert.equal(noEmail.isError, true);
+      const tooLong = await client.callTool({
+        name: "email_verify",
+        arguments: { email: `${"a".repeat(316)}@b.co` },
+      });
+      assert.equal(tooLong.isError, true);
+      for (const name of ["email_verify", "person_email"]) {
+        const legacy = await client.callTool({
+          name,
+          arguments: { email: "a@b.com", routing: { path: "value" } },
+        });
+        assert.equal(legacy.isError, true, name);
+        const badFloor = await client.callTool({
+          name,
+          arguments: { email: "a@b.com", min_confidence: "certain" },
+        });
+        assert.equal(badFloor.isError, true, name);
+      }
+    });
+    assert.equal(calls.length, 0);
+  });
+
+  it("documents email_verify and person_email without vendor names, lookup order or exact prices", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const verify =
+        listed.tools.find((t) => t.name === "email_verify")?.description ?? "";
+      const find =
+        listed.tools.find((t) => t.name === "person_email")?.description ?? "";
+      assert.match(verify, /POST \/v1\/email\/verify/);
+      assert.match(verify, /is this mailbox deliverable\?/);
+      assert.match(verify, /0\.5–1\.5 credits/);
+      assert.match(find, /POST \/v1\/person\/email/);
+      assert.match(find, /this person's work email\?/);
+      assert.match(find, /1\.5–5 credits/);
+      for (const description of [verify, find]) {
+        assert.match(
+          description,
+          /only a delivered answer is billed; misses, catch-alls and conflicts are not/,
+        );
+        for (const path of ["speed", "balance", "accuracy", "coverage"]) {
+          assert.match(description, new RegExp(`\\b${path} \\(`));
+        }
+        assert.doesNotMatch(
+          description,
+          /leadmagic|findymail|wiza|zoominfo|ai ark|\d+(\.\d+)?\s?%/i,
+        );
+      }
+    });
+  });
+
+  it("email_verify and person_email input schemas match the request contracts", () => {
+    const verifyKeys = new Set(Object.keys(EmailVerifyInput));
+    for (const key of [
+      "email",
+      "min_confidence",
+      "routing",
+      "dry_run",
+      "external_ref",
+      "compliance",
+    ]) {
+      assert.ok(verifyKeys.has(key), key);
+    }
+    assert.equal(verifyKeys.has("skip_cache"), false);
+    const findKeys = new Set(Object.keys(PersonEmailInput));
+    for (const key of [
+      "first_name",
+      "last_name",
+      "company_domain",
+      "linkedin_url",
+      "person",
+      "min_confidence",
+      "routing",
+      "skip_cache",
+      "dry_run",
+      "external_ref",
+      "compliance",
+    ]) {
+      assert.ok(findKeys.has(key), key);
+    }
+    assert.equal(findKeys.has("email"), false);
+  });
+
+  it("accepts email.verify and person.email capabilities on submit_feedback", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      for (const capability of ["email.verify", "person.email"]) {
+        const result = await client.callTool({
+          name: "submit_feedback",
+          arguments: {
+            category: "data_quality",
+            summary: "Mailbox status disagreed with a later bounce",
+            details: "The address bounced after a valid answer.",
+            source: "agent",
+            capability,
+          },
+        });
+        assert.equal(result.isError, undefined, capability);
+      }
+    });
+    assert.equal(calls.length, 2);
+    assert.equal(JSON.parse(calls[1]?.body ?? "{}").capability, "person.email");
+  });
+
+  it("sends company_x_account to POST /v1/company/x-account with min_confidence and path", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      await client.callTool({
+        name: "company_x_account",
+        arguments: {
+          name: "Stripe",
+          x_url: "https://x.com/stripe",
+          min_confidence: "high",
+          routing: { path: "accuracy", ignore: ["wiza"] },
+          dry_run: true,
+        },
+      });
+    });
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    assert.ok(call);
+    assert.equal(call.method, "POST");
+    assert.match(call.url, /\/v1\/company\/x-account$/);
+    const body = JSON.parse(call.body ?? "{}") as Record<string, unknown>;
+    assert.equal(body.name, "Stripe");
+    assert.equal(body.x_url, "https://x.com/stripe");
+    assert.equal(body.min_confidence, "high");
+    assert.deepEqual(body.routing, { path: "accuracy", ignore: ["wiza"] });
+    assert.equal(body.dry_run, true);
+  });
+
+  it("rejects invalid min_confidence and paths on company_x_account before calling the API", async () => {
+    const { calls } = captureFetch();
+    await withClient(async (client) => {
+      const badFloor = await client.callTool({
+        name: "company_x_account",
+        arguments: { domain: "acme.com", min_confidence: "certain" },
+      });
+      assert.equal(badFloor.isError, true);
+      const badPath = await client.callTool({
+        name: "company_x_account",
+        arguments: { domain: "acme.com", routing: { path: "turbo" } },
+      });
+      assert.equal(badPath.isError, true);
+    });
+    assert.equal(calls.length, 0);
+  });
+
+  it("documents the company.x_account contract on company_x_account", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const tool = listed.tools.find((t) => t.name === "company_x_account");
+      const description = tool?.description ?? "";
+      assert.match(description, /POST \/v1\/company\/x-account/);
+      assert.match(
+        description,
+        /speed 1 \/ balance 1\.3 \/ accuracy 1\.6 \/ coverage 1\.7/,
+      );
+      assert.match(
+        description,
+        /Confidence is the only write signal \(no safe_to_write\)/,
+      );
+      assert.match(description, /never twitter\.com/);
+    });
+  });
+
+  it("company_x_account input schema matches CompanyXAccountRequest", () => {
+    const keys = new Set(Object.keys(DecideCompanyXAccountInput));
+    for (const key of [
+      "name",
+      "domain",
+      "website",
+      "email",
+      "country",
+      "hint",
+      "x_url",
+      "min_confidence",
+      "routing",
+      "path",
+      "preset",
+      "dry_run",
+      "external_ref",
+      "compliance",
+    ]) {
+      assert.ok(keys.has(key), key);
+    }
+    assert.equal(keys.has("linkedin_url"), false);
+    assert.equal(keys.has("skip_cache"), false);
+  });
+
   it("shapes put_credentials bodies and aliases api_key", async () => {
     const { calls } = captureFetch();
     await withClient(async (client) => {
@@ -752,18 +1024,17 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /Always pass path explicitly/i);
       assert.match(description, /omit runs balance at cap 6/i);
       assert.match(description, /path balance is cap 2/i);
-      assert.match(description, /AI Ark/i);
+      assert.doesNotMatch(description, /AI Ark|Serper|xAI|Jev-ranked/);
       assert.match(description, /same_as_speed/);
       assert.match(description, /hype.*first_person.*tagline.*grammar/i);
       assert.match(description, /grammar is informational only/i);
       assert.match(description, /do not reject unknown/i);
       assert.match(description, /usage\.hops/);
       assert.match(description, /by_provider/);
-      assert.match(description, /not company\.description vendors/i);
       assert.doesNotMatch(description, /speed = LeadMagic/i);
       assert.doesNotMatch(description, /Wiza \/ Findymail/i);
       assert.doesNotMatch(description, /same house stack/i);
-      assert.match(description, /ZoomInfo is BYOK-only/i);
+      assert.match(description, /ZoomInfo runs only with your own key/i);
       assert.match(description, /truncated/);
       assert.match(description, /cta/);
       assert.match(description, /safe_to_write\.description/);

@@ -33,6 +33,7 @@ const EXPECTED_TOOLS = [
   "company_domain",
   "company_hierarchy",
   "company_b2b_social",
+  "company_x_account",
   "company_icon",
   "company_description",
   "person_verify_employment",
@@ -41,6 +42,8 @@ const EXPECTED_TOOLS = [
   "person_title",
   "person_b2b_social",
   "person_name",
+  "person_email",
+  "email_verify",
   "get_run",
   "list_credentials",
   "put_credentials",
@@ -117,6 +120,16 @@ describe("OpenAPI inventory contract", () => {
   it("records reviewed session/account exclusions", () => {
     assert.ok(fileInventory.nonToolPathPrefixes.includes("/v1/auth"));
     assert.ok(fileInventory.nonToolPathPrefixes.includes("/v1/account"));
+    assert.ok(fileInventory.nonToolPathPrefixes.includes("/v1/admin"));
+    for (const id of [
+      "adminPrivacyErase",
+      "adminListPrivacySuppressions",
+      "adminCheckPrivacySuppression",
+      "adminDeletePrivacySuppression",
+      "adminListSignups",
+    ]) {
+      assert.ok(fileInventory.excludedOperationIds.includes(id), id);
+    }
     assert.ok(fileInventory.excludedOperationIds.includes("startLogin"));
     assert.ok(fileInventory.excludedOperationIds.includes("getAccount"));
     assert.ok(
@@ -130,6 +143,9 @@ describe("OpenAPI inventory contract", () => {
     );
     assert.ok(
       !fileInventory.operations.some((op) => op.path.startsWith("/v1/auth")),
+    );
+    assert.ok(
+      !fileInventory.operations.some((op) => op.path.startsWith("/v1/admin")),
     );
     assert.ok(
       !fileInventory.operations.some((op) => op.path.startsWith("/v1/account")),
@@ -308,6 +324,38 @@ describe("inventoryFromOpenApiDocument", () => {
         },
       },
       { nonToolPathPrefixes: ["/v1/auth"] },
+    );
+    assert.ok(!("reason" in parsed));
+    if ("reason" in parsed) {
+      return;
+    }
+    assert.deepEqual(
+      parsed.operations.map((op) => op.operationId),
+      ["get_providers"],
+    );
+  });
+});
+
+describe("admin routes", () => {
+  it("skips /v1/admin/* even when the spec gives them bearer security", () => {
+    const parsed = inventoryFromOpenApiDocument(
+      {
+        paths: {
+          "/v1/admin/signups": {
+            get: { operationId: "adminListSignups", security: BEARER },
+          },
+          "/v1/admin/privacy/suppressions/{id}": {
+            delete: {
+              operationId: "adminDeletePrivacySuppression",
+              security: BEARER,
+            },
+          },
+          "/v1/providers": {
+            get: { operationId: "get_providers", security: BEARER },
+          },
+        },
+      },
+      { nonToolPathPrefixes: ["/v1/auth", "/v1/account", "/v1/admin"] },
     );
     assert.ok(!("reason" in parsed));
     if ("reason" in parsed) {

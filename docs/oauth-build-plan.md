@@ -4,6 +4,8 @@ Planning only. No production code in this PR. Do not merge OAuth implementation 
 
 **Goal:** add OAuth 2.1 next to existing API-key auth so KingMinos can be listed in ChatGPT/OpenAI apps, the Claude connectors directory, Meta Muse, Cursor Marketplace, the MCP Registry, Smithery, Glama, and mcp.so.
 
+**Listing order (Harris, 2026-11-09 10:41 PM MT):** build OAuth first, then list in **every** directory at once. Wave A code may still merge early. No directory submission and no registry republish until Wave D is done. No API-key-only Cursor listing — the Cursor package ships with OAuth.
+
 **Canonical design:** `outboundsync/kingminos-application` `docs/mcp-oauth-design.md`, merged 2026-10-22 as PRs [#323](https://github.com/outboundsync/kingminos-application/pull/323) (Fizzy #103 step 1) and [#325](https://github.com/outboundsync/kingminos-application/pull/325) (Harris decisions). Implementers **must re-read that file** before writing code.
 
 **How this plan was assembled (2026-11-10):** this Cloud Agent token cannot clone `kingminos-application` (private; GitHub 404). Spec choices below are recovered from (1) the #323 review comment on commit `45a58fb`, (2) #325 commit titles, (3) the 2026-11-11 directory-prep memo which quotes design §§9.4, 11, 12, (4) live prod HTTP, (5) `kingminos-mcp` `main` @ `313b7e3`, (6) live `GET https://api.kingminos.com/openapi.json`, (7) MCP Authorization spec 2025-11-25. If the canonical doc disagrees, the canonical doc wins.
@@ -66,12 +68,12 @@ Admin tools (`abuse_report`, `partner_report`, `partner_payout`, `feedback_repor
 
 | Surface | State | Blocks OAuth-directory submit? |
 | --- | --- | --- |
-| Official MCP Registry `com.kingminos/mcp` | Active, latest **`2026.10.23`**. No `icons`, no `remotes[].headers` Authorization. Description still “Multiple data providers, pay only for results.” `server.json` is not in this repo. | No (API key). Should republish after metadata pass. |
+| Official MCP Registry `com.kingminos/mcp` | Active, latest **`2026.10.23`**. No `icons`, no `remotes[].headers` Authorization. Description still “Multiple data providers, pay only for results.” `server.json` is not in this repo. | No (API key). Republish only with the all-at-once listings after Wave D. |
 | Smithery | Needs server-card `tools` + `authentication` or OAuth/CIMD. | No (API-key config field). Card gap **blocks a useful listing**. |
 | PulseMCP | Ingests the official registry. Submissions paused. | No. |
 | Glama | Claim via `glama.json` **unverified**. | No. |
 | mcp.so | Paid $39 or GitHub-issue route. Harris decision. | No. |
-| Cursor Marketplace (+ Grok Bot) | No `.cursor-plugin/` package. Docs allow OAuth **or** `Authorization: Bearer ${VAR}`. Individual (non-team) variable UX unverified. | API-key listing possible after package. OAuth later for one-click individuals. |
+| Cursor Marketplace (+ Grok Bot) | No `.cursor-plugin/` package. Docs allow OAuth **or** `Authorization: Bearer ${VAR}`. Individual (non-team) variable UX unverified. | No API-key-only listing. Package ships with OAuth; submit after Wave D with every other directory. |
 | ChatGPT / OpenAI | Portal has **no API-key flow**. OAuth required. Bans selling credits, collecting API keys, unofficial pass-through connectors. | **Yes — OAuth + subset + reviewer password login.** |
 | Claude Connectors | OAuth 2.0 + PKCE S256, DCR or CIMD. Paid Claude plan on the submitting account. Data-handling questionnaire. Callback `https://claude.ai/api/mcp/auth_callback`. | **Yes.** |
 | Meta Muse | Business verification + OAuth or API key; Read Only option requested. Harris: in scope? | Practically **yes** (per-user billing). |
@@ -115,16 +117,16 @@ Sizes: XS / S / M / L. Tests are the minimum; add more if the slice grows.
 
 ### Wave A — directory hygiene (no OAuth). Can merge independently.
 
-These are design phase 9 minus `securitySchemes`, plus the 2026-11-11 ship list. They unblock Smithery / Glama / Cursor / registry copy and stop Claude/OpenAI scan findings on titles and steering.
+These are design phase 9 minus `securitySchemes`, plus the 2026-11-11 ship list. They may merge early to prepare Smithery / Glama / Cursor / registry copy and stop Claude/OpenAI scan findings on titles and steering. They do not authorize any directory submission.
 
 | ID | Repo | Scope | Size | Tests | Prod verify (after Harris merges) |
 | --- | --- | --- | --- | --- | --- |
 | **A1** | `kingminos-mcp` | Bump `VERSION` + `package.json` to a new CalVer (registry is already `2026.10.23`; code is `2026.10.03.0`). Trailing slashes on `PRIVACY_URL` / `TERMS_URL`. | XS | Existing `src/fetch.test.ts` version + card URL assertions. | `GET /health` version; `GET /.well-known/mcp/server-card.json` privacy/terms **200** (no 301). |
 | **A2** | `kingminos-mcp` | Richer server card: `authentication: {required: true, schemes: ["bearer"]}` (add `"oauth2"` only in Wave C), `tools[]` from `TOOL_SPECS` (name, title, description, inputSchema, annotations), `websiteUrl`, `documentationUrl`, `supportUrl`, `iconUrl`. | S | `src/fetch.test.ts`: card lists all 40 tenant tools, no admin tools, no secrets. | Unauth `GET` card JSON includes `tools` and `authentication`. Smithery scan can list tools. |
-| **A3** | `kingminos-mcp` | Commit `server.json` (schema `2025-12-11`) and `glama.json`. Icons (SVG + 192 PNG). `remotes[0].headers` Authorization Bearer (isRequired, isSecret). Router wording in description. Version = A1. Maintainer GitHub user = Harris pick. | XS–S | Snapshot test that `server.json` version matches `VERSION`. | Harris republishes with DNS key (not this PR). Confirm registry latest version, icons, headers. |
+| **A3** | `kingminos-mcp` | Commit `server.json` (schema `2025-12-11`) and `glama.json`. Icons (SVG + 192 PNG). `remotes[0].headers` Authorization Bearer (isRequired, isSecret). Router wording in description. Version = A1. Maintainer GitHub user = Harris pick. | XS–S | Snapshot test that `server.json` version matches `VERSION`. | File is on `main`. **Do not** republish to the registry until Wave D (all directories at once). |
 | **A4** | `kingminos-mcp` | Tool metadata pass (all 40 + 5 admin): `title` on every tool; explicit `destructiveHint: false` on reads; `openWorldHint: false` on workspace-bounded tools (balance\*, usage, runs, webhooks, credentials, events, feedback); rewrite descriptions (drop `GET /v1` prefixes, keep limits and side effects); remove steering (“trusted extension”, “Call get_capabilities before…”, feedback provider-nudge). Vendor lists: follow Harris decision D1. Do **not** change tool names, input schemas, or response forwarding. | M | `npm run ci` (`check:surfaces` still 40 ops). New assertions: every `TOOL_SPECS` + admin tool has `title` and all three of `readOnlyHint`/`destructiveHint`/`openWorldHint`. | Inspector / `tools/list` with a `km_` key shows titles; no steering strings in descriptions or `instructions`. |
 | **A5** | `kingminos-website` | `https://kingminos.com/support/` page (email, docs, status, security contact). Footer + `llms.txt`. **Harris merges.** | S | Website tests / link check. | `GET /support/` 200. Use as OpenAI `supportURL` and Claude support contact. |
-| **A6** | `kingminos-mcp` or new public repo (D3) | Cursor plugin: `.cursor-plugin/plugin.json` (name `kingminos`, no “MCP” suffix), `mcp.json` with `url` + `Authorization: Bearer ${KINGMINOS_API_KEY}`, `variables`, logo from `kingminos-favicon.svg`, README. | S–M | Local Cursor install with the capped test key (never print the key). | Listing submit is Harris. Document that individuals may need OAuth (Wave C) if plugin variables are team-admin-only. |
+| **A6** | `kingminos-mcp` (folder; see D3) | Cursor plugin **with OAuth** (not an API-key-only listing): `.cursor-plugin/plugin.json` (name `kingminos`, no “MCP” suffix), `mcp.json` pointing at `https://mcp.kingminos.com/mcp` with OAuth (no `KINGMINOS_API_KEY` header), logo from `kingminos-favicon.svg`, README. Code may merge early; **do not submit** until Wave D. | S–M | Local Cursor OAuth install after C1 (never print tokens). | Listing submit is Harris, after Wave D, with every other directory. |
 | **A7** | `kingminos-skills` | If D1 = remove vendors: strip house-key and BYOK names from README / credentials skill. Keep API-key auth skill; add a one-liner that hosted MCP will also support OAuth (link, no recipe). | S | Pack validator. | `npx skills add` still installs. |
 
 **Do not** put `authorization_servers` or `schemes: ["oauth2"]` on the card in Wave A.
@@ -158,7 +160,7 @@ If `OAUTH_KV` is missing or `OAUTH_ENABLED` is off, well-known AS routes must ke
 | --- | --- | --- | --- | --- | --- |
 | **D1** | `kingminos-website` | `/docs/mcp/` OAuth connect (Claude, ChatGPT, Cursor, Inspector). Keep the Bearer section for Salesforce/dev. Router wording. No recipe. No credit upsell. Support URL. | S | Link check. | Docs 200; both auth paths documented. |
 | **D2** | `kingminos-website` | 512×512 square PNG + dark icon from the favicon SVG. OpenAI plugin ZIP skeleton (`plugin.json` `extensions.com.openai`, `mcp.json` URL-only, no headers). Name “KingMinos”, subtitle ≤30 e.g. “B2B data enrichment router”. | S | ZIP contents fixture. | Portal upload (Harris). |
-| **D3** | `kingminos-mcp` + application | Design phase 11 E2E: MCP Inspector OAuth; Claude custom connector callback; ChatGPT plugin OAuth; Cursor OAuth or plugin variable. Refresh + revoke. API-key regression. | L | Automated Inspector against a preview Worker if possible; otherwise a checked-in runbook Harris executes once. | All four clients complete authorize → `tools/list` → one cheap read (`get_capabilities`) → one billed lookup on the reviewer workspace. |
+| **D3** | `kingminos-mcp` + application | Design phase 11 E2E: MCP Inspector OAuth; Claude custom connector callback; ChatGPT plugin OAuth; Cursor OAuth plugin (A6). Refresh + revoke. API-key regression (Salesforce/dev keys still work; not a Marketplace listing). | L | Automated Inspector against a preview Worker if possible; otherwise a checked-in runbook Harris executes once. | All four clients complete authorize → `tools/list` → one cheap read (`get_capabilities`) → one billed lookup on the reviewer workspace. Then Harris lists every directory at once (including registry republish). |
 
 ### Suggested git merge order (when Harris is ready)
 
@@ -171,7 +173,7 @@ then  C1 → C2 → C3 → C4
 then  D1 → D2 → D3
 ```
 
-A-wave can ship (and even submit no-OAuth directories) while B-wave is in progress. **Do not submit ChatGPT, Claude, or Muse until D3 is green.**
+A-wave code can merge while B-wave is in progress. **No directory submission and no registry republish until D3 is green.** Then list every directory at once.
 
 ---
 
@@ -297,7 +299,7 @@ This matches the prep proposal (lookups, `get_run`, `get_capabilities`, `get_bal
 
 | Directory | Exposure | Auth |
 | --- | --- | --- |
-| Cursor Marketplace / Grok Bot | **Full** 40 for API-key and Cursor OAuth (power users, Salesforce-adjacent). Plugin README still warns before credentials/erase/webhooks. | Bearer variable now; OAuth when Wave C lands. |
+| Cursor Marketplace / Grok Bot | **Full** 40 for Cursor OAuth (power users, Salesforce-adjacent). Plugin README still warns before credentials/erase/webhooks. API keys remain for Salesforce/dev, not the Marketplace listing. | OAuth (package ships with OAuth; submit after Wave D). |
 | Smithery / Glama / mcp.so / official registry | Card and `server.json` may list **all 40** (discovery). Runtime still requires auth. After OAuth, unknown clients get the **directory subset** (fail closed on `put_credentials`). | API key until C1; then either. |
 | Meta Muse | If in scope: **directory subset** + explicit Read Only scope (`capability:*` GET-equivalent is not enough — lookups are POST). Offer a read-only grant that still allows catalog + `get_balance*` + `get_run` and **excludes** billed POSTs if Muse requires Read Only. That Read Only mapping is **open decision D8**. | OAuth. |
 | Inspector / local | Full 40 for `km_` keys. OAuth grants follow consent scopes. | Either. |
@@ -364,8 +366,8 @@ Do not have an agent create accounts, spend money, set Cloudflare secrets, or mi
 1. **OpenAI** org/business verification in Platform settings; Apps Management Write (or owner). Domain challenge token → secret for C4.
 2. **Paid Claude plan** on the submitting account (`claude.ai/directory/manage`).
 3. **Meta / Muse** business verification, brand assets, data-processing questionnaire — only if D8 says Muse is in this push.
-4. **Smithery / Glama / mcp.so / Cursor Marketplace / registry republish** sign-in and submit (public actions). mcp.so: pay $39 or open the public GitHub issue (D4).
-5. **Registry DNS key** `/home/box/secrets/mcp_registry_ed25519.pem` — republish after A3. Do not commit the key.
+4. **Smithery / Glama / mcp.so / Cursor Marketplace / registry republish** sign-in and submit (public actions), **all at once after Wave D**. mcp.so: pay $39 or open the public GitHub issue (D4).
+5. **Registry DNS key** `/home/box/secrets/mcp_registry_ed25519.pem` — republish after Wave D with the other listings, not after A3. Do not commit the key.
 6. **xAI grok.com** partner outreach — only if D8.
 
 ### 5.2 Cloudflare / prod infra (design §12)
@@ -399,10 +401,10 @@ Re-read design §12 for the original three Harris items; several were closed in 
 | ID | Decision | Recommendation |
 | --- | --- | --- |
 | **D1** | Vendor names on public MCP/skills/README surfaces (open since 2026-10-24). | **Remove** BYOK and house-key vendor lists from server `instructions`, `put_credentials` description, `kingminos-mcp` README, and `kingminos-skills` README. Recipe rule. Keep vendor names inside the authenticated app Your Keys UI and inside `get_providers` **values** (those are the API contract; do not strip OpenAPI enums). |
-| **D2** | Submit no-OAuth directories (registry, Smithery, Glama, mcp.so, Cursor API-key, skills.sh) before ChatGPT/Claude/Muse? | **Yes.** Wave A unblocks them. OAuth directories wait for Wave D. |
-| **D3** | Cursor package: new public repo vs folder in `kingminos-mcp`? Submit API-key listing now vs wait for OAuth? | **Folder in `kingminos-mcp`** (`.cursor-plugin/`) — one public repo, already listed on the registry. Submit API-key listing after A6 for teams; add OAuth in a plugin revision after C1. |
-| **D4** | mcp.so: $39 vs GitHub issue. | **Pay $39** if Harris wants it listed this month; the free issue path has ~month-scale review. |
-| **D5** | Registry republish after A3. | **Yes**, with Harris OK: new CalVer, router description, icons, Authorization header. |
+| **D2** | Submit no-OAuth directories (registry, Smithery, Glama, mcp.so, Cursor API-key, skills.sh) before ChatGPT/Claude/Muse? | **Decided (Harris 2026-11-09):** no. Build OAuth first. Wave A code may merge early. List **every** directory at once after Wave D — including registry, Smithery, Glama, mcp.so, Cursor, skills.sh, ChatGPT, Claude, and Muse. No submissions before D3 is green. |
+| **D3** | Cursor package: new public repo vs folder in `kingminos-mcp`? Submit API-key listing now vs wait for OAuth? | **Decided (Harris 2026-11-09):** folder in `kingminos-mcp` (`.cursor-plugin/`). Package **ships with OAuth**; there is no API-key-only Cursor listing first. Submit with the rest after Wave D. |
+| **D4** | mcp.so: $39 vs GitHub issue. | **Pay $39** if Harris wants mcp.so listed; the free issue path has ~month-scale review. Submit only with the all-at-once listings after Wave D. |
+| **D5** | Registry republish after A3. | **Decided (Harris 2026-11-09):** do **not** republish after A3. Republish after Wave D, together with every other directory, with Harris OK: new CalVer, router description, icons, Authorization header. |
 | **D6** | OAuth start: when to begin Wave B. | **Start B1 as soon as Wave A is in review**, on a feature flag, without enabling AS metadata on prod until KV is bound. |
 | **D7** | Directory tool subset. | **Adopt §4.1.** Hide `put_credentials`, `delete_credentials`, `list_credentials`, all webhook tools, `delete_subject`, ledger/forecast/history, and `get_usage` from ChatGPT and Claude. Cursor/API-key keep the full 40. |
 | **D8** | Muse + xAI in this push? | **Muse: yes, same OAuth stack**, submit after Claude if verification is ready; add Read Only grant only if the Muse form requires it (lookups are POSTs — document that Read Only = catalog + balance + get_run, no billed POSTs). **xAI catalog: no** (no public form); leave custom-connector docs. |

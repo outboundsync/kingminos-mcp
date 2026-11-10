@@ -4,11 +4,15 @@ import { describe, it } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js";
+import { ADMIN_TOOL_NAMES } from "./admin-tools.js";
 import { LIVE_RESOURCE_ROUTES } from "./catalog.js";
 import {
   DOCUMENTED_PUBLIC_MCP_URL,
+  ICON_URL,
   MCP_PROTOCOL,
+  PRIVACY_URL,
   SERVICE_NAME,
+  TERMS_URL,
   VERSION,
 } from "./config.js";
 import {
@@ -74,8 +78,60 @@ describe("handleFetch public routes", () => {
       privacy_url?: string;
       terms_url?: string;
     };
-    assert.equal(body.privacy_url, "https://kingminos.com/privacy");
-    assert.equal(body.terms_url, "https://kingminos.com/terms");
+    assert.equal(body.privacy_url, PRIVACY_URL);
+    assert.equal(body.terms_url, TERMS_URL);
+    assert.equal(PRIVACY_URL.endsWith("/"), true);
+    assert.equal(TERMS_URL.endsWith("/"), true);
+  });
+
+  it("lists all 40 tenant tools plus bearer auth on the server card", async () => {
+    const response = await handleFetch(
+      new Request("http://127.0.0.1/.well-known/mcp/server-card.json"),
+    );
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      authentication?: { required?: boolean; schemes?: string[] };
+      tools?: Array<{
+        name?: string;
+        title?: string;
+        description?: string;
+        annotations?: Record<string, unknown>;
+      }>;
+      iconUrl?: string;
+      websiteUrl?: string;
+    };
+    assert.deepEqual(body.authentication, {
+      required: true,
+      schemes: ["bearer"],
+    });
+    assert.equal(body.authentication?.schemes?.includes("oauth2"), false);
+    assert.equal(body.tools?.length, LIVE_RESOURCE_ROUTES.length);
+    assert.equal(body.iconUrl, ICON_URL);
+    const names = (body.tools ?? []).map((tool) => tool.name);
+    assert.deepEqual(
+      names.slice().sort(),
+      LIVE_RESOURCE_ROUTES.map((route) => route.tool).sort(),
+    );
+    for (const admin of ADMIN_TOOL_NAMES) {
+      assert.equal(names.includes(admin), false, admin);
+    }
+    for (const tool of body.tools ?? []) {
+      const name = tool.name ?? "missing";
+      assert.equal(typeof tool.title, "string", name);
+      assert.ok((tool.title ?? "").length > 0, name);
+      assert.equal(typeof tool.description, "string", name);
+      assert.doesNotMatch(
+        tool.description ?? "",
+        /^(GET|POST|PUT|PATCH|DELETE) \/v1\//,
+      );
+      const hints = tool.annotations ?? {};
+      assert.equal(typeof hints.readOnlyHint, "boolean", name);
+      assert.equal(typeof hints.destructiveHint, "boolean", name);
+      assert.equal(typeof hints.openWorldHint, "boolean", name);
+    }
+    const serialized = JSON.stringify(body);
+    assert.doesNotMatch(serialized, /KINGMINOS_API_KEY\s*=/);
+    assert.doesNotMatch(serialized, /Bearer [A-Za-z0-9_-]{12,}/);
   });
 
   it("advertises the documented public MCP URL when configured", async () => {

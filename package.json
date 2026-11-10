@@ -1,8 +1,8 @@
 {
   "name": "kingminos-mcp",
-  "version": "2026.10.03.0",
+  "version": "2026.11.10.0",
   "private": true,
-  "description": "KingMinos by OutboundSync — Streamable HTTP MCP over the live enrichment API",
+  "description": "KingMinos by OutboundSync — data enrichment router MCP over the live API",
   "type": "module",
   "engines": {
     "node": ">=22"

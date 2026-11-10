@@ -58,13 +58,13 @@ export const OAUTH_CREDENTIAL_PROVIDER_VALUES = ["zoominfo", "snovio"] as const;
 export const ProviderName = z
   .enum(PROVIDER_NAME_VALUES)
   .describe(
-    "Stable provider id. Default paths run on house keys. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, and Lemlist are BYOK. Websearch is house-only.",
+    "Stable provider id from get_providers. Use routing.only / ignore to include or skip a vendor.",
   );
 
 export const CredentialProvider = z
   .enum(CREDENTIAL_PROVIDER_VALUES)
   .describe(
-    "Vendor for tenant Your Keys. Websearch is rejected (house-only). Storing a key for a managed (house-keyed) vendor is an optional override.",
+    "Vendor id for a stored tenant key. ZoomInfo and Snov.io need clientId and clientSecret; others need apiKey. Websearch cannot be stored.",
   );
 
 export const ExplainMode = z
@@ -130,7 +130,7 @@ export const RoutingRequest = z
       ])
       .optional()
       .describe(
-        "Back-compat alias of path plus zi_stamp (optional ZoomInfo-first). Prefer path.",
+        "Back-compat alias of path plus zi_stamp (optional vendor-id stamp first). Prefer path.",
       ),
     strategy: z.enum(["waterfall"]).optional(),
     order: z.array(ProviderName).optional(),

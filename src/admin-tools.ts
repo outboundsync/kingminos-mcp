@@ -59,8 +59,9 @@ export function registerAdminTools(
   server.registerTool(
     "abuse_report",
     {
+      title: "Abuse report",
       description:
-        "Admin only. Daily KingMinos abuse report from D1 (GET /v1/admin/abuse/daily): signups (verified/unverified, work/personal), rejects (disposable, login send-limit, signup-limited), grants issued and held, free credits burned (total + top 10 workspaces), premium-cap hits, accounts flagged, Stripe refunds/chargebacks, anomalies (>3 signups per network/IP, day-one >80% free burn, repeat rejects). UTC day; default today. Traffic/country/ASN/Turnstile live in Cloudflare (links in `cloudflare`). format=csv returns metric,value rows.",
+        "Admin only. Daily KingMinos abuse report from D1: signups (verified/unverified, work/personal), rejects (disposable, login send-limit, signup-limited), grants issued and held, free credits burned (total + top 10 workspaces), premium-cap hits, accounts flagged, Stripe refunds/chargebacks, anomalies (>3 signups per network/IP, day-one >80% free burn, repeat rejects). UTC day; default today. Traffic/country/ASN/Turnstile live in Cloudflare (links in `cloudflare`). format=csv returns metric,value rows.",
       inputSchema: {
         date: z
           .string()
@@ -71,6 +72,7 @@ export function registerAdminTools(
       },
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
         idempotentHint: true,
         openWorldHint: false,
       },
@@ -88,8 +90,9 @@ export function registerAdminTools(
   server.registerTool(
     "partner_report",
     {
+      title: "Partner report",
       description:
-        "Admin only. Partner program analytics from D1 (GET /v1/admin/partners/analytics): per partner codes redeemed, new workspaces, first-purchase conversion, bonus credits granted, payments/refunds/net revenue (cents), 20% commission earned / paid / due (payout_due at $100), top 5 customers, and a 6-month or 8-week trend. period=month (month=YYYY-MM, default current) or period=week (week_start=YYYY-MM-DD Monday, default this week). format=csv for a sheet.",
+        "Admin only. Partner program analytics from D1: per partner codes redeemed, new workspaces, first-purchase conversion, bonus credits granted, payments/refunds/net revenue (cents), 20% commission earned / paid / due (payout_due at $100), top 5 customers, and a 6-month or 8-week trend. period=month (month=YYYY-MM, default current) or period=week (week_start=YYYY-MM-DD Monday, default this week). format=csv for a sheet.",
       inputSchema: {
         period: z.enum(["month", "week"]).optional(),
         month: z
@@ -104,6 +107,7 @@ export function registerAdminTools(
       },
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
         idempotentHint: true,
         openWorldHint: false,
       },
@@ -126,8 +130,9 @@ export function registerAdminTools(
   server.registerTool(
     "partner_payout",
     {
+      title: "Partner payout",
       description:
-        "Admin only. Partner payouts. action=list_pending: payouts waiting for approval (created on the 1st for partners owed >= $100 after a 30-day hold), with Stripe readiness (GET /v1/admin/partners/payouts?status=pending). action=approve: approve AND PAY one payout by id. Sends a Stripe Connect transfer to the partner's account (idempotency key = payout id), or grants credits if they chose credits (POST /v1/admin/partners/payouts/{id}/approve). Payouts over $2,000 need confirm = the exact amount, e.g. \"2500.00\". action=record: record a manual cash/credits payout already made (POST /v1/admin/partners/payouts). approve and record move money: get the user's explicit OK for the partner, amount and month first.",
+        "Admin only. Partner payouts. action=list_pending: payouts waiting for approval (created on the 1st for partners owed >= $100 after a 30-day hold), with Stripe readiness. action=approve: approve AND PAY one payout by id. Sends a Stripe Connect transfer to the partner's account (idempotency key = payout id), or grants credits if they chose credits. Payouts over $2,000 need confirm = the exact amount, e.g. \"2500.00\". action=record: record a manual cash/credits payout already made. approve and record move money: get the user's explicit OK for the partner, amount and month first.",
       inputSchema: {
         action: z
           .enum(["list_pending", "approve", "record"])
@@ -155,7 +160,7 @@ export function registerAdminTools(
         readOnlyHint: false,
         destructiveHint: false,
         idempotentHint: true,
-        openWorldHint: true,
+        openWorldHint: false,
       },
     },
     async (args, extra) => {
@@ -197,8 +202,9 @@ export function registerAdminTools(
   server.registerTool(
     "feedback_report",
     {
+      title: "Feedback report",
       description:
-        "Admin only. Feedback triage feed from D1 (GET /v1/admin/feedback/summary): groups of product feedback with counts and status breakdown, grouped by category + requested (provider/endpoint requests), category + capability (data_quality), or category + lower(summary). Returns count, latest summary, capability/requested, and linked run_ids — never the free-text details/task_context (PII); truncated: true when the window holds more than 5000 reports. format=list returns raw rows (GET /v1/admin/feedback, newest first, includes details) and is the only format that applies the category/status filters.",
+        "Admin only. Feedback triage feed from D1: groups of product feedback with counts and status breakdown, grouped by category + requested (provider/endpoint requests), category + capability (data_quality), or category + lower(summary). Returns count, latest summary, capability/requested, and linked run_ids — never the free-text details/task_context (PII); truncated: true when the window holds more than 5000 reports. format=list returns raw rows (newest first, includes details) and is the only format that applies the category/status filters.",
       inputSchema: {
         days: z
           .number()
@@ -222,6 +228,7 @@ export function registerAdminTools(
       },
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
         idempotentHint: true,
         openWorldHint: false,
       },
@@ -253,8 +260,9 @@ export function registerAdminTools(
   server.registerTool(
     "partner_admin",
     {
+      title: "Partner admin",
       description:
-        "Admin only. Partner onboarding. action=list: partners with their codes, share links and Stripe status (GET /v1/admin/partners). action=create: create a partner and its first code in one step (POST /v1/admin/partners {partner_name, email, code}); the code is uppercased, A-Z 0-9 and hyphens, 3-20 chars, unique (409 code_taken); idempotent on code. The response includes share_link https://kingminos.com/?code=CODE. action=add_code: add another code to partner_id. action=deactivate_code: deactivate partner_id's code (PATCH ... {active:false}). Stripe onboarding links still come from the Admin page or POST /v1/admin/partners/{id}/connect.",
+        "Admin only. Partner onboarding. action=list: partners with their codes, share links and Stripe status. action=create: create a partner and its first code in one step ({partner_name, email, code}); the code is uppercased, A-Z 0-9 and hyphens, 3-20 chars, unique (409 code_taken); idempotent on code. The response includes share_link https://kingminos.com/?code=CODE. action=add_code: add another code to partner_id. action=deactivate_code: deactivate partner_id's code. Stripe onboarding links still come from the Admin page.",
       inputSchema: {
         action: z.enum(["list", "create", "add_code", "deactivate_code"]),
         partner_name: z.string().min(1).max(120).optional(),

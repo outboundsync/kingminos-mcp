@@ -401,7 +401,6 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "person_language");
       const description = tool?.description ?? "";
-      assert.match(description, /POST \/v1\/person\/language/);
       assert.match(description, /speed \(cap 1/);
       assert.match(description, /balance \(default, cap 3/);
       assert.match(description, /accuracy \(cap 4/);
@@ -468,7 +467,6 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "person_phone");
       const description = tool?.description ?? "";
-      assert.match(description, /POST \/v1\/person\/phone/);
       assert.match(description, /work email or LinkedIn URL/);
       assert.match(description, /38 credits on a hit, 0 on a miss/);
       assert.match(description, /match-only/i);
@@ -525,7 +523,6 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "person_title");
       const description = tool?.description ?? "";
-      assert.match(description, /POST \/v1\/person\/title/);
       assert.match(description, /1 \/ 2 \/ 3 \/ 5 credits on a hit/);
       assert.match(description, /fields_incomplete/);
       assert.match(description, /match-only/i);
@@ -584,7 +581,6 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "person_b2b_social");
       const description = tool?.description ?? "";
-      assert.match(description, /POST \/v1\/person\/b2b-social/);
       assert.match(description, /2 \/ 3 \/ 5 credits on a hit/);
       assert.match(description, /email is required/);
       assert.match(description, /match-only/i);
@@ -641,7 +637,6 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "person_name");
       const description = tool?.description ?? "";
-      assert.match(description, /POST \/v1\/person\/name/);
       assert.match(description, /1 \/ 2 \/ 3 \/ 5 credits on a hit/);
       assert.match(description, /answer\.confidence only/);
       assert.match(description, /no safe_to_write/);
@@ -747,11 +742,9 @@ describe("catalog-driven handlers", () => {
         listed.tools.find((t) => t.name === "email_verify")?.description ?? "";
       const find =
         listed.tools.find((t) => t.name === "person_email")?.description ?? "";
-      assert.match(verify, /POST \/v1\/email\/verify/);
-      assert.match(verify, /is this mailbox deliverable\?/);
+      assert.match(verify, /is this mailbox deliverable\?/i);
       assert.match(verify, /0\.5–1\.5 credits/);
-      assert.match(find, /POST \/v1\/person\/email/);
-      assert.match(find, /this person's work email\?/);
+      assert.match(find, /this person's work email\?/i);
       assert.match(find, /1\.5–5 credits/);
       for (const description of [verify, find]) {
         assert.match(
@@ -871,7 +864,6 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "company_x_account");
       const description = tool?.description ?? "";
-      assert.match(description, /POST \/v1\/company\/x-account/);
       assert.match(
         description,
         /speed 1 \/ balance 1\.3 \/ accuracy 1\.6 \/ coverage 1\.7/,
@@ -1018,7 +1010,6 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "company_description");
       const description = tool?.description ?? "";
-      assert.match(description, /POST \/v1\/company\/description/);
       assert.match(description, /not aliases/i);
       assert.match(description, /speed.*balance.*accuracy.*coverage/i);
       assert.match(description, /Always pass path explicitly/i);
@@ -1056,7 +1047,6 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "company_icon");
       const description = tool?.description ?? "";
-      assert.match(description, /POST \/v1\/company\/icon/);
       assert.match(description, /logos\.kingminos\.com\/i\/<sha256>\.png/);
       assert.match(description, /256×256 PNG in R2/);
       assert.match(description, /result\.icon_source_url/);

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.kingminos/mcp",
+  "title": "KingMinos",
+  "description": "B2B data enrichment router for company and person lookups.",
+  "version": "2026.11.10.0",
+  "websiteUrl": "https://kingminos.com/",
+  "repository": {
+    "url": "https://github.com/outboundsync/kingminos-mcp",
+    "source": "github"
+  },
+  "icons": [
+    {
+      "src": "https://kingminos.com/icon-192.png",
+      "mimeType": "image/png",
+      "sizes": ["192x192"]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.kingminos.com/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer API key (km_ or osr_)",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

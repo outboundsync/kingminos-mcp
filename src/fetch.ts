@@ -4,20 +4,28 @@ import {
   allowedHosts,
   allowedOriginHosts,
   apiBaseUrl,
+  DOCUMENTATION_URL,
+  ICON_URL,
   MCP_PROTOCOL,
   PRIVACY_URL,
   PRODUCT_NAME,
   publicMcpUrl,
   SERVICE_NAME,
+  SUPPORT_URL,
   TENANT_BEARER_ENV,
   TERMS_URL,
   tenantBearerFromEnv,
   VERSION,
+  WEBSITE_URL,
 } from "./config.js";
 import type { RuntimeEnv } from "./env.js";
 import { envString, mergeRuntimeEnv, workerRuntimeEnv } from "./env.js";
 import { hostnameFromHostHeader, hostnameFromOrigin } from "./hosts.js";
-import { createKingMinosServer } from "./server.js";
+import {
+  type AdvertisedTool,
+  advertisedTenantTools,
+  createKingMinosServer,
+} from "./server.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
 export const MCP_ALLOW_METHODS = "POST, OPTIONS";
@@ -80,6 +88,12 @@ export function serverCard(env: RuntimeEnv): {
   endpoint: string;
   transport: string;
   capabilities: { tools: object; resources: object; prompts: object };
+  authentication: { required: true; schemes: ["bearer"] };
+  tools: AdvertisedTool[];
+  websiteUrl: string;
+  documentationUrl: string;
+  supportUrl: string;
+  iconUrl: string;
   privacy_url: string;
   terms_url: string;
 } {
@@ -88,6 +102,12 @@ export function serverCard(env: RuntimeEnv): {
     endpoint: publicMcpUrl(env),
     transport: "streamable-http",
     capabilities: { tools: {}, resources: {}, prompts: {} },
+    authentication: { required: true, schemes: ["bearer"] },
+    tools: advertisedTenantTools(),
+    websiteUrl: WEBSITE_URL,
+    documentationUrl: DOCUMENTATION_URL,
+    supportUrl: SUPPORT_URL,
+    iconUrl: ICON_URL,
     privacy_url: PRIVACY_URL,
     terms_url: TERMS_URL,
   };

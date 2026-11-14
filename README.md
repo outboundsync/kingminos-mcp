@@ -1,8 +1,8 @@
 # KingMinos by OutboundSync — MCP
 
-Streamable HTTP MCP server that wraps the live KingMinos enrichment API at `https://api.kingminos.com`. One tool per bearer-authenticated resource route. Session and cookie routes under `/v1/auth/*` and `/v1/account/*`, and operator routes under `/v1/admin/*`, are not OpenAPI resource tools. This is not the OutboundSync product MCP and does not expose OutboundSync account, source, or sync tools.
+Streamable HTTP MCP server for KingMinos, a data enrichment router wrapping the live API at `https://api.kingminos.com`. One tool per bearer-authenticated resource route. Session and cookie routes under `/v1/auth/*` and `/v1/account/*`, and operator routes under `/v1/admin/*`, are not OpenAPI resource tools. This is not the OutboundSync product MCP and does not expose OutboundSync account, source, or sync tools.
 
-Default paths run on house keys. ZoomInfo, BuiltWith, Prospeo, Apollo, Company URL Finder, People Data Labs, HG Insights, Brandfetch, Enrich-CRM, Lemlist, and Snov.io are BYOK via `put_credentials`. Websearch is house-only and cannot be stored. Snov.io is OAuth (`clientId`/`clientSecret`) and is a credential vendor only. Cognism, Lusha, Starbridge, Clay, Databar, QuickEnrich, GetLeads, and BlitzAPI are API-key credential vendors only — no routing hop yet. The server never embeds vendor keys and never logs the tenant Bearer or credential bodies.
+Store your own vendor keys with `put_credentials`. ZoomInfo and Snov.io use OAuth (`clientId` / `clientSecret`); other vendors use `apiKey`. Websearch cannot be stored. The server never embeds vendor keys and never logs the tenant Bearer or credential bodies.
 
 Say **SFDC**, never SF.
 
@@ -58,7 +58,7 @@ npm run check:surfaces
 npm run check:providers
 ```
 
-`check:surfaces` compares advertised MCP tools to `operations[]`. `check:providers` compares the Zod `ProviderName` / `CredentialProvider` enums to the pinned `providers[]` / `credentialProviders[]`. A new BYOK id such as `prospeo`, `companyurlfinder`, `peopledatalabs`, `hginsights`, `brandfetch`, `enrichcrm`, or `lemlist` fails CI until both Zod enums and the pin list it — that is how `routing.only: ["prospeo"]` and `put_credentials({ provider: "prospeo" })` stay accepted.
+`check:surfaces` compares advertised MCP tools to `operations[]`. `check:providers` compares the Zod `ProviderName` / `CredentialProvider` enums to the pinned `providers[]` / `credentialProviders[]`. A new BYOK id fails CI until both Zod enums and the pin list it — that is how `routing.only` and `put_credentials({ provider })` stay accepted.
 
 `/v1/auth/*` and `/v1/account/*` are intentionally not MCP tools (cookie/session app surfaces), and `/v1/admin/*` is the operator API (the admin-token tools above are hand-written, not generated from OpenAPI). All three prefixes are denied by `nonToolPathPrefixes` plus the reviewed `excludedOperationIds` catalog. Do not implement the ~24 auth/account operations as tools.
 
@@ -69,7 +69,7 @@ npm run check:surfaces:live
 npm run check:providers:live
 ```
 
-Refresh the pin from live OpenAPI (network). Unions provider enums and newly seen auth/account operationIds; never drops pinned providers. Credential-only vendors (snovio, cognism, lusha, starbridge, clay, databar, quickenrich, getleads, blitzapi — no routing hop) are skipped from `providers[]`; the hand-written `capabilityProviders` pin is preserved. Review the diff before committing:
+Refresh the pin from live OpenAPI (network). Unions provider enums and newly seen auth/account operationIds; never drops pinned providers. Credential-only vendors (no routing hop) are skipped from `providers[]`; the hand-written `capabilityProviders` pin is preserved. Review the diff before committing:
 
 ```bash
 npm run inventory:refresh
@@ -113,6 +113,7 @@ The KingMinos tenant Bearer is sent by the client as **`Authorization: Bearer <t
 Worker mode never reads `KINGMINOS_API_KEY` from `process.env` or from Worker bindings. A missing `Authorization` header is always 401 on the Worker.
 
 A local Node process may fall back to `KINGMINOS_API_KEY` only when **all** of these are true:
+
 - the process is bound to loopback (`127.0.0.1`, `localhost`, or `::1`)
 - `KINGMINOS_MCP_ALLOW_ENV_BEARER=1`
 
@@ -121,6 +122,7 @@ Production Workers do not store this secret. The value is never printed here.
 `POST /mcp` rejects a present `Origin` that is not allowlisted. Clients that send no `Origin` keep working (typical MCP clients hitting `https://mcp.kingminos.com/mcp`). Local default hosts are `localhost`, `127.0.0.1`, and `[::1]`; production also admits `mcp.kingminos.com`.
 
 Optional:
+
 - `KINGMINOS_API_URL` — API base (default `https://api.kingminos.com`). Path prefixes on this URL are preserved.
 - `HOST` — local Node listen address (default `127.0.0.1`)
 - `PORT` — local Node listen port (default `8080`)

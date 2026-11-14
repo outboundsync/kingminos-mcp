@@ -4,7 +4,7 @@ import { isLoopbackHost, normalizeHostname } from "./hosts.js";
 
 export const SERVICE_NAME = "kingminos-mcp";
 export const PRODUCT_NAME = "KingMinos by OutboundSync";
-export const VERSION = "2026.10.03.0";
+export const VERSION = "2026.11.10.0";
 export const MCP_PROTOCOL = LATEST_PROTOCOL_VERSION;
 
 export const DEFAULT_API_BASE_URL = "https://api.kingminos.com";
@@ -30,9 +30,13 @@ export const ALLOW_ENV_BEARER_ENV = "KINGMINOS_MCP_ALLOW_ENV_BEARER";
 /** Documented public MCP URL (custom domain attached in Cloudflare / wrangler.jsonc). */
 export const DOCUMENTED_PUBLIC_MCP_URL = "https://mcp.kingminos.com/mcp";
 
-/** Legal links advertised on the service and server cards (301 to OutboundSync policies). */
-export const PRIVACY_URL = "https://kingminos.com/privacy";
-export const TERMS_URL = "https://kingminos.com/terms";
+/** Legal links advertised on the service and server cards (trailing slash; unversioned URLs 200). */
+export const PRIVACY_URL = "https://kingminos.com/privacy/";
+export const TERMS_URL = "https://kingminos.com/terms/";
+export const WEBSITE_URL = "https://kingminos.com/";
+export const DOCUMENTATION_URL = "https://kingminos.com/docs/";
+export const SUPPORT_URL = "mailto:support@outboundsync.com";
+export const ICON_URL = "https://kingminos.com/icon-192.png";
 
 const DEFAULT_ORIGIN_HOSTS = [
   "localhost",

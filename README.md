@@ -113,6 +113,7 @@ The KingMinos tenant Bearer is sent by the client as **`Authorization: Bearer <t
 Worker mode never reads `KINGMINOS_API_KEY` from `process.env` or from Worker bindings. A missing `Authorization` header is always 401 on the Worker.
 
 A local Node process may fall back to `KINGMINOS_API_KEY` only when **all** of these are true:
+
 - the process is bound to loopback (`127.0.0.1`, `localhost`, or `::1`)
 - `KINGMINOS_MCP_ALLOW_ENV_BEARER=1`
 
@@ -121,6 +122,7 @@ Production Workers do not store this secret. The value is never printed here.
 `POST /mcp` rejects a present `Origin` that is not allowlisted. Clients that send no `Origin` keep working (typical MCP clients hitting `https://mcp.kingminos.com/mcp`). Local default hosts are `localhost`, `127.0.0.1`, and `[::1]`; production also admits `mcp.kingminos.com`.
 
 Optional:
+
 - `KINGMINOS_API_URL` — API base (default `https://api.kingminos.com`). Path prefixes on this URL are preserved.
 - `HOST` — local Node listen address (default `127.0.0.1`)
 - `PORT` — local Node listen port (default `8080`)

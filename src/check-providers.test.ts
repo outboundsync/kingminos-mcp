@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -207,7 +207,7 @@ describe("credential-only vendors", () => {
     assert.deepEqual(extracted.providers, ["leadmagic", "lemlist"]);
   });
 
-  it("inventory:refresh skips credential-only vendors and preserves capabilityProviders", async () => {
+  it("inventory:refresh skips credential-only vendors and preserves hand-written pins", async () => {
     const dir = mkdtempSync(join(tmpdir(), "kingminos-mcp-refresh-"));
     const file = join(dir, "inventory.json");
     const pinned = readInventoryFile(
@@ -266,6 +266,25 @@ describe("credential-only vendors", () => {
       assert.deepEqual(written.providers, pinned.providers);
       assert.deepEqual(written.capabilityProviders, pinned.capabilityProviders);
       assert.ok(written.capabilityProviders?.["company.description"]);
+      assert.deepEqual(
+        written.agentEnvelopePassthrough,
+        pinned.agentEnvelopePassthrough,
+      );
+      assert.deepEqual(written.recipeHighlights, pinned.recipeHighlights);
+      const raw = JSON.parse(readFileSync(file, "utf8")) as {
+        source: string;
+        agentEnvelopePassthrough?: unknown;
+        recipeHighlights?: unknown;
+      };
+      assert.match(
+        raw.source,
+        /person\.name and person\.b2b-social responses may include next_steps/,
+      );
+      assert.deepEqual(
+        raw.agentEnvelopePassthrough,
+        pinned.agentEnvelopePassthrough,
+      );
+      assert.deepEqual(raw.recipeHighlights, ["crm_contact_name_cleanup"]);
     } finally {
       server.close();
       if (prev.url === undefined) delete process.env[OPENAPI_JSON_URL_ENV];

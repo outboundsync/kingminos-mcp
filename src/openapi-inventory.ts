@@ -15,12 +15,21 @@ export interface ProviderLists {
   credentialProviders: string[];
 }
 
+export interface AgentEnvelopePin {
+  envelope?: string[];
+  result?: string[];
+}
+
 export interface OpenApiInventory extends ProviderLists {
   publicNonToolPaths: string[];
   nonToolPathPrefixes: string[];
   excludedOperationIds: string[];
   /** Optional pin: allowed routing.only providers per capability id. */
   capabilityProviders?: Record<string, string[]>;
+  /** Optional pin: agent envelope / result fields MCP tools return verbatim. */
+  agentEnvelopePassthrough?: Record<string, AgentEnvelopePin>;
+  /** Optional pin: recipe ids called out in MCP tool copy. */
+  recipeHighlights?: string[];
   operations: SurfaceOperation[];
 }
 
@@ -62,7 +71,7 @@ export const INVENTORY_LIVE_OPENAPI_JSON_URL =
   "https://api.kingminos.com/openapi.json";
 
 export const INVENTORY_SOURCE_BLURB =
-  "KingMinos OpenAPI resource inventory (public contract). Paths verified against live GET https://api.kingminos.com/openapi.json. Tool names are snake_case resource operationIds. Only operations whose effective security includes the bearer scheme are required MCP tools. This file is not application source.";
+  "KingMinos OpenAPI resource inventory (public contract). Paths verified against live GET https://api.kingminos.com/openapi.json. Tool names are snake_case resource operationIds. Only operations whose effective security includes the bearer scheme are required MCP tools. This file is not application source. person.name and person.b2b-social responses may include next_steps, options, agent_guidance, and (person.name only) result.quality_flags; MCP tools return those fields verbatim.";
 
 export const INVENTORY_EXCLUSION_POLICY =
   "Session/cookie routes under /v1/auth/* and /v1/account/* and operator routes under /v1/admin/* are permanently out of scope for the OpenAPI resource tools. MCP authenticates with a tenant Bearer; auth/account routes are app/session surfaces (login, workspaces, members, invites, tokens) and /v1/admin/* is the operator API (privacy suppressions, signups, partners, abuse). Admin-token tools such as abuse_report and partner_admin are separate hand-written tools registered only for a kmadm_ bearer (src/admin-tools.ts); they are not OpenAPI resource tools. nonToolPathPrefixes is the durable deny-list; excludedOperationIds is the reviewed catalog of omitted operationIds. Excluding a route is a reviewed decision, not a silent skip. Do not add account/auth MCP tools.";
@@ -333,6 +342,38 @@ function capabilityProvidersMap(
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+function agentEnvelopePassthroughMap(
+  value: unknown,
+): Record<string, AgentEnvelopePin> | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  const out: Record<string, AgentEnvelopePin> = {};
+  for (const [tool, pin] of Object.entries(value)) {
+    if (!isRecord(pin)) {
+      continue;
+    }
+    const envelope = stringList(pin.envelope);
+    const result = stringList(pin.result);
+    const entry: AgentEnvelopePin = {};
+    if (envelope.length > 0) {
+      entry.envelope = envelope;
+    }
+    if (result.length > 0) {
+      entry.result = result;
+    }
+    if (entry.envelope !== undefined || entry.result !== undefined) {
+      out[tool] = entry;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function optionalStringList(value: unknown): string[] | undefined {
+  const list = stringList(value);
+  return list.length > 0 ? list : undefined;
+}
+
 function isPathList(
   options: InventoryParseOptions | readonly string[],
 ): options is readonly string[] {
@@ -425,6 +466,10 @@ export function parseInventoryDocument(
     providers: stringList(record.providers),
     credentialProviders: stringList(record.credentialProviders),
     capabilityProviders: capabilityProvidersMap(record.capabilityProviders),
+    agentEnvelopePassthrough: agentEnvelopePassthroughMap(
+      record.agentEnvelopePassthrough,
+    ),
+    recipeHighlights: optionalStringList(record.recipeHighlights),
     operations,
   };
 }
@@ -642,6 +687,12 @@ export function serializeInventoryFile(inventory: OpenApiInventory): string {
   return `${JSON.stringify(
     {
       source: INVENTORY_SOURCE_BLURB,
+      ...(inventory.agentEnvelopePassthrough
+        ? { agentEnvelopePassthrough: inventory.agentEnvelopePassthrough }
+        : {}),
+      ...(inventory.recipeHighlights
+        ? { recipeHighlights: inventory.recipeHighlights }
+        : {}),
       spec: INVENTORY_SPEC_URL,
       liveOpenApiJson: INVENTORY_LIVE_OPENAPI_JSON_URL,
       exclusionPolicy: INVENTORY_EXCLUSION_POLICY,
@@ -775,7 +826,8 @@ export interface RefreshInventoryResult {
  * Bearer resource operations replace operations[]. Provider enums and
  * excludedOperationIds are unioned with the existing pin so a stale
  * production spec cannot drop names (e.g. prospeo). Credential-only vendors
- * are kept out of providers[]; capabilityProviders is preserved verbatim.
+ * are kept out of providers[]; hand-written pins (capabilityProviders,
+ * agentEnvelopePassthrough, recipeHighlights) are preserved verbatim.
  */
 export async function refreshInventoryFile(
   cwd: string = process.cwd(),
@@ -814,9 +866,15 @@ export async function refreshInventoryFile(
       existing.credentialProviders,
       liveProviders.credentialProviders,
     ),
-    // Hand-written pin; live OpenAPI has no source for it.
+    // Hand-written pins; live OpenAPI has no source for them.
     ...(existing.capabilityProviders
       ? { capabilityProviders: existing.capabilityProviders }
+      : {}),
+    ...(existing.agentEnvelopePassthrough
+      ? { agentEnvelopePassthrough: existing.agentEnvelopePassthrough }
+      : {}),
+    ...(existing.recipeHighlights
+      ? { recipeHighlights: existing.recipeHighlights }
       : {}),
     operations: mergeOperations(
       existing.operations,

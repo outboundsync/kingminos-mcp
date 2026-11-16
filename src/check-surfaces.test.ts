@@ -118,30 +118,25 @@ describe("OpenAPI inventory contract", () => {
   });
 
   it("documents person discovery agent envelope passthrough in the inventory file", () => {
-    const raw = JSON.parse(
-      readFileSync("inventory/openapi-surfaces.json", "utf8"),
-    ) as {
-      agentEnvelopePassthrough?: Record<
-        string,
-        { envelope?: string[]; result?: string[] }
-      >;
-      recipeHighlights?: string[];
-    };
-    assert.deepEqual(raw.agentEnvelopePassthrough?.person_name?.envelope, [
-      "next_steps",
-      "options",
-      "agent_guidance",
-    ]);
-    assert.deepEqual(raw.agentEnvelopePassthrough?.person_name?.result, [
+    const inventory = readInventoryFile("inventory/openapi-surfaces.json");
+    assert.deepEqual(
+      inventory.agentEnvelopePassthrough?.person_name?.envelope,
+      ["next_steps", "options", "agent_guidance"],
+    );
+    assert.deepEqual(inventory.agentEnvelopePassthrough?.person_name?.result, [
       "quality_flags",
     ]);
     assert.deepEqual(
-      raw.agentEnvelopePassthrough?.person_b2b_social?.envelope,
+      inventory.agentEnvelopePassthrough?.person_b2b_social?.envelope,
       ["next_steps", "options", "agent_guidance"],
     );
-    assert.ok(
-      raw.recipeHighlights?.includes("crm_contact_name_cleanup"),
-      "crm_contact_name_cleanup recipe",
+    assert.deepEqual(inventory.recipeHighlights, ["crm_contact_name_cleanup"]);
+    const raw = JSON.parse(
+      readFileSync("inventory/openapi-surfaces.json", "utf8"),
+    ) as { source: string };
+    assert.match(
+      raw.source,
+      /person\.name and person\.b2b-social responses may include next_steps/,
     );
   });
 

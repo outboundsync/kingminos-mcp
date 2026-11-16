@@ -178,3 +178,21 @@ export function advertisedOperations(): SurfaceOperation[] {
     path: route.path,
   }));
 }
+
+/** Run-envelope fields the API adds for agent back-and-forth; MCP returns JSON verbatim. */
+export const PERSON_DISCOVERY_AGENT_ENVELOPE_FIELDS = [
+  "next_steps",
+  "options",
+  "agent_guidance",
+] as const;
+
+/** person.name result markers; billing unchanged — do not write when present. */
+export const PERSON_NAME_QUALITY_FLAG_VALUES = [
+  "surname_initial_only",
+  "surname_truncated",
+  "surname_repeats_first",
+  "credential_suffix",
+] as const;
+
+/** CRM name cleanup chain exposed on GET /v1/recipes. */
+export const CRM_CONTACT_NAME_CLEANUP_RECIPE = "crm_contact_name_cleanup";

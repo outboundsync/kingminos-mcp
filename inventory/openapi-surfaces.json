@@ -1,5 +1,15 @@
 {
-  "source": "KingMinos OpenAPI resource inventory (public contract). Paths verified against live GET https://api.kingminos.com/openapi.json. Tool names are snake_case resource operationIds. Only operations whose effective security includes the bearer scheme are required MCP tools. This file is not application source.",
+  "source": "KingMinos OpenAPI resource inventory (public contract). Paths verified against live GET https://api.kingminos.com/openapi.json. Tool names are snake_case resource operationIds. Only operations whose effective security includes the bearer scheme are required MCP tools. This file is not application source. person.name and person.b2b-social responses may include next_steps, options, agent_guidance, and (person.name only) result.quality_flags; MCP tools return those fields verbatim.",
+  "agentEnvelopePassthrough": {
+    "person_name": {
+      "envelope": ["next_steps", "options", "agent_guidance"],
+      "result": ["quality_flags"]
+    },
+    "person_b2b_social": {
+      "envelope": ["next_steps", "options", "agent_guidance"]
+    }
+  },
+  "recipeHighlights": ["crm_contact_name_cleanup"],
   "spec": "https://api.kingminos.com/openapi.yaml",
   "liveOpenApiJson": "https://api.kingminos.com/openapi.json",
   "exclusionPolicy": "Session/cookie routes under /v1/auth/* and /v1/account/* and operator routes under /v1/admin/* are permanently out of scope for the OpenAPI resource tools. MCP authenticates with a tenant Bearer; auth/account routes are app/session surfaces (login, workspaces, members, invites, tokens) and /v1/admin/* is the operator API (privacy suppressions, signups, partners, abuse). Admin-token tools such as abuse_report and partner_admin are separate hand-written tools registered only for a kmadm_ bearer (src/admin-tools.ts); they are not OpenAPI resource tools. nonToolPathPrefixes is the durable deny-list; excludedOperationIds is the reviewed catalog of omitted operationIds. Excluding a route is a reviewed decision, not a silent skip. Do not add account/auth MCP tools.",

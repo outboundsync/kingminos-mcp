@@ -122,6 +122,14 @@ const ROTATE_SECRET = {
   openWorldHint: false,
 } as const satisfies ToolAnnotations;
 
+const PERSON_DISCOVERY_AGENT_RESPONSE =
+  "Returns the full API JSON unchanged, including next_steps (follow-ups with endpoint, inputs — including from_endpoint / from_field for a prior step — and est_credits), options[] (product paths and related endpoints, each with est_credits), and agent_guidance (present the choices and wait). Read next_steps, options, and agent_guidance on every call; present every option with est_credits, get the user's choice, and keep the thread going — never auto-pick a cheaper path unless they asked.";
+
+const PERSON_NAME_QUALITY_AND_FLAGS =
+  "result.quality_flags marks weak delivered names (surname_initial_only, surname_truncated, surname_repeats_first, credential_suffix) without changing billing; never write when quality_flags is non-null — follow next_steps instead. Misses, parsed_only, below-floor withholds, and conflicts ship next_steps so you can chain (for example email-only → /v1/person/b2b-social then /v1/person/name with the profile URL). get_recipes lists crm_contact_name_cleanup for that chain.";
+
+const PERSON_B2B_SOCIAL_AGENT_RESPONSE = `${PERSON_DISCOVERY_AGENT_RESPONSE} On a hit, next_steps often points at /v1/person/name with the found profile URL. When options[] is present (email discovery without a profile URL), treat it like person.name: show paths and credits, then wait.`;
+
 function routerHeaders(meta: {
   explain?: string;
   schema?: string;
@@ -252,7 +260,7 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   get_recipes: {
     title: "Get chaining recipes",
     description:
-      "Agent chaining recipes: machine-readable workflows for AI agents. Ask speed / balance / accuracy / coverage before a bulk run (ask_before_bulk). routing.path maps 1:1 to recipe priority; max yield is coverage. company.resolve value is the one-step lookup, not a tier. Each recipe lists steps and est_credits_per_row. Does not start a run.",
+      "Agent chaining recipes: machine-readable workflows for AI agents. Ask speed / balance / accuracy / coverage before a bulk run (ask_before_bulk). routing.path maps 1:1 to recipe priority; max yield is coverage. company.resolve value is the one-step lookup, not a tier. Each recipe lists steps and est_credits_per_row. Includes crm_contact_name_cleanup (speed person.name → person.b2b-social balance → person.name with profile URL, then stamp the profile URL). Does not start a run.",
     inputSchema: EmptyInput,
     annotations: READ_WORKSPACE,
     buildRequest: () => ({}),
@@ -485,6 +493,7 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "Cost is outcome-priced: 2 / 3 / 5 credits on a hit (speed / balance / accuracy), once on the deciding attempt; 0 on a miss, a person mismatch, a below-floor withhold or a timeout.",
       "Write signal is confidence only (there are no safe_to_write fields): two agreeing sources are high, one source is medium, disagreeing sources are the best guess at low with conflicting_profiles. Default floors: speed low, balance medium, accuracy high; min_confidence overrides. Below the floor linkedin_url is blank (reason below_min_confidence), confidence and candidates kept.",
       "30-day cache keyed on path, min_confidence and routing.only / ignore: repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers. A suppressed email / linkedin_url is 451 subject_suppressed at 0 credits.",
+      PERSON_B2B_SOCIAL_AGENT_RESPONSE,
       "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
     ].join(" "),
     inputSchema: PersonB2bSocialInput,
@@ -500,6 +509,8 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "Cost is outcome-priced: 1 / 2 / 3 / 5 credits on a hit (speed / balance / accuracy / coverage), once on the deciding attempt; 0 on a miss, a conflict, a below-floor withhold or a timeout. answer.outcome resolved | parsed_only | role_address | not_found | conflict | unsupported_input; an email local-part split is a last resort only (parsed_only, low confidence, flagged email_local_parse).",
       "Write signal is answer.confidence only (there are no safe_to_write fields). Default floors: speed / coverage low, balance medium, accuracy high; min_confidence overrides. Below the floor the name fields are blank and the candidates stay in result.evidence.",
       "30-day cache keyed on path, min_confidence and routing.only / ignore: repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers. A suppressed email / linkedin_url is 451 subject_suppressed at 0 credits.",
+      PERSON_DISCOVERY_AGENT_RESPONSE,
+      PERSON_NAME_QUALITY_AND_FLAGS,
       "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
     ].join(" "),
     inputSchema: PersonNameInput,

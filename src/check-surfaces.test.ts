@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -115,6 +115,34 @@ describe("OpenAPI inventory contract", () => {
     const diff = diffSurfaces(advertised, fileInventory.operations);
     assert.equal(surfacesAligned(diff), true, JSON.stringify(diff));
     assert.equal(LIVE_RESOURCE_ROUTES.length, EXPECTED_TOOLS.length);
+  });
+
+  it("documents person discovery agent envelope passthrough in the inventory file", () => {
+    const raw = JSON.parse(
+      readFileSync("inventory/openapi-surfaces.json", "utf8"),
+    ) as {
+      agentEnvelopePassthrough?: Record<
+        string,
+        { envelope?: string[]; result?: string[] }
+      >;
+      recipeHighlights?: string[];
+    };
+    assert.deepEqual(raw.agentEnvelopePassthrough?.person_name?.envelope, [
+      "next_steps",
+      "options",
+      "agent_guidance",
+    ]);
+    assert.deepEqual(raw.agentEnvelopePassthrough?.person_name?.result, [
+      "quality_flags",
+    ]);
+    assert.deepEqual(
+      raw.agentEnvelopePassthrough?.person_b2b_social?.envelope,
+      ["next_steps", "options", "agent_guidance"],
+    );
+    assert.ok(
+      raw.recipeHighlights?.includes("crm_contact_name_cleanup"),
+      "crm_contact_name_cleanup recipe",
+    );
   });
 
   it("records reviewed session/account exclusions", () => {

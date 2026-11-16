@@ -586,6 +586,63 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /match-only/i);
       assert.match(description, /No coverage tier/);
       assert.match(description, /no safe_to_write/);
+      assert.match(description, /next_steps/);
+      assert.match(description, /options/);
+      assert.match(description, /agent_guidance/);
+      assert.match(description, /never auto-pick a cheaper path/i);
+      assert.match(description, /est_credits/);
+    });
+  });
+
+  it("passes person.b2b_social agent envelope fields through unchanged", async () => {
+    const envelope = {
+      ok: true,
+      capability: "person.b2b_social",
+      agent_guidance: "Present options and wait.",
+      next_steps: [
+        {
+          action: "call_capability",
+          endpoint: "/v1/person/name",
+          inputs: {
+            linkedin_url: {
+              from_endpoint: "/v1/person/b2b-social",
+              from_field: "result.linkedin_url",
+            },
+          },
+          est_credits: 2,
+          reason: "Resolve name with profile URL",
+        },
+      ],
+      options: [
+        {
+          endpoint: "/v1/person/b2b-social",
+          path: "balance",
+          description: "Find profile URL by email",
+          est_credits: 3,
+        },
+      ],
+      result: {
+        status: "found",
+        linkedin_url: "https://www.linkedin.com/in/x",
+      },
+    };
+    captureFetch(
+      () =>
+        new Response(JSON.stringify(envelope), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    await withClient(async (client) => {
+      const result = await client.callTool({
+        name: "person_b2b_social",
+        arguments: { email: "a@b.com" },
+      });
+      assert.notEqual(result.isError, true);
+      const parsed = JSON.parse(toolText(result)) as typeof envelope;
+      assert.equal(parsed.agent_guidance, envelope.agent_guidance);
+      assert.deepEqual(parsed.next_steps, envelope.next_steps);
+      assert.deepEqual(parsed.options, envelope.options);
     });
   });
 
@@ -641,6 +698,71 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /answer\.confidence only/);
       assert.match(description, /no safe_to_write/);
       assert.match(description, /role_address/);
+      assert.match(description, /quality_flags/);
+      assert.match(description, /surname_initial_only/);
+      assert.match(description, /credential_suffix/);
+      assert.match(description, /next_steps/);
+      assert.match(description, /agent_guidance/);
+      assert.match(description, /crm_contact_name_cleanup/);
+      assert.match(description, /never write when quality_flags/i);
+      assert.match(description, /never auto-pick a cheaper path/i);
+    });
+  });
+
+  it("passes person.name agent envelope and quality_flags through unchanged", async () => {
+    const envelope = {
+      ok: true,
+      capability: "person.name",
+      agent_guidance: "Show options with credits; wait for the user.",
+      next_steps: [
+        {
+          action: "call_capability",
+          endpoint: "/v1/person/b2b-social",
+          inputs: { email: "a@b.com" },
+          est_credits: 3,
+          reason: "Need profile URL",
+        },
+      ],
+      options: [
+        {
+          endpoint: "/v1/person/name",
+          path: "balance",
+          description: "Balanced name lookup",
+          est_credits: 2,
+        },
+      ],
+      result: {
+        first_name: "Jane",
+        last_name: "Lee Mpa",
+        quality_flags: ["credential_suffix"],
+      },
+    };
+    captureFetch(
+      () =>
+        new Response(JSON.stringify(envelope), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    await withClient(async (client) => {
+      const result = await client.callTool({
+        name: "person_name",
+        arguments: { email: "a@b.com" },
+      });
+      assert.notEqual(result.isError, true);
+      const parsed = JSON.parse(toolText(result)) as typeof envelope;
+      assert.equal(parsed.agent_guidance, envelope.agent_guidance);
+      assert.deepEqual(parsed.next_steps, envelope.next_steps);
+      assert.deepEqual(parsed.options, envelope.options);
+      assert.deepEqual(parsed.result.quality_flags, ["credential_suffix"]);
+    });
+  });
+
+  it("documents crm_contact_name_cleanup on get_recipes", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const tool = listed.tools.find((t) => t.name === "get_recipes");
+      assert.match(tool?.description ?? "", /crm_contact_name_cleanup/);
     });
   });
 

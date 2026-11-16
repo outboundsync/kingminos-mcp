@@ -1164,6 +1164,30 @@ describe("catalog-driven handlers", () => {
     });
   });
 
+  it("documents kingminos-application PR #417 company.domain redirect additional_domains on company_domain", async () => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      const tool = listed.tools.find((t) => t.name === "company_domain");
+      const description = tool?.description ?? "";
+      assert.match(description, /result\.account_primary_domain/);
+      assert.match(description, /result\.additional_domains\.join/);
+      assert.match(description, /result\.additional_domains_csv/);
+      assert.match(description, /never include the input host/i);
+      assert.match(
+        description,
+        /HTTP-redirects to a different registrable domain/i,
+      );
+      assert.match(description, /additional_domain_proofs source redirect/i);
+      assert.match(description, /Same-site redirects/i);
+      assert.match(description, /identity-mismatch redirects add nothing/i);
+      assert.match(
+        description,
+        /keep the CRM primary domain on the entered account primary/i,
+      );
+      assert.match(description, /secondary domain \(additional_domains/i);
+    });
+  });
+
   it("documents kingminos-application PR #186 company.icon hosted URL contract on company_icon", async () => {
     await withClient(async (client) => {
       const listed = await client.listTools();

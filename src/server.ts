@@ -354,8 +354,16 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   },
   company_domain: {
     title: "Decide company domain",
-    description:
-      "Decide what the CRM domain field should say and whether it is safe to write. Outcomes: verified | corrected | discovered | rejected | unverified | no_decision. Write-safe stamps live on result.account_primary_domain + additional_domains. Spends credits unless dry_run is true. Does not write SFDC.",
+    description: [
+      "Decide what the CRM domain field should say and whether it is safe to write.",
+      "Outcomes: verified | corrected | discovered | rejected | unverified | no_decision.",
+      'On trusted outcomes (verified / corrected / discovered), stamp HubSpot domain from result.account_primary_domain; stamp hs_additional_domains from result.additional_domains.join(";") (ownership-proven only). Salesforce Secondary_Domains__c from result.additional_domains_csv. Hold result.review_domains and result.discovered_domain for a human.',
+      "result.additional_domains and result.additional_domains_csv are never all domains found. They never include the input host or its www/apex twins, nor the stamped result.company_domain, result.canonical_domain, result.account_primary_domain, or their www/apex twins, except when the input host HTTP-redirects to a different registrable domain that passed identity — then that redirect target (typically result.company_domain when it differs from the input) appears in additional_domains / additional_domains_csv with additional_domain_proofs source redirect. Same-site redirects (www, http→https) and identity-mismatch redirects add nothing.",
+      "CRM agent rule: keep the CRM primary domain on the entered account primary (result.account_primary_domain); when a cross-domain redirect passed identity, store the live redirect target as a secondary domain (additional_domains / additional_domains_csv), not in place of the input primary.",
+      "Paths: speed (legacy fast/value/name_only, 0-credit hygiene) | balance (default; legacy auto, +0-credit lookup) | accuracy (cap 2) | coverage (cap 3, often partial additional lists).",
+      "Short-TTL cache: skip_cache / cache_bypass skips the read only (not Idempotency-Key replay).",
+      "Spends credits unless dry_run is true. Does not write SFDC.",
+    ].join(" "),
     inputSchema: DecideCompanyDomainInput,
     annotations: LOOKUP,
     buildRequest: capabilityRequest,

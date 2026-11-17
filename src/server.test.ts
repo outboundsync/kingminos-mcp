@@ -468,7 +468,6 @@ describe("catalog-driven handlers", () => {
       const tool = listed.tools.find((t) => t.name === "person_phone");
       const description = tool?.description ?? "";
       assert.match(description, /work email or LinkedIn URL/);
-      assert.match(description, /coverage 58/);
       assert.match(description, /conflicting_numbers caps it at low/);
       assert.match(description, /match-only/i);
       assert.match(description, /conflicting_numbers/);
@@ -585,7 +584,10 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "person_b2b_social");
       const description = tool?.description ?? "";
-      assert.match(description, /2 \/ 3 \/ 5 \/ 5 credits on a hit/);
+      assert.match(
+        description,
+        /only a hit bills, once on the deciding attempt/,
+      );
       assert.match(description, /email is required/);
       assert.match(description, /match-only/i);
       assert.match(description, /coverage \(highest fill/);
@@ -871,7 +873,7 @@ describe("catalog-driven handlers", () => {
       assert.match(verify, /is this mailbox deliverable\?/i);
       assert.match(verify, /0\.5–1\.5 credits/);
       assert.match(find, /this person's work email\?/i);
-      assert.match(find, /2–5 credits/);
+      assert.match(find, /outcome-priced by path/);
       for (const description of [verify, find]) {
         assert.match(
           description,

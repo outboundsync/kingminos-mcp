@@ -64,7 +64,7 @@ export const ProviderName = z
 export const CredentialProvider = z
   .enum(CREDENTIAL_PROVIDER_VALUES)
   .describe(
-    "Vendor id for a stored tenant key. ZoomInfo and Snov.io need clientId and clientSecret; others need apiKey. Websearch and favicon are house-only and cannot be stored (400 byok_not_supported).",
+    "Vendor id for a stored tenant key. ZoomInfo and Snov.io need clientId and clientSecret; others need apiKey. Websearch and favicon are house-only and cannot be stored (400 validation_failed, reason byok_not_supported).",
   );
 
 export const ExplainMode = z
@@ -226,7 +226,7 @@ const CommonRunOptions = {
     .string()
     .optional()
     .describe(
-      "Sent as Idempotency-Key on capability POSTs. Same key and same request replays a completed run (no new charge). A free no_decision miss is re-run, not replayed. A different request is 409 idempotency_conflict; in-flight is 409 idempotency_in_flight; after a paid vendor was contacted, reuse is 409 idempotency_spent.",
+      "Sent as Idempotency-Key on capability POSTs. Same key and same request replays a completed run (no new charge). A free no_decision miss is re-run, not replayed. The same key with a different request is 409 idempotency_conflict; while the first call is still running it is 409 idempotency_in_flight. A failed or abandoned (about 40 s idle) run that already contacted a paid vendor is 409 idempotency_spent; an unpaid one is re-run.",
     ),
 };
 
@@ -840,7 +840,7 @@ export const PersonB2bSocialInput = {
   routing: z
     .object({
       path: PersonB2bSocialPath.optional().describe(
-        "speed (2 credits on a hit, floor low) | balance (default, 3, floor medium) | accuracy (5, floor high) | coverage (5, floor low, highest fill). 0 on a miss, mismatch or below-floor withhold.",
+        "speed (floor low) | balance (default, floor medium) | accuracy (floor high) | coverage (floor low, highest fill). Only a hit bills; a miss, mismatch or below-floor withhold is free.",
       ),
       only: z
         .array(ProviderName)
@@ -1014,7 +1014,7 @@ export const PersonEmailInput = {
   routing: z
     .object({
       path: EmailPath.optional().describe(
-        "speed (2) | balance (default, 2.5) | accuracy (3.5) | coverage (5) credits on a delivered email.",
+        "speed | balance (default) | accuracy | coverage. Only a delivered email bills.",
       ),
     })
     .optional()

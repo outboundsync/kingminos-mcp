@@ -6,6 +6,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { pathToFileURL } from "node:url";
 import { advertisedProviders } from "./check-providers.js";
 import {
   CREDENTIAL_ONLY_PROVIDERS,
@@ -287,6 +288,61 @@ describe("credential-only vendors", () => {
       assert.deepEqual(raw.recipeHighlights, ["crm_contact_name_cleanup"]);
     } finally {
       server.close();
+      if (prev.url === undefined) delete process.env[OPENAPI_JSON_URL_ENV];
+      else process.env[OPENAPI_JSON_URL_ENV] = prev.url;
+      if (prev.path === undefined) delete process.env[INVENTORY_PATH_ENV];
+      else process.env[INVENTORY_PATH_ENV] = prev.path;
+    }
+  });
+
+  it("inventory:refresh reads a saved spec from a file: URL (API sync workflow)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "kingminos-mcp-refresh-file-"));
+    const file = join(dir, "inventory.json");
+    const pinned = readInventoryFile(
+      join(process.cwd(), "inventory", "openapi-surfaces.json"),
+    );
+    writeFileSync(file, serializeInventoryFile(pinned));
+    const specFile = join(dir, "openapi.live.json");
+    const added = {
+      operationId: "companyNewThing",
+      method: "POST",
+      path: "/v1/company/new-thing",
+    };
+    const paths: Record<string, Record<string, unknown>> = {};
+    for (const op of [...pinned.operations, added]) {
+      const item = paths[op.path] ?? {};
+      paths[op.path] = item;
+      item[op.method.toLowerCase()] = {
+        operationId: op.operationId,
+        security: [{ bearer: [] }],
+      };
+    }
+    writeFileSync(
+      specFile,
+      JSON.stringify({
+        openapi: "3.0.3",
+        components: {
+          schemas: { ProviderName: { type: "string", enum: pinned.providers } },
+        },
+        paths,
+      }),
+    );
+    const prev = {
+      url: process.env[OPENAPI_JSON_URL_ENV],
+      path: process.env[INVENTORY_PATH_ENV],
+    };
+    process.env[OPENAPI_JSON_URL_ENV] = pathToFileURL(specFile).href;
+    process.env[INVENTORY_PATH_ENV] = file;
+    try {
+      const { inventory, source } = await refreshInventoryFile(dir);
+      assert.equal(source, pathToFileURL(specFile).href);
+      assert.deepEqual(inventory.operations.at(-1), {
+        operationId: "company_new_thing",
+        method: "POST",
+        path: "/v1/company/new-thing",
+      });
+      assert.equal(inventory.operations.length, pinned.operations.length + 1);
+    } finally {
       if (prev.url === undefined) delete process.env[OPENAPI_JSON_URL_ENV];
       else process.env[OPENAPI_JSON_URL_ENV] = prev.url;
       if (prev.path === undefined) delete process.env[INVENTORY_PATH_ENV];

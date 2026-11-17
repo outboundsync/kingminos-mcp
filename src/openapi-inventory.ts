@@ -723,6 +723,15 @@ export function writeInventoryFile(
 }
 
 async function fetchJson(url: string): Promise<unknown | undefined> {
+  // file: URLs let the API sync workflow refresh the inventory from the exact
+  // spec it fetched once and snapshots (api-sync/openapi.snapshot.json).
+  if (url.startsWith("file:")) {
+    try {
+      return JSON.parse(readFileSync(new URL(url), "utf8")) as unknown;
+    } catch {
+      return undefined;
+    }
+  }
   try {
     const response = await fetch(url, {
       headers: { Accept: "application/json" },

@@ -25,6 +25,7 @@ Only edit files under `src/` and `test/`, and the tool sections of `README.md`.
   - `README.md`: a row in the `## Tools` table, in the same order as `LIVE_RESOURCE_ROUTES`. If the tool changes workspace state, add it to the "Confirm … with the user" sentence under the table.
 - **Operation removed from `operations[]`:** remove its tool from all of the places above.
 - **Changed request or response for an existing tool** (new or removed fields, enums, required fields, limits, path or query parameters, behaviour the description states): update that tool's Zod shape, `buildRequest`, description and README row.
+- **Feedback capability ids:** `FEEDBACK_CAPABILITY_VALUES` in `src/schemas.ts` (the `capability` field of `submit_feedback`) must include every value of the spec's `FeedbackCreate.capability` enum, and the dotted capability id (as in `company.icon`) of any capability operation you add. Add missing values; don't remove existing ones, but list any the spec doesn't have in your summary.
 - **New provider in `providers[]` or `credentialProviders[]`:** add it to `PROVIDER_NAME_VALUES` and/or `CREDENTIAL_PROVIDER_VALUES` in `src/schemas.ts` (in the pin's order). Credential-only vendors go in `CREDENTIAL_PROVIDER_VALUES` only. Add it to `OAUTH_CREDENTIAL_PROVIDER_VALUES` only if the spec says it stores OAuth client credentials.
 - **Bootstrap mode:** also compare every existing tool with its operation in the spec (parameters, request body, enums, required fields) and fix real mismatches. Don't rewrite descriptions that are still accurate.
 

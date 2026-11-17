@@ -11,6 +11,7 @@ import {
 } from "./catalog.js";
 import {
   diffSurfaces,
+  excludedOperationIdsFromOpenApiDocument,
   inventoryFromOpenApiDocument,
   mergeOperations,
   parseInventoryDocument,
@@ -387,6 +388,64 @@ describe("admin routes", () => {
     assert.deepEqual(
       parsed.operations.map((op) => op.operationId),
       ["get_providers"],
+    );
+  });
+
+  it("skips operations tagged admin outside /v1/admin and catalogs them as excluded", () => {
+    const doc = {
+      paths: {
+        "/v1/ops/signups": {
+          get: {
+            operationId: "opsListSignups",
+            tags: ["admin"],
+            security: BEARER,
+          },
+        },
+        "/v1/providers": {
+          get: { operationId: "get_providers", security: BEARER },
+        },
+      },
+    };
+    const parsed = inventoryFromOpenApiDocument(doc);
+    assert.ok(!("reason" in parsed));
+    if ("reason" in parsed) {
+      return;
+    }
+    assert.deepEqual(
+      parsed.operations.map((op) => op.operationId),
+      ["get_providers"],
+    );
+    assert.deepEqual(excludedOperationIdsFromOpenApiDocument(doc, []), [
+      "opsListSignups",
+    ]);
+  });
+});
+
+describe("bearer detection", () => {
+  it("uses the security scheme's type, not its key name", () => {
+    const parsed = inventoryFromOpenApiDocument({
+      components: {
+        securitySchemes: {
+          routerKey: { type: "http", scheme: "Bearer" },
+          bearer: { type: "apiKey", in: "header", name: "X-Key" },
+        },
+      },
+      paths: {
+        "/v1/providers": {
+          get: { operationId: "getProviders", security: [{ routerKey: [] }] },
+        },
+        "/v1/legacy": {
+          get: { operationId: "getLegacy", security: [{ bearer: [] }] },
+        },
+      },
+    });
+    assert.ok(!("reason" in parsed));
+    if ("reason" in parsed) {
+      return;
+    }
+    assert.deepEqual(
+      parsed.operations.map((op) => op.operationId),
+      ["getProviders"],
     );
   });
 });

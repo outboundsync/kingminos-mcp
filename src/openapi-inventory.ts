@@ -64,6 +64,7 @@ const HTTP_METHODS = new Set<string>(["GET", "POST", "PUT", "PATCH", "DELETE"]);
 const DEFAULT_INVENTORY_RELATIVE = "inventory/openapi-surfaces.json";
 const LIVE_OPENAPI_JSON_PATHS = ["/openapi.json", "/v1/openapi.json"] as const;
 const BEARER_SCHEME = "bearer";
+const ADMIN_TAG = "admin";
 const CREDENTIALS_PROVIDER_PATH = "/v1/credentials/{provider}";
 
 export const INVENTORY_SPEC_URL = "https://api.kingminos.com/openapi.yaml";
@@ -401,6 +402,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * A security scheme is Bearer when its `components.securitySchemes` entry is
+ * `type: http, scheme: bearer`, whatever the scheme's key is. A document that
+ * doesn't define the key falls back to the key name `bearer` (minimal specs).
+ */
+export function isBearerSecurityScheme(
+  name: string,
+  document: unknown,
+): boolean {
+  const components = isRecord(document) ? document.components : undefined;
+  const schemes = isRecord(components) ? components.securitySchemes : undefined;
+  const scheme = isRecord(schemes) ? schemes[name] : undefined;
+  if (isRecord(scheme)) {
+    return (
+      String(scheme.type).toLowerCase() === "http" &&
+      String(scheme.scheme).toLowerCase() === BEARER_SCHEME
+    );
+  }
+  return name === BEARER_SCHEME;
+}
+
 export function operationHasBearerSecurity(
   operation: unknown,
   document: unknown,
@@ -415,7 +437,18 @@ export function operationHasBearerSecurity(
     return false;
   }
   return security.some(
-    (entry) => isRecord(entry) && Object.hasOwn(entry, BEARER_SCHEME),
+    (entry) =>
+      isRecord(entry) &&
+      Object.keys(entry).some((name) => isBearerSecurityScheme(name, document)),
+  );
+}
+
+/** Operations tagged `admin` are the operator API, never resource tools. */
+export function isAdminTaggedOperation(operation: unknown): boolean {
+  return (
+    isRecord(operation) &&
+    Array.isArray(operation.tags) &&
+    operation.tags.includes(ADMIN_TAG)
   );
 }
 
@@ -520,6 +553,9 @@ export function inventoryFromOpenApiDocument(
         continue;
       }
       if (!operationHasBearerSecurity(op, doc)) {
+        continue;
+      }
+      if (isAdminTaggedOperation(op)) {
         continue;
       }
       const operationId = (op as { operationId?: unknown }).operationId;
@@ -668,11 +704,15 @@ export function excludedOperationIdsFromOpenApiDocument(
   }
   const ids: string[] = [];
   for (const [path, methods] of Object.entries(doc.paths)) {
-    if (!isExcludedPath(path, prefixes) || !isRecord(methods)) {
+    if (!isRecord(methods)) {
       continue;
     }
+    const excludedPath = isExcludedPath(path, prefixes);
     for (const [method, op] of Object.entries(methods)) {
       if (!HTTP_METHODS.has(method.toUpperCase()) || !isRecord(op)) {
+        continue;
+      }
+      if (!excludedPath && !isAdminTaggedOperation(op)) {
         continue;
       }
       if (typeof op.operationId === "string" && op.operationId.length > 0) {
@@ -723,6 +763,15 @@ export function writeInventoryFile(
 }
 
 async function fetchJson(url: string): Promise<unknown | undefined> {
+  // file: URLs let the API sync workflow refresh the inventory from the exact
+  // spec it fetched once and snapshots (api-sync/openapi.snapshot.json).
+  if (url.startsWith("file:")) {
+    try {
+      return JSON.parse(readFileSync(new URL(url), "utf8")) as unknown;
+    } catch {
+      return undefined;
+    }
+  }
   try {
     const response = await fetch(url, {
       headers: { Accept: "application/json" },

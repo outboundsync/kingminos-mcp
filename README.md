@@ -8,17 +8,13 @@ Say **SFDC**, never SF.
 
 ## Production host
 
-## Admin tools (admin token only)
-
-`abuse_report`, `partner_report`, `partner_payout`, `feedback_report` and `partner_admin` wrap `/v1/admin/abuse/daily`, `/v1/admin/partners/analytics`, `/v1/admin/partners/payouts`, `/v1/admin/feedback` and `/v1/admin/partners` (list, create partner + code, add/deactivate code). They are registered **only** when the MCP bearer is a KingMinos admin token (`kmadm_…`, hashed in the API). Any other bearer never sees them in `tools/list`; an admin bearer sees only these admin tools. The API re-checks the token on every call. They are not OpenAPI resource tools: the live spec also lists a few `/v1/admin/*` operations (privacy suppressions, signups), and `check:surfaces` skips every `/v1/admin/*` path through `nonToolPathPrefixes` plus the reviewed `excludedOperationIds` catalog, so they never show up as drift.
-
-Production is Cloudflare Worker **`kingminos-mcp-prod`** on the existing OutboundSync Cloudflare account. Janus deploys it with Wrangler:
+Production is Cloudflare Worker **`kingminos-mcp-prod`** on the existing OutboundSync Cloudflare account. Cloudflare Workers Builds deploys it on every push to `main` (it shows up as the `Workers Builds: kingminos-mcp-prod` check on the commit), so merging a PR deploys it. A manual deploy with Wrangler is only an escape hatch:
 
 ```bash
 npx wrangler deploy
 ```
 
-Production MCP URL: **`https://mcp.kingminos.com/mcp`**. The custom domain `mcp.kingminos.com` is attached in Cloudflare and tracked in `wrangler.jsonc` (`routes` with `custom_domain: true`) so Janus deploys keep the hostname. `workers_dev` is **false**, so the Worker is not published on `*.workers.dev` (custom domain only).
+Production MCP URL: **`https://mcp.kingminos.com/mcp`**. The custom domain `mcp.kingminos.com` is attached in Cloudflare and tracked in `wrangler.jsonc` (`routes` with `custom_domain: true`) so every deploy keeps the hostname. `workers_dev` is **false**, so the Worker is not published on `*.workers.dev` (custom domain only).
 
 This Worker must not bind D1 `outboundsync-router`, R2 `outboundsync-router-raw`, or Worker `outboundsync-router`. API base stays `https://api.kingminos.com`.
 
@@ -32,6 +28,10 @@ Fly is not the production host. `fly.example.toml` / `Dockerfile` are a local No
 | `POST /mcp`                             | Streamable HTTP MCP                                                                            |
 | `OPTIONS /mcp`                          | Advertises `Allow: POST, OPTIONS`                                                              |
 | `GET` / `DELETE /mcp`                   | `405 Method Not Allowed`                                                                       |
+
+## Admin tools (admin token only)
+
+`abuse_report`, `partner_report`, `partner_payout`, `feedback_report` and `partner_admin` wrap `/v1/admin/abuse/daily`, `/v1/admin/partners/analytics`, `/v1/admin/partners/payouts`, `/v1/admin/feedback` and `/v1/admin/partners` (list, create partner + code, add/deactivate code). They are registered **only** when the MCP bearer is a KingMinos admin token (`kmadm_…`, hashed in the API). Any other bearer never sees them in `tools/list`; an admin bearer sees only these admin tools. The API re-checks the token on every call. They are not OpenAPI resource tools: the live spec also lists a few `/v1/admin/*` operations (privacy suppressions, signups), and `check:surfaces` skips every `/v1/admin/*` path through `nonToolPathPrefixes` plus the reviewed `excludedOperationIds` catalog, so they never show up as drift.
 
 ## Run it locally
 
@@ -62,14 +62,14 @@ npm run check:providers
 
 `/v1/auth/*` and `/v1/account/*` are intentionally not MCP tools (cookie/session app surfaces), and `/v1/admin/*` is the operator API (the admin-token tools above are hand-written, not generated from OpenAPI). All three prefixes are denied by `nonToolPathPrefixes` plus the reviewed `excludedOperationIds` catalog. Do not implement the ~24 auth/account operations as tools.
 
-Live OpenAPI drift check (scheduled CI / `workflow_dispatch`, or local). Surfaces compare only bearer resource operations after the deny-list — account/auth on the live spec is not a failure. Provider live check is one-way: it fails only when production lists a provider Zod does not have. Production lagging the pin (missing `prospeo`) does not fail. Override the spec URL with `KINGMINOS_OPENAPI_JSON_URL` (default `https://api.kingminos.com/openapi.json`):
+Live OpenAPI drift check (local only; in CI the [API sync](#api-sync) workflow detects spec changes and opens a PR). Surfaces compare only bearer resource operations after the deny-list — account/auth on the live spec is not a failure. Provider live check is one-way: it fails only when production lists a provider Zod does not have. Production lagging the pin (missing `prospeo`) does not fail. Override the spec URL with `KINGMINOS_OPENAPI_JSON_URL` (default `https://api.kingminos.com/openapi.json`):
 
 ```bash
 npm run check:surfaces:live
 npm run check:providers:live
 ```
 
-Refresh the pin from live OpenAPI (network). Unions provider enums and newly seen auth/account operationIds; never drops pinned providers. Credential-only vendors (no routing hop) are skipped from `providers[]`; the hand-written `capabilityProviders` pin is preserved. Review the diff before committing:
+Refresh the pin from live OpenAPI (network; the [API sync](#api-sync) workflow runs this for you). Unions provider enums and newly seen auth/account operationIds; never drops pinned providers. Credential-only vendors (no routing hop) are skipped from `providers[]`; the hand-written `capabilityProviders` pin is preserved. Review the diff before committing:
 
 ```bash
 npm run inventory:refresh
@@ -96,7 +96,20 @@ Full local suite:
 npm run ci
 ```
 
-That is exactly what the required `OpenAPI tool contract` check runs on PRs and `main` (branches must be up to date; protection applies to admins, so no direct pushes to `main`). `npm install` also installs git hooks (`simple-git-hooks`): pre-commit runs `biome check --write` on staged files, pre-push runs typecheck + tests. The nightly live drift job opens a `Live OpenAPI drift` issue instead of blocking PRs. CI map for all kingminos-* repos: [`kingminos-application/docs/ci.md`](https://github.com/outboundsync/kingminos-application/blob/main/docs/ci.md).
+That is exactly what the required `OpenAPI tool contract` check runs on PRs and `main` (branches must be up to date; protection applies to admins, so no direct pushes to `main`). `npm install` also installs git hooks (`simple-git-hooks`): pre-commit runs `biome check --write` on staged files, pre-push runs typecheck + tests. Live API changes arrive as [API sync](#api-sync) PRs instead of blocking other PRs. CI map for all kingminos-* repos: [`kingminos-application/docs/ci.md`](https://github.com/outboundsync/kingminos-application/blob/main/docs/ci.md).
+
+## API sync
+
+The live API spec is the source of truth for the tool list. The `API sync` workflow (`.github/workflows/api-sync.yml`) runs every 6 hours (and on `workflow_dispatch`):
+
+1. It fetches `https://api.kingminos.com/openapi.json`, canonicalises it with `jq -S .` and compares it with `api-sync/openapi.snapshot.json`. A failed fetch or a body that isn't an OpenAPI document fails the run.
+2. If the spec changed, it refreshes `inventory/openapi-surfaces.json` from that same spec (`npm run inventory:refresh`; deny-lists and provider pins are kept).
+3. A Cursor CLI agent updates the tools in `src/`, the tests and the README tool table, following `.github/prompts/api-sync.md`. It can't write anywhere else, and it never adds account/auth or admin tools.
+4. It writes the new snapshot, runs the `OpenAPI tool contract` checks and opens or updates a PR on `chore/api-sync` with the agent's notes and each check's result.
+
+The deterministic gate is the existing contract check: `check:surfaces` fails on any missing, extra or misnamed tool or route versus `operations[]`, and `check:providers` on any provider enum drift. A hand edit that drifts fails the same required check. Before the first sync PR merges there is no snapshot; that first run audits every tool against the whole spec.
+
+A human merges every sync PR. GitHub doesn't run CI on PRs opened by the workflow, so close and reopen the PR to run `OpenAPI tool contract`, then merge; Workers Builds deploys the result. The workflow needs the `CURSOR_API_KEY` secret (model: the `CURSOR_MODEL` variable, default `grok-4.7-high`); without it, the PR still opens with the failing checks listed. Details: [`api-sync/README.md`](api-sync/README.md).
 
 ## Releases (CalVer)
 
@@ -131,7 +144,7 @@ Optional:
 - `KINGMINOS_MCP_PUBLIC_URL` — advertised MCP URL on the server card (Worker default `https://mcp.kingminos.com/mcp`). The card never uses the client `Host` header.
 - `KINGMINOS_MCP_ALLOW_ENV_BEARER` — set to `1` to opt in to the local loopback env-bearer fallback
 - `KINGMINOS_OPENAPI_INVENTORY` — path to the file inventory used by `check:surfaces`, `check:providers`, and PR CI
-- `KINGMINOS_OPENAPI_JSON_URL` — override URL for `check:surfaces:live` / `check:providers:live` / `inventory:refresh`
+- `KINGMINOS_OPENAPI_JSON_URL` — override URL for `check:surfaces:live` / `check:providers:live` / `inventory:refresh` (a `file:` URL reads a saved spec)
 
 Copy `.env.example` for local names only. Do not commit a filled `.env`. Do not put secrets in Wrangler vars or files.
 

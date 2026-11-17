@@ -51,7 +51,8 @@
     "adminListPrivacySuppressions",
     "adminCheckPrivacySuppression",
     "adminDeletePrivacySuppression",
-    "adminListSignups"
+    "adminListSignups",
+    "getIntercomMessengerToken"
   ],
   "providers": [
     "zoominfo",

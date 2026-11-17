@@ -468,7 +468,8 @@ describe("catalog-driven handlers", () => {
       const tool = listed.tools.find((t) => t.name === "person_phone");
       const description = tool?.description ?? "";
       assert.match(description, /work email or LinkedIn URL/);
-      assert.match(description, /38 credits on a hit, 0 on a miss/);
+      assert.match(description, /coverage 58/);
+      assert.match(description, /conflicting_numbers caps it at low/);
       assert.match(description, /match-only/i);
       assert.match(description, /conflicting_numbers/);
     });
@@ -559,21 +560,24 @@ describe("catalog-driven handlers", () => {
     assert.equal(body.cache_bypass, undefined);
   });
 
-  it("rejects coverage and invalid min_confidence on person_b2b_social before calling the API", async () => {
+  it("sends coverage on person_b2b_social and rejects invalid min_confidence", async () => {
     const { calls } = captureFetch();
     await withClient(async (client) => {
-      const coverage = await client.callTool({
+      await client.callTool({
         name: "person_b2b_social",
         arguments: { email: "a@b.com", routing: { path: "coverage" } },
       });
-      assert.equal(coverage.isError, true);
       const badFloor = await client.callTool({
         name: "person_b2b_social",
         arguments: { email: "a@b.com", min_confidence: "certain" },
       });
       assert.equal(badFloor.isError, true);
     });
-    assert.equal(calls.length, 0);
+    assert.equal(calls.length, 1);
+    const body = JSON.parse(calls[0]?.body ?? "{}") as {
+      routing?: { path?: string };
+    };
+    assert.equal(body.routing?.path, "coverage");
   });
 
   it("documents the person.b2b_social contract on person_b2b_social", async () => {
@@ -581,10 +585,10 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "person_b2b_social");
       const description = tool?.description ?? "";
-      assert.match(description, /2 \/ 3 \/ 5 credits on a hit/);
+      assert.match(description, /2 \/ 3 \/ 5 \/ 5 credits on a hit/);
       assert.match(description, /email is required/);
       assert.match(description, /match-only/i);
-      assert.match(description, /No coverage tier/);
+      assert.match(description, /coverage \(highest fill/);
       assert.match(description, /no safe_to_write/);
       assert.match(description, /next_steps/);
       assert.match(description, /options/);
@@ -867,7 +871,7 @@ describe("catalog-driven handlers", () => {
       assert.match(verify, /is this mailbox deliverable\?/i);
       assert.match(verify, /0\.5–1\.5 credits/);
       assert.match(find, /this person's work email\?/i);
-      assert.match(find, /1\.5–5 credits/);
+      assert.match(find, /2–5 credits/);
       for (const description of [verify, find]) {
         assert.match(
           description,
@@ -1139,7 +1143,11 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /path balance is cap 2/i);
       assert.doesNotMatch(description, /AI Ark|Serper|xAI|Jev-ranked/);
       assert.match(description, /same_as_speed/);
-      assert.match(description, /hype.*first_person.*tagline.*grammar/i);
+      assert.match(description, /hype.*tagline.*truncated.*grammar/i);
+      assert.match(
+        description,
+        /delivered hit has first_person and cta false/i,
+      );
       assert.match(description, /grammar is informational only/i);
       assert.match(description, /do not reject unknown/i);
       assert.match(description, /usage\.hops/);

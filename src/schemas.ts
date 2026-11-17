@@ -64,7 +64,7 @@ export const ProviderName = z
 export const CredentialProvider = z
   .enum(CREDENTIAL_PROVIDER_VALUES)
   .describe(
-    "Vendor id for a stored tenant key. ZoomInfo and Snov.io need clientId and clientSecret; others need apiKey. Websearch cannot be stored.",
+    "Vendor id for a stored tenant key. ZoomInfo and Snov.io need clientId and clientSecret; others need apiKey. Websearch and favicon are house-only and cannot be stored (400 byok_not_supported).",
   );
 
 export const ExplainMode = z
@@ -226,7 +226,7 @@ const CommonRunOptions = {
     .string()
     .optional()
     .describe(
-      "Sent as Idempotency-Key. Reusing a spent key replays the prior run.",
+      "Sent as Idempotency-Key on capability POSTs. Same key and same request replays a completed run (no new charge). A free no_decision miss is re-run, not replayed. A different request is 409 idempotency_conflict; in-flight is 409 idempotency_in_flight; after a paid vendor was contacted, reuse is 409 idempotency_spent.",
     ),
 };
 
@@ -354,16 +354,28 @@ export const DecideCompanyB2bSocialInput = {
     .string()
     .optional()
     .describe(
-      "Optional unit/brand corroboration. Name-only without domain/website/email is 400.",
+      "Unit/brand corroboration. Sufficient as the only subject on accuracy/coverage (name→domain runs); speed/balance do too when hint is sent. Unhinted speed/balance miss rather than guess when domain/website/email are absent.",
     ),
   domain: z
     .string()
     .optional()
     .describe(
-      "Required subject (or website/email that hygiene-normalize to the same registrable).",
+      "Preferred subject (or website/email that hygiene-normalize to the same registrable).",
     ),
   website: z.string().optional(),
   email: z.string().optional(),
+  country: z
+    .string()
+    .optional()
+    .describe(
+      "Optional ISO country for name→domain disambiguation. Used with hint.",
+    ),
+  hint: z
+    .string()
+    .optional()
+    .describe(
+      "Optional list/industry context for name→domain (for example UK PR agency). Any path uses it with country so short names resolve; on speed/balance it also turns name→domain on.",
+    ),
   linkedin_url: z
     .string()
     .optional()
@@ -788,7 +800,12 @@ export const DecideCompanyXAccountInput = {
   ...CommonRunOptions,
 };
 
-export const PersonB2bSocialPath = z.enum(["speed", "balance", "accuracy"]);
+export const PersonB2bSocialPath = z.enum([
+  "speed",
+  "balance",
+  "accuracy",
+  "coverage",
+]);
 
 export const PersonB2bSocialInput = {
   email: z
@@ -823,7 +840,7 @@ export const PersonB2bSocialInput = {
   routing: z
     .object({
       path: PersonB2bSocialPath.optional().describe(
-        "speed (2 credits on a hit) | balance (default, 3) | accuracy (5). No coverage tier. 0 on a miss, mismatch or below-floor withhold.",
+        "speed (2 credits on a hit, floor low) | balance (default, 3, floor medium) | accuracy (5, floor high) | coverage (5, floor low, highest fill). 0 on a miss, mismatch or below-floor withhold.",
       ),
       only: z
         .array(ProviderName)
@@ -997,7 +1014,7 @@ export const PersonEmailInput = {
   routing: z
     .object({
       path: EmailPath.optional().describe(
-        "speed | balance (default) | accuracy | coverage. 1.5–5 credits on a delivered email.",
+        "speed (2) | balance (default, 2.5) | accuracy (3.5) | coverage (5) credits on a delivered email.",
       ),
     })
     .optional()

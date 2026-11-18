@@ -459,7 +459,7 @@ export const DecideCompanyDescriptionInput = {
     ])
     .optional()
     .describe(
-      "Flattened alias of routing.path. Always pass explicitly; omit runs balance at cap 6; path balance is cap 2. Nested routing.path wins when both are sent. company.description paths (not aliases): speed = homepage meta/og then a data-provider description (cap 1) | balance = judge-ranked homepage extracts + meta/og + data-provider text, optional rewrite (cap 2 when sent explicitly) | accuracy (cap 3) = third-person compose from homepage evidence | coverage (cap 6) = accuracy compose plus off-homepage evidence (your own ZoomInfo key when stored).",
+      "Flattened alias of routing.path. Always pass explicitly; omitting it runs balance under a higher credit cap than an explicit path balance. Nested routing.path wins when both are sent. company.description paths (not aliases): speed = homepage meta/og then a data-provider description | balance = judge-ranked homepage extracts + meta/og + data-provider text, optional rewrite | accuracy = third-person compose from homepage evidence | coverage = accuracy compose plus off-homepage evidence (your own ZoomInfo key when stored).",
     ),
   preset: z
     .enum([
@@ -533,7 +533,7 @@ export const PersonLanguageInput = {
   routing: z
     .object({
       path: PersonLanguagePath.optional().describe(
-        "speed (cap 1) | balance (default, cap 3) | accuracy (cap 4). coverage is 400 invalid_routing.",
+        "speed | balance (default) | accuracy. coverage is 400 invalid_routing.",
       ),
       preset: PersonLanguagePath.optional().describe("Alias of path."),
     })
@@ -698,7 +698,7 @@ export const PersonTitleInput = {
   routing: z
     .object({
       path: PersonTitlePath.optional().describe(
-        "speed (1 credit on a hit) | balance (default, 2) | accuracy (3) | coverage (5). 0 on a miss or partial.",
+        "speed | balance (default) | accuracy | coverage. Only a hit bills; a miss or partial is free.",
       ),
       only: z
         .array(ProviderName)
@@ -920,7 +920,7 @@ export const PersonNameInput = {
   routing: z
     .object({
       path: PersonNamePath.optional().describe(
-        "speed (1 credit on a hit) | balance (default, 2) | accuracy (3) | coverage (5). 0 on a miss, conflict or below-floor withhold.",
+        "speed | balance (default) | accuracy | coverage. Only a hit bills; a miss, conflict or below-floor withhold is free.",
       ),
       only: z
         .array(ProviderName)
@@ -970,7 +970,7 @@ export const EmailVerifyInput = {
   routing: z
     .object({
       path: EmailPath.optional().describe(
-        "speed | balance (default) | accuracy | coverage. 0.5–1.5 credits on a delivered answer.",
+        "speed | balance (default) | accuracy | coverage. Only a delivered answer bills.",
       ),
     })
     .optional()

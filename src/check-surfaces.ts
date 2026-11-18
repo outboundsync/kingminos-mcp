@@ -11,6 +11,7 @@ import {
   type SurfaceDiff,
   surfacesAligned,
   toolNameFromOperationId,
+  writePricingModule,
 } from "./openapi-inventory.js";
 
 export interface SurfaceCheckResult {
@@ -59,6 +60,15 @@ function wantsLive(argv: string[] = process.argv): boolean {
 }
 
 async function main(): Promise<void> {
+  if (process.argv.includes("--write-pricing")) {
+    // Offline: rewrite src/pricing.generated.ts from the vendored inventory.
+    const resolved = await resolveExpectedInventory();
+    const path = writePricingModule(resolved.inventory);
+    process.stdout.write(
+      `Wrote ${path} from ${resolved.source} (${Object.keys(resolved.inventory.pricing ?? {}).length} priced capabilities).\n`,
+    );
+    return;
+  }
   if (process.argv.includes("--refresh")) {
     const refreshed = await refreshInventoryFile();
     process.stdout.write(
@@ -69,6 +79,8 @@ async function main(): Promise<void> {
         `tools (${refreshed.inventory.operations.length}): ${refreshed.inventory.operations.map((op) => op.operationId).join(", ")}`,
         `providers: ${refreshed.inventory.providers.join(", ")}`,
         `credentialProviders: ${refreshed.inventory.credentialProviders.join(", ")}`,
+        `pricing (${Object.keys(refreshed.inventory.pricing ?? {}).length}): ${Object.keys(refreshed.inventory.pricing ?? {}).join(", ")}`,
+        "Wrote src/pricing.generated.ts from the inventory's pricing.",
         "Account/auth operationIds stay on the deny-list; they are not MCP tools.",
         "Review the diff, then run npm run check:surfaces && npm run check:providers.",
         "",

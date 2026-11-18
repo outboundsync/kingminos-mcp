@@ -15,6 +15,8 @@ import {
   okText,
   requireBearer,
 } from "./kingminos-client.js";
+import { CAPABILITY_PRICING } from "./pricing.generated.js";
+import { describeWithPrice } from "./pricing.js";
 import {
   CreateWebhookInput,
   DecideCompanyB2bSocialInput,
@@ -389,9 +391,9 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     description: [
       "Decide the company's own X (formerly Twitter) account URL (result.x_url) and handle (result.x_handle), or null.",
       "Subject is domain / website / email or name (400 missing_subject when all four are blank). Name-only is allowed, but name→domain runs on accuracy / coverage only; speed / balance miss rather than guess.",
-      "Paths: speed (cap 1); balance (default, cap 2); accuracy / coverage add handle confirmation (caps 3 / 4). Connect your own ZoomInfo key for more fill on accuracy / coverage.",
+      "Paths: speed; balance (default); accuracy / coverage add handle confirmation. Connect your own ZoomInfo key for more fill on accuracy / coverage.",
       "Confidence is the only write signal (no safe_to_write). Default floors: speed and coverage low, balance medium, accuracy high; min_confidence (high | medium | low) overrides. Below the floor the field is blank (es_decision miss) and candidates are in evidence.",
-      "Outcome-priced speed 1 / balance 1.3 / accuracy 1.6 / coverage 1.7 credits on a floor-passing hit; withheld and miss bill 0; BYOK on a delivered hit is 0.1. Hard 10 s server budget.",
+      "Outcome-priced: only a floor-passing hit bills; withheld answers and misses are free. Hard 10 s server budget.",
       "result.x_url is https://x.com/{handle} (lowercase, no @) or null, never twitter.com. Spends credits unless dry_run is true. Does not write SFDC.",
     ].join(" "),
     inputSchema: DecideCompanyXAccountInput,
@@ -403,7 +405,7 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
     description: [
       "Fetch, validate, normalize, and host a 256×256 PNG company icon for a domain.",
       "Request body is required domain, optional name, and run options (routing, path, and preset are not part of the contract; the API silently ignores them if sent). website and email are not accepted — use domain directly.",
-      "One implementation ladder (0–2 paid credits). Connecting your own Brandfetch or ZoomInfo key (put_credentials) adds larger logos for more companies.",
+      "One implementation ladder. Connecting your own Brandfetch or ZoomInfo key (put_credentials) adds larger logos for more companies.",
       "On a hit, result.icon_url is always the KingMinos-hosted URL https://logos.kingminos.com/i/<sha256>.png (256×256 PNG in R2), never a third-party or site URL.",
       "Optional result.icon_source_url holds the original winning source URL before hosting.",
       "Hard rejects are wrong-company, junk, and empty only.",
@@ -422,11 +424,11 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "Decide a usable English company description (result.description) or null for a domain/website/email subject. max_chars 80–500 (default 300).",
       "Domain/website/email required; name-only is 400.",
       "Engine first_acceptable; hits-first on every path. Hard rejects are wrong company (identity < 0.85), junk/PII, empty, and leftover first-person, second-person, or CTA marketing voice. Factual We/Our copy is rewritten to third person; otherwise the answer is a miss, so a delivered hit has first_person and cta false.",
-      "Paths speed | balance | accuracy | coverage are distinct ladders (not aliases), each under ~10s; always pass path explicitly (omit runs balance at cap 6; path balance is cap 2).",
-      "speed = homepage meta/og with deterministic gates, then a data-provider description (cap 1).",
-      "balance = judge-ranked homepage extracts + meta/og + data-provider text, optional rewrite (cap 2 when path is balance explicitly).",
-      "accuracy = neutral third-person compose from homepage evidence with one identity judge (cap 3); falls back to the cheaper hit.",
-      "coverage = accuracy compose plus off-homepage evidence, including your own ZoomInfo key when stored (cap 6); cannot miss where accuracy hit.",
+      "Paths speed | balance | accuracy | coverage are distinct ladders (not aliases), each under ~10s; always pass path explicitly (omitting it runs balance under a higher credit cap than an explicit path balance).",
+      "speed = homepage meta/og with deterministic gates, then a data-provider description.",
+      "balance = judge-ranked homepage extracts + meta/og + data-provider text, optional rewrite.",
+      "accuracy = neutral third-person compose from homepage evidence with one identity judge; falls back to the cheaper hit.",
+      "coverage = accuracy compose plus off-homepage evidence, including your own ZoomInfo key when stored; cannot miss where accuracy hit.",
       "ZoomInfo runs only with your own key (put_credentials).",
       "result.flags hype, tagline, same_as_speed, truncated, and grammar are quality flags, not misses (flags may gain new keys; do not reject unknown ones). truncated forces answer.confidence low. Vendor-returned text is at least medium unless truncated keeps it low. grammar is informational only and does not affect confidence or safe_to_write.",
       "answer.confidence is high | medium | low. answer.identity {method: jev | name_domain | own_homepage, score} is the identity basis (null when not identity-judged).",
@@ -453,7 +455,7 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "Can we engage this person in English, and if not, in what language? Input email or linkedin_url (one required, else 400 email_or_linkedin_required); first_name / last_name are match-only (reject someone else's profile → person_mismatch), never used to infer a language.",
       "result.english is yes | likely | unconfirmed | unknown (never no). result.recommended_language (ISO 639-1; English whenever english=yes) and result.local_language (strongest non-English) are set only at medium or high; low guesses stay in result.languages [{code, name, confidence, level, evidence[]}]. result.detected, result.flags (weak_signals, multilingual_country, conflicting_signals, unconfirmed_identity), result.person.",
       "Confidence is a heuristic 0–1 score (high ≥ 0.75, medium ≥ 0.5), not a calibrated probability.",
-      "routing.path: speed (cap 1: one profile read + language judge) | balance (default, cap 3: structured sources in turn, stops once languages land) | accuracy (cap 4: every structured source, no early stop, + language judge). Only path/preset is read; coverage and anything else is 400 invalid_routing.",
+      "routing.path: speed (one profile read + language judge) | balance (default: structured sources in turn, stops once languages land) | accuracy (every structured source, no early stop, + language judge). Only path/preset is read; coverage and anything else is 400 invalid_routing.",
       "decision.outcome hit iff recommended_language is set; low-only → no_decision/ambiguous; nothing found → zero_hits; no vendor answered → provider_error; skips → compliance_blocked | status_down | max_credits_reached | not_configured. answer.safe_to_write.recommended_language only on hit without conflicting_signals or unconfirmed_identity.",
       "Under compliance.soc2 only attested sources run. Misses, vendor errors, and unconfigured cost 0.",
       "30-day cache: repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers.",
@@ -469,7 +471,7 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "One dialable phone number for a person by work email or LinkedIn URL, plus the ranked rest. Input email or linkedin_url (one required, else 400 email_or_linkedin_required); first_name / last_name are match-only (reject someone else's profile → person_mismatch), never used to infer anything.",
       "phone_types filters the answer (mobile | landline | other | unknown; omit = any); max_results caps result.phones (1–10, default 3); format picks the `number` string (e164 default | international | national | digits | digits_national). result.best_phone and each result.phones[] entry: {number, e164, formats {e164, international, national, digits, digits_national}, country_code, calling_code, type, line_type, source, sources, confidence, flags, safe_to_write}, or best_phone null; phones ranked safe-to-write first, then mobile, deduped, honoring the filter; result.flags [conflicting_numbers, numbers_dropped] or null; result.person (null on a miss).",
       "Verification at no extra cost: libphonenumber validity (invalid and junk numbers dropped), numbering-plan line type (toll-free / premium / pager and the company switchboard are not a direct dial — dropped), country consistency with the person's or company's location (country_mismatch lowers confidence), cross-source agreement (multi_source). Write only when answer.safe_to_write.best_phone is true.",
-      "Agent-managed router, answers in < 10 s: every eligible vendor (including your own stored keys) runs in parallel under a ~8.5 s budget; late vendors are dropped (bill 0). Four modes via routing.path: speed (the cheapest vendors race; first number back wins; cap 10), balance (default: best single number by vendor prior / region / line type, no waiting for agreement), accuracy (exactly one number; conflicting_numbers caps it at low, so the default high floor withholds it and bills 0; verify the candidates), coverage (up to 5 ranked numbers, each with source, line type, confidence, consensus). consensus and do_not_call on every number; routing.only / ignore filter the pool. Only vendors behind returned numbers bill (coverage: each returned number), cheapest first, clamped to the path cap; a miss is free. A vendor behind a delivered number that ran on your own key (BYOK) bills the flat BYOK fee instead of its price. A filter no vendor can serve is not called (0 credits, insufficient_input / noop).",
+      "Agent-managed router, answers in < 10 s: every eligible vendor (including your own stored keys) runs in parallel under a ~8.5 s budget; late vendors are dropped (bill 0). Four modes via routing.path: speed (the cheapest vendors race; first number back wins), balance (default: best single number by vendor prior / region / line type, no waiting for agreement), accuracy (exactly one number; conflicting_numbers caps it at low, so the default high floor withholds it and bills 0; verify the candidates), coverage (up to 5 ranked numbers, each with source, line type, confidence, consensus). consensus and do_not_call on every number; routing.only / ignore filter the pool. Only vendors behind returned numbers bill (coverage: each returned number), cheapest first, clamped to the path cap; a miss is free. A vendor behind a delivered number that ran on your own key (BYOK) bills the flat BYOK fee instead of its price. A filter no vendor can serve is not called (0 credits, insufficient_input / noop).",
       "decision.outcome hit iff a usable number was found; nothing found → zero_hits (es_decision miss); no vendor answered → provider_error (error) or a skip reason (noop). answer.safe_to_write.best_phone is false when result.flags has conflicting_numbers or best_phone.safe_to_write is false — a wrong number is worse than none.",
       "30-day cache keyed on the request (filter included, format excluded): repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers. Phone numbers are contact PII.",
       "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
@@ -484,7 +486,7 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "A person's current job title, seniority and function by work email or LinkedIn URL. Input email or linkedin_url (one required, else 400 email_or_linkedin_required); first_name / last_name are match-only (reject someone else's profile → person_mismatch), never used to infer anything; company_domain is match-only (a title at another employer is never a hit → employer_mismatch).",
       "fields picks the answer (title | seniority | function; omit = all three) and drives the ladder: it walks until every requested field is answered. result.title (cleaned), result.seniority (founder | c_suite | partner | vp | head | director | manager | senior | ic | entry | intern), result.function (sales | marketing | revenue_operations | customer_success | engineering | product | design | data | it | security | finance | people | legal | operations | executive | other), result.field_sources {method vendor | derived | jev, provider}, result.sources (accuracy / coverage), result.flags.",
       "routing.path: speed (one profile read, keywords only) | balance (default; data-provider sources in turn; your own ZoomInfo key improves fill) | accuracy (two independent sources + one judge call, 10 s cap) | coverage (adds more sources whenever a second source is wanted). routing.only / routing.ignore are honored.",
-      "Cost is outcome-priced: 1 / 2 / 3 / 5 credits on a hit (speed / balance / accuracy / coverage), 0 on a miss, a partial (fields_incomplete) or a timeout. decision.outcome hit iff every requested field is answered at medium or high confidence; some but not all → fields_incomplete (es_decision ambiguous, values withheld, result.answered_fields names what was found); nothing → zero_hits (miss, result.person null). answer.safe_to_write.title / seniority / function are false on conflicting_titles, unconfirmed_identity or employer_mismatch.",
+      "Cost is outcome-priced: only a hit bills; a miss, a partial (fields_incomplete) or a timeout is free. decision.outcome hit iff every requested field is answered at medium or high confidence; some but not all → fields_incomplete (es_decision ambiguous, values withheld, result.answered_fields names what was found); nothing → zero_hits (miss, result.person null). answer.safe_to_write.title / seniority / function are false on conflicting_titles, unconfirmed_identity or employer_mismatch.",
       "30-day cache keyed on path, fields, company_domain and routing.only / ignore: repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers.",
       "API tenants only; spends credits unless dry_run is true. Does not write SFDC.",
     ].join(" "),
@@ -514,7 +516,7 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "A person's proper-cased first / last / full name by email or LinkedIn URL, for CRM name stamps and personalization. Input email or linkedin_url (one required, else 400 email_or_linkedin_required); phone / x_handle are accepted but never looked up (unsupported_input, 0 credits). A role address (admin@, info@, …) is never a person (role_address, 0 credits).",
       "Salutations, titles, honorifics, suffixes, pronouns, emoji and URLs are stripped deterministically on every candidate at no cost; a judge call classifies only an ambiguous multi-token split (balance and above). result.first_name / last_name / full_name (proper-cased), result.name_source (vendor | email_local_parse), result.matched_on (which of email / linkedin_url the name came from), result.email_type (role | freemail | work), result.person (null on a miss), result.flags (email_local_parse, first_name_only, freemail, role_address, conflicting_names, unconfirmed_identity, single_source), result.evidence (candidates kept when a name is withheld below the floor).",
       "routing.path: speed (one profile read; never high) | balance (default; stops at the first usable name) | accuracy (same ladder + the judge on ambiguous splits; two agreeing independent sources are high, a disagreement is a conflict flagged conflicting_names) | coverage (balance ladder + a second source). routing.only / routing.ignore are honored.",
-      "Cost is outcome-priced: 1 / 2 / 3 / 5 credits on a hit (speed / balance / accuracy / coverage), once on the deciding attempt; 0 on a miss, a conflict, a below-floor withhold or a timeout. answer.outcome resolved | parsed_only | role_address | not_found | conflict | unsupported_input; an email local-part split is a last resort only (parsed_only, low confidence, flagged email_local_parse).",
+      "Cost is outcome-priced: only a hit bills, once on the deciding attempt; a miss, a conflict, a below-floor withhold or a timeout is free. answer.outcome resolved | parsed_only | role_address | not_found | conflict | unsupported_input; an email local-part split is a last resort only (parsed_only, low confidence, flagged email_local_parse).",
       "Write signal is answer.confidence only (there are no safe_to_write fields). Default floors: speed / coverage low, balance medium, accuracy high; min_confidence overrides. Below the floor the name fields are blank and the candidates stay in result.evidence.",
       "30-day cache keyed on path, min_confidence and routing.only / ignore: repeats replay with usage.cached true at 0 credits; skip_cache or cache_bypass skips the read (still writes). delete_subject (email:<addr> / li:<slug>) purges cached answers. A suppressed email / linkedin_url is 451 subject_suppressed at 0 credits.",
       PERSON_DISCOVERY_AGENT_RESPONSE,
@@ -545,7 +547,7 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "Is this mailbox deliverable? For list hygiene before a send. email is the only input (required). result.status valid | invalid | catch_all | unknown; result.source local | vendor; result.confidence (two agreeing checks are high, one is medium, conflicting checks are unknown at low with vendor_disagreement); result.flags (role_based, free_mailbox, disposable, relay, security_gateway) describe the mailbox and never change the status.",
       "Free local checks run first: a malformed address, a reserved domain, a domain that does not exist, or a domain with no mail host is invalid (source local, 0 credits). catch_all means the domain accepts every address, so a valid cannot be proven; it is withheld.",
       "routing.path: speed (one check; a second only when the first did not answer; floor low) | balance (default; a second opinion when the first check is inconclusive; floor medium) | accuracy (two independent checks, delivers only when both agree; floor high) | coverage (two independent checks, delivers a single conclusive check too; floor low). min_confidence overrides the path floor; a below-floor status is withheld as unknown (below_min_confidence).",
-      "Cost is outcome-priced at 0.5–1.5 credits depending on the path: only a delivered answer is billed; misses, catch-alls and conflicts are not (nor are local invalids, unknowns, withheld answers or timeouts).",
+      "Cost is outcome-priced by path: only a delivered answer is billed; misses, catch-alls and conflicts are not (nor are local invalids, unknowns, withheld answers or timeouts).",
       "Not cached. A suppressed email is 451 subject_suppressed at 0 credits. API tenants only; spends credits unless dry_run is true (dry_run is offline: no DNS or vendor check). Does not write SFDC.",
     ].join(" "),
     inputSchema: EmailVerifyInput,
@@ -763,13 +765,35 @@ function inputJsonSchema(
   return z.toJSONSchema(z.object(shape)) as Record<string, unknown>;
 }
 
+/**
+ * Tools that run a capability (a priced POST). Each one's description ends with
+ * the price line rendered from the inventory; see tenantToolDescription.
+ */
+export const CAPABILITY_TOOL_NAMES: readonly ToolName[] =
+  LIVE_RESOURCE_ROUTES.filter(
+    (route) => TOOL_SPECS[route.tool].buildRequest === capabilityRequest,
+  ).map((route) => route.tool);
+
+/**
+ * The description MCP clients see: the hand-written copy plus, for a priced
+ * capability, `Credits: …` rendered from the API's own prices
+ * (src/pricing.generated.ts, generated from the inventory). Prices are never
+ * typed into TOOL_SPECS or the input schemas.
+ */
+export function tenantToolDescription(tool: ToolName): string {
+  return describeWithPrice(
+    TOOL_SPECS[tool].description,
+    CAPABILITY_PRICING[tool],
+  );
+}
+
 export function advertisedTenantTools(): AdvertisedTool[] {
   return LIVE_RESOURCE_ROUTES.map((route) => {
     const spec = TOOL_SPECS[route.tool];
     return {
       name: route.tool,
       title: spec.title,
-      description: spec.description,
+      description: tenantToolDescription(route.tool),
       inputSchema: inputJsonSchema(spec.inputSchema),
       annotations: spec.annotations,
     };
@@ -841,7 +865,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
       route.tool,
       {
         title: spec.title,
-        description: spec.description,
+        description: tenantToolDescription(route.tool),
         inputSchema: spec.inputSchema,
         annotations: spec.annotations,
       },

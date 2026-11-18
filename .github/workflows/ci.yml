@@ -42,7 +42,9 @@ jobs:
       - name: Compare provider enums to the vendored OpenAPI inventory
         run: npm run check:providers
 
-      - name: Contract unit tests (including drift must fail)
+      # Includes src/pricing.test.ts: every capability tool shows the price line
+      # rendered from the inventory, and no tool copy types a credit amount.
+      - name: Contract unit tests (including drift must fail and API-only prices)
         run: npm test
 
       - name: Smoke listTools vs inventory

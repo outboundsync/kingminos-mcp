@@ -1153,6 +1153,11 @@ describe("catalog-driven handlers", () => {
         description,
         /delivered hit has first_person and cta false/i,
       );
+      assert.match(
+        description,
+        /Vendor-returned text is at least medium unless truncated keeps it low/,
+      );
+      assert.doesNotMatch(description, /cta keeps it low/);
       assert.match(description, /grammar is informational only/i);
       assert.match(description, /do not reject unknown/i);
       assert.match(description, /usage\.hops/);

@@ -373,7 +373,7 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   company_hierarchy: {
     title: "Decide company hierarchy",
     description:
-      "Decide corporate family (immediate / ultimate parent + capped subsidiaries). Outcomes: subsidiary | ultimate_parent | no_decision. Never standalone. speed is 0 credits; balance/accuracy work best with your own ZoomInfo key. coverage is invalid_routing. Spends credits unless dry_run is true. Does not write SFDC.",
+      "Decide corporate family (immediate / ultimate parent + capped subsidiaries). Outcomes: subsidiary | ultimate_parent | no_decision. Never standalone. speed is 0 credits; balance/accuracy work best with your own ZoomInfo key. coverage is invalid_routing. min_confidence is not an input on this request and has no effect. Spends credits unless dry_run is true. Does not write SFDC.",
     inputSchema: DecideCompanyHierarchyInput,
     annotations: LOOKUP,
     buildRequest: capabilityRequest,
@@ -430,7 +430,7 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
       "accuracy = neutral third-person compose from homepage evidence with one identity judge; falls back to the cheaper hit.",
       "coverage = accuracy compose plus off-homepage evidence, including your own ZoomInfo key when stored; cannot miss where accuracy hit.",
       "ZoomInfo runs only with your own key (put_credentials).",
-      "result.flags hype, tagline, same_as_speed, truncated, and grammar are quality flags, not misses (flags may gain new keys; do not reject unknown ones). truncated forces answer.confidence low. Vendor-returned text is at least medium unless truncated or cta keeps it low. grammar is informational only and does not affect confidence or safe_to_write.",
+      "result.flags hype, tagline, same_as_speed, truncated, and grammar are quality flags, not misses (flags may gain new keys; do not reject unknown ones). truncated forces answer.confidence low. Vendor-returned text is at least medium unless truncated keeps it low. grammar is informational only and does not affect confidence or safe_to_write.",
       "answer.confidence is high | medium | low. answer.identity {method: jev | name_domain | own_homepage, score} is the identity basis (null when not identity-judged).",
       "answer.safe_to_write.description is true only on a hit with non-low confidence and a non-null answer.identity; low is never safe to write.",
       "Billing is winner-only (usage.hops, usage.credits.by_provider); rejected/lost hops and misses cost 0.",
@@ -444,7 +444,7 @@ export const TOOL_SPECS: Record<ToolName, ToolSpec> = {
   person_verify_employment: {
     title: "Verify employment",
     description:
-      "Pre-flight whether to send to this person. Default path is balance (email validation + optional paid LinkedIn lookup). speed is email validation only. accuracy adds another source. Outcomes: high_confidence_send | low_confidence_send | low_confidence_block | high_confidence_block | no_decision. Spends credits unless dry_run is true. Does not write SFDC.",
+      "Pre-flight whether to send to this person. Default path is balance (email validation + optional paid LinkedIn lookup on balance/accuracy, never speed). speed is email validation only. accuracy adds another source. Outcomes: high_confidence_send | low_confidence_send | low_confidence_block | high_confidence_block | no_decision. min_confidence is not an input on this request and has no effect. Spends credits unless dry_run is true. Does not write SFDC.",
     inputSchema: VerifyEmploymentInput,
     annotations: LOOKUP,
     buildRequest: capabilityRequest,

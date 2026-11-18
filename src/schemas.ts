@@ -1030,7 +1030,12 @@ export const VerifyEmploymentInput = {
   email: z.string().optional(),
   first_name: z.string().optional(),
   last_name: z.string().optional(),
-  linkedin_url: z.string().optional(),
+  linkedin_url: z
+    .string()
+    .optional()
+    .describe(
+      "Preferred LinkedIn for the job-change check. Otherwise a paid email-to-profile lookup runs on balance/accuracy (never speed) unless routing.allow_paid_linkedin_lookup is false.",
+    ),
   person: z
     .object({
       email: z.string().optional(),

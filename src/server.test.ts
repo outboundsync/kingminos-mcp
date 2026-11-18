@@ -401,9 +401,10 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "person_language");
       const description = tool?.description ?? "";
-      assert.match(description, /speed \(cap 1/);
-      assert.match(description, /balance \(default, cap 3/);
-      assert.match(description, /accuracy \(cap 4/);
+      assert.match(description, /speed \(one profile read/);
+      assert.match(description, /balance \(default:/);
+      assert.match(description, /accuracy \(every structured source/);
+      assert.match(description, /Credits: speed /);
       assert.match(description, /coverage.*400 invalid_routing/);
       assert.match(description, /match-only/i);
     });
@@ -523,7 +524,8 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "person_title");
       const description = tool?.description ?? "";
-      assert.match(description, /1 \/ 2 \/ 3 \/ 5 credits on a hit/);
+      assert.match(description, /only a hit bills/);
+      assert.match(description, /Credits: speed /);
       assert.match(description, /fields_incomplete/);
       assert.match(description, /match-only/i);
       assert.match(description, /employer_mismatch/);
@@ -700,7 +702,8 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "person_name");
       const description = tool?.description ?? "";
-      assert.match(description, /1 \/ 2 \/ 3 \/ 5 credits on a hit/);
+      assert.match(description, /only a hit bills/);
+      assert.match(description, /Credits: speed /);
       assert.match(description, /answer\.confidence only/);
       assert.match(description, /no safe_to_write/);
       assert.match(description, /role_address/);
@@ -871,7 +874,7 @@ describe("catalog-driven handlers", () => {
       const find =
         listed.tools.find((t) => t.name === "person_email")?.description ?? "";
       assert.match(verify, /is this mailbox deliverable\?/i);
-      assert.match(verify, /0\.5–1\.5 credits/);
+      assert.match(verify, /Credits: speed /);
       assert.match(find, /this person's work email\?/i);
       assert.match(find, /outcome-priced by path/);
       for (const description of [verify, find]) {
@@ -992,10 +995,8 @@ describe("catalog-driven handlers", () => {
       const listed = await client.listTools();
       const tool = listed.tools.find((t) => t.name === "company_x_account");
       const description = tool?.description ?? "";
-      assert.match(
-        description,
-        /speed 1 \/ balance 1\.3 \/ accuracy 1\.6 \/ coverage 1\.7/,
-      );
+      assert.match(description, /only a floor-passing hit bills/);
+      assert.match(description, /Credits: speed /);
       assert.match(
         description,
         /Confidence is the only write signal \(no safe_to_write\)/,
@@ -1141,8 +1142,10 @@ describe("catalog-driven handlers", () => {
       assert.match(description, /not aliases/i);
       assert.match(description, /speed.*balance.*accuracy.*coverage/i);
       assert.match(description, /Always pass path explicitly/i);
-      assert.match(description, /omit runs balance at cap 6/i);
-      assert.match(description, /path balance is cap 2/i);
+      assert.match(
+        description,
+        /omitting it runs balance under a higher credit cap than an explicit path balance/i,
+      );
       assert.doesNotMatch(description, /AI Ark|Serper|xAI|Jev-ranked/);
       assert.match(description, /same_as_speed/);
       assert.match(description, /hype.*tagline.*truncated.*grammar/i);

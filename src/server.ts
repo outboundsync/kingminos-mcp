@@ -5,10 +5,10 @@ import { isAdminBearer, registerAdminTools } from "./admin-tools.js";
 import { LIVE_RESOURCE_ROUTES, type ToolName } from "./catalog.js";
 import { PRODUCT_NAME, VERSION } from "./config.js";
 import {
-  DIRECTORY_HIDDEN_TOOLS,
   DIRECTORY_INSTRUCTIONS,
   DIRECTORY_TOOL_COPY,
   directoryInputSchema,
+  directoryToolVisible,
 } from "./directory-tools.js";
 import {
   KingMinosApiError,
@@ -881,7 +881,8 @@ export function createKingMinosServer(context: ToolContext): McpServer {
     // OAuth connectors get the directory subset; the API refuses the rest for them.
     if (
       context.oauth &&
-      (!oauthToolAllowed(route) || DIRECTORY_HIDDEN_TOOLS.has(route.tool))
+      (!oauthToolAllowed(route) ||
+        !directoryToolVisible(route.tool, context.oauth.platform))
     ) {
       continue;
     }

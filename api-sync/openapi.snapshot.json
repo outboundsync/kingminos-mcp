@@ -8709,6 +8709,22 @@
         "description": "`Authorization: Bearer <ROUTER_API_KEY>` only. Bare keys are 401 malformed.\nSalesforce Named Credential Custom auth must emit this via Custom Headers\n(`docs/salesforce-named-cred.md`). Auth Parameters alone do not leave Salesforce.\n",
         "scheme": "bearer",
         "type": "http"
+      },
+      "oauth2": {
+        "description": "OAuth 2.0 sign-in for connectors (`docs/mcp-oauth-design.md` §14).\nAdditive: no operation lists it yet, and API keys (`bearer`) are\nunchanged. Access tokens are for the `https://api.kingminos.com/v1`\naudience and are sent as `Authorization: Bearer <token>`.\n",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://api.kingminos.com/authorize",
+            "refreshUrl": "https://api.kingminos.com/oauth/token",
+            "scopes": {
+              "billing:read": "Read the workspace balance and usage.",
+              "capability:*": "Run lookups (every capability POST and reading their runs).",
+              "offline_access": "Stay signed in with a refresh token."
+            },
+            "tokenUrl": "https://api.kingminos.com/oauth/token"
+          }
+        },
+        "type": "oauth2"
       }
     }
   },

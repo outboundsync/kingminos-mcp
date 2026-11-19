@@ -7,6 +7,7 @@ import {
   DIRECTORY_HIDDEN_TOOLS,
   DIRECTORY_INSTRUCTIONS,
   DIRECTORY_TOOL_COPY,
+  directoryToolVisible,
 } from "./directory-tools.js";
 import { handleFetch } from "./fetch.js";
 import { type AuthServerBinding, oauthToolAllowed } from "./oauth.js";
@@ -93,7 +94,10 @@ describe("connected-app tool copy", () => {
       const tools = (await client.listTools()).tools;
       assert.deepEqual(
         tools.map((tool) => tool.name).sort(),
-        [...directoryTools].sort(),
+        // The default fake caller is ChatGPT, which also loses the balance tools.
+        directoryTools
+          .filter((tool) => directoryToolVisible(tool, "chatgpt"))
+          .sort(),
       );
       for (const tool of tools) {
         const visible = JSON.stringify({
@@ -136,6 +140,44 @@ describe("connected-app tool copy", () => {
     } finally {
       await oauth.close();
       await key.close();
+    }
+  });
+
+  it("hides the balance tools from ChatGPT only (no upgrade talk inside ChatGPT)", async () => {
+    const forPlatform = (platform: string) => {
+      const b = binding();
+      b.validateToken = async () => ({
+        props: { userId: "usr_1", workspaceId: "ws_1", platform },
+        audience: RESOURCE,
+        expiresAt: Date.now() / 1000 + 3600,
+        scope: ["capability:*"],
+      });
+      return b;
+    };
+    const chatgpt = await connect(
+      "usr_1:grant_1:secret",
+      forPlatform("chatgpt"),
+    );
+    const claude = await connect("usr_1:grant_1:secret", forPlatform("claude"));
+    try {
+      const chatgptNames = (await chatgpt.listTools()).tools.map(
+        (tool) => tool.name,
+      );
+      const claudeNames = (await claude.listTools()).tools.map(
+        (tool) => tool.name,
+      );
+      for (const tool of ["get_balance", "get_balance_health"]) {
+        assert.equal(
+          chatgptNames.includes(tool),
+          false,
+          `chatgpt sees ${tool}`,
+        );
+        assert.equal(claudeNames.includes(tool), true, `claude misses ${tool}`);
+      }
+      assert.ok(chatgptNames.includes("company_domain"));
+    } finally {
+      await chatgpt.close();
+      await claude.close();
     }
   });
 

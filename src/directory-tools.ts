@@ -22,6 +22,26 @@ export const DIRECTORY_HIDDEN_TOOLS: ReadonlySet<string> = new Set([
   "get_providers",
 ]);
 
+/**
+ * Extra tools hidden per connected-app platform. ChatGPT review bans upgrade or
+ * credit-purchase talk inside ChatGPT; the balance tools return plan / PAYG
+ * details and fixed advice such as "Add credits or move to a larger plan", so
+ * ChatGPT does not get them (decision D3, kingminos-application #436).
+ */
+export const DIRECTORY_HIDDEN_BY_PLATFORM: Readonly<
+  Record<string, ReadonlySet<string>>
+> = {
+  chatgpt: new Set(["get_balance", "get_balance_health"]),
+};
+
+/** Whether a connected app on `platform` should see `tool`. */
+export function directoryToolVisible(tool: string, platform: string): boolean {
+  return (
+    !DIRECTORY_HIDDEN_TOOLS.has(tool) &&
+    !DIRECTORY_HIDDEN_BY_PLATFORM[platform]?.has(tool)
+  );
+}
+
 const COMPANY = {
   domain: "Company website domain, like acme.com.",
   website: "Company website URL.",

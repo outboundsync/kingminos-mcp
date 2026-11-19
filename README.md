@@ -30,6 +30,10 @@ Fly is not the production host. `fly.example.toml` / `Dockerfile` are a local No
 | `OPTIONS /mcp`                           | Advertises `Allow: POST, OPTIONS`                                                                     |
 | `GET` / `DELETE /mcp`                    | `405 Method Not Allowed`                                                                              |
 
+## Result card (connected apps only)
+
+When `MCP_RESULT_CARDS=on` (Worker var, default `off`) and the caller signed in with OAuth, lookup tools render a small card in hosts that support MCP Apps (Claude, ChatGPT). The server lists one resource, `ui://kingminos/result-card-v1.html` (`text/html;profile=mcp-app`, inline CSS and JS only). Lookup tools carry `_meta.ui.resourceUri` and `openai/outputTemplate`, and their results add `structuredContent`: `answer.{outcome, es_decision, confidence, reason_code}` plus the few `result` fields the card shows. The text content is unchanged. API-key callers never see any of this. Bump the `-vN` suffix in `src/result-card.ts` whenever the HTML changes, because hosts cache views by URI.
+
 ## Admin tools (admin token only)
 
 `abuse_report`, `partner_report`, `partner_payout`, `feedback_report` and `partner_admin` wrap `/v1/admin/abuse/daily`, `/v1/admin/partners/analytics`, `/v1/admin/partners/payouts`, `/v1/admin/feedback` and `/v1/admin/partners` (list, create partner + code, add/deactivate code). They are registered **only** when the MCP bearer is a KingMinos admin token (`kmadm_…`, hashed in the API). Any other bearer never sees them in `tools/list`; an admin bearer sees only these admin tools. The API re-checks the token on every call. They are not OpenAPI resource tools: the live spec also lists a few `/v1/admin/*` operations (privacy suppressions, signups), and `check:surfaces` skips every `/v1/admin/*` path through `nonToolPathPrefixes` plus the reviewed `excludedOperationIds` catalog, so they never show up as drift.

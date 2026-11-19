@@ -12,6 +12,8 @@ export interface RuntimeEnv {
   OAUTH_ISSUER?: string;
   /** OpenAI apps domain-verification token (Worker secret). Served, never logged. */
   OPENAI_APPS_CHALLENGE?: string;
+  /** `"on"` shows the result card to connected apps (OAuth callers). Default off. */
+  MCP_RESULT_CARDS?: string;
   GIT_SHA?: string;
   PORT?: string;
   HOST?: string;
@@ -27,6 +29,7 @@ const NODE_ENV_KEYS = [
   "OAUTH_ENABLED",
   "OAUTH_ISSUER",
   "OPENAI_APPS_CHALLENGE",
+  "MCP_RESULT_CARDS",
   "GIT_SHA",
   "PORT",
   "HOST",
@@ -41,6 +44,7 @@ const WORKER_ENV_KEYS = [
   "OAUTH_ENABLED",
   "OAUTH_ISSUER",
   "OPENAI_APPS_CHALLENGE",
+  "MCP_RESULT_CARDS",
   "GIT_SHA",
 ] as const;
 
@@ -55,6 +59,7 @@ export function processRuntimeEnv(): RuntimeEnv {
     OAUTH_ENABLED: process.env.OAUTH_ENABLED,
     OAUTH_ISSUER: process.env.OAUTH_ISSUER,
     OPENAI_APPS_CHALLENGE: process.env.OPENAI_APPS_CHALLENGE,
+    MCP_RESULT_CARDS: process.env.MCP_RESULT_CARDS,
     GIT_SHA: process.env.GIT_SHA,
     PORT: process.env.PORT,
     HOST: process.env.HOST,

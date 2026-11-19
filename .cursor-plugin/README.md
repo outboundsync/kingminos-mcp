@@ -40,9 +40,8 @@ not available over this connection; use the KingMinos app for those.
 
 `auth.CLIENT_ID` is the static public client KingMinos registers for Cursor
 (redirects `https://www.cursor.com/agents/mcp/oauth/callback` and
-`http://localhost:8787/callback`). In this repo it is the placeholder
-`REPLACE_WITH_CURSOR_CLIENT_ID`; replace it with the real client ID before the
-plugin is submitted to the Marketplace.
+`http://localhost:8787/callback`). The production client ID is
+`o9WWVXLp1M2GPrSo` (created 2026-11-19; client IDs are public).
 
 Support: <support@outboundsync.com> · Privacy: <https://kingminos.com/privacy/>
 · Terms: <https://kingminos.com/terms/>

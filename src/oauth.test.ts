@@ -177,6 +177,16 @@ describe("MCP OAuth discovery", () => {
       3_000,
     );
     assert.equal(down.status, 502);
+    assert.equal(down.headers.get("access-control-allow-origin"), "*");
+    const thrown = await authorizationServerMetadata(
+      settings,
+      (async () => {
+        throw new TypeError("network down");
+      }) as unknown as typeof fetch,
+      4_000,
+    );
+    assert.equal(thrown.status, 502, "a thrown fetch is a 502, not a 500");
+    assert.equal(thrown.headers.get("access-control-allow-origin"), "*");
   });
 });
 

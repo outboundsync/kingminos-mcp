@@ -160,17 +160,16 @@ export async function authorizationServerMetadata(
   ) {
     return metadataResponse(cached.body);
   }
-  const upstream = await fetchImpl(`${settings.issuer}${AS_METADATA_PATH}`, {
-    headers: { accept: "application/json" },
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetchImpl(`${settings.issuer}${AS_METADATA_PATH}`, {
+      headers: { accept: "application/json" },
+    });
+  } catch {
+    return metadataUnavailable();
+  }
   if (!upstream.ok) {
-    return new Response(
-      JSON.stringify({ error: "authorization_server_unavailable" }),
-      {
-        status: 502,
-        headers: { "content-type": "application/json; charset=utf-8" },
-      },
-    );
+    return metadataUnavailable();
   }
   const body = await upstream.text();
   asMetadataCache = { issuer: settings.issuer, body, at: now };
@@ -179,6 +178,21 @@ export async function authorizationServerMetadata(
 
 export function resetAuthorizationServerMetadataCache(): void {
   asMetadataCache = null;
+}
+
+/** 502 with the same open CORS as the success path, so browser clients can read it. */
+function metadataUnavailable(): Response {
+  return new Response(
+    JSON.stringify({ error: "authorization_server_unavailable" }),
+    {
+      status: 502,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "no-store",
+        "access-control-allow-origin": "*",
+      },
+    },
+  );
 }
 
 function metadataResponse(body: string): Response {

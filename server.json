@@ -23,8 +23,8 @@
       "headers": [
         {
           "name": "Authorization",
-          "description": "Bearer API key (km_ or osr_)",
-          "isRequired": true,
+          "description": "Optional Bearer API key (km_ or osr_). Omit it to sign in with OAuth.",
+          "isRequired": false,
           "isSecret": true
         }
       ]

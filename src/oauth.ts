@@ -93,9 +93,16 @@ export function protectedResourceMetadata(
   };
 }
 
+export type BearerChallengeError = "invalid_token" | "insufficient_scope";
+
+/**
+ * RFC 6750 §3 challenge. The HTTP 401 on `/mcp` and the ChatGPT tool-result
+ * `_meta["mcp/www_authenticate"]` both use this, so they never drift.
+ */
 export function bearerChallenge(
-  settings: OAuthSettings,
-  error?: "invalid_token",
+  settings: Pick<OAuthSettings, "metadataUrl">,
+  error?: BearerChallengeError,
+  errorDescription?: string,
 ): string {
   const parts = [
     'realm="KingMinos"',
@@ -105,7 +112,49 @@ export function bearerChallenge(
   if (error) {
     parts.push(`error="${error}"`);
   }
+  if (errorDescription) {
+    // Fixed copy only (RFC 6750 §3: no `"` or `\` in error_description).
+    parts.push(`error_description="${errorDescription}"`);
+  }
   return `Bearer ${parts.join(", ")}`;
+}
+
+/**
+ * Per-tool auth policy for ChatGPT (https://developers.openai.com/plugins/build/auth,
+ * "Triggering authentication UI"; https://developers.openai.com/plugins/reference,
+ * "_meta fields on tool descriptor"). Every KingMinos tool needs a signed-in
+ * workspace, so there is no `noauth` entry. Served to OAuth callers only.
+ */
+export const OAUTH_TOOL_SECURITY_SCHEMES: ReadonlyArray<{
+  type: "oauth2";
+  scopes: string[];
+}> = Object.freeze([
+  Object.freeze({ type: "oauth2" as const, scopes: [OAUTH_SCOPE_BASELINE] }),
+]);
+
+/**
+ * Tool-result `_meta` that makes ChatGPT show its linking UI when a tool call
+ * fails for auth. OpenAI requires both `error` and `error_description`; the
+ * value may be a string or string[] (we send one challenge in an array, as in
+ * OpenAI's example).
+ */
+export function toolAuthChallengeMeta(
+  settings: Pick<OAuthSettings, "metadataUrl">,
+  status: 401 | 403,
+): { "mcp/www_authenticate": string[] } {
+  const challenge =
+    status === 401
+      ? bearerChallenge(
+          settings,
+          "invalid_token",
+          "Your KingMinos sign-in expired or was revoked. Sign in again.",
+        )
+      : bearerChallenge(
+          settings,
+          "insufficient_scope",
+          "Your KingMinos sign-in does not allow this. Sign in again or ask a workspace owner.",
+        );
+  return { "mcp/www_authenticate": [challenge] };
 }
 
 /**

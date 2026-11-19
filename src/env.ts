@@ -10,6 +10,8 @@ export interface RuntimeEnv {
   OAUTH_ENABLED?: string;
   /** Authorization server issuer. Default https://api.kingminos.com. */
   OAUTH_ISSUER?: string;
+  /** OpenAI apps domain-verification token (Worker secret). Served, never logged. */
+  OPENAI_APPS_CHALLENGE?: string;
   GIT_SHA?: string;
   PORT?: string;
   HOST?: string;
@@ -24,6 +26,7 @@ const NODE_ENV_KEYS = [
   "KINGMINOS_MCP_ALLOW_ENV_BEARER",
   "OAUTH_ENABLED",
   "OAUTH_ISSUER",
+  "OPENAI_APPS_CHALLENGE",
   "GIT_SHA",
   "PORT",
   "HOST",
@@ -37,6 +40,7 @@ const WORKER_ENV_KEYS = [
   "KINGMINOS_MCP_PUBLIC_URL",
   "OAUTH_ENABLED",
   "OAUTH_ISSUER",
+  "OPENAI_APPS_CHALLENGE",
   "GIT_SHA",
 ] as const;
 
@@ -50,6 +54,7 @@ export function processRuntimeEnv(): RuntimeEnv {
     KINGMINOS_MCP_ALLOW_ENV_BEARER: process.env.KINGMINOS_MCP_ALLOW_ENV_BEARER,
     OAUTH_ENABLED: process.env.OAUTH_ENABLED,
     OAUTH_ISSUER: process.env.OAUTH_ISSUER,
+    OPENAI_APPS_CHALLENGE: process.env.OPENAI_APPS_CHALLENGE,
     GIT_SHA: process.env.GIT_SHA,
     PORT: process.env.PORT,
     HOST: process.env.HOST,

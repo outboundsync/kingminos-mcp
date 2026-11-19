@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "kingminos": {
+      "url": "https://mcp.kingminos.com/mcp",
+      "auth": {
+        "CLIENT_ID": "REPLACE_WITH_CURSOR_CLIENT_ID",
+        "scopes": ["capability:*", "offline_access"]
+      }
+    }
+  }
+}

@@ -15,7 +15,11 @@ import {
   okText,
   requireBearer,
 } from "./kingminos-client.js";
-import { oauthToolAllowed } from "./oauth.js";
+import {
+  OAUTH_TOOL_SECURITY_SCHEMES,
+  oauthToolAllowed,
+  toolAuthChallengeMeta,
+} from "./oauth.js";
 import { CAPABILITY_PRICING } from "./pricing.generated.js";
 import { describeWithPrice } from "./pricing.js";
 import {
@@ -60,8 +64,11 @@ export interface ToolContext {
   apiBaseUrl?: string;
   /** OAuth caller: tool traffic goes over the service binding. */
   fetchImpl?: (url: string, init: RequestInit) => Promise<Response>;
-  /** Set for OAuth callers (validated over the binding): directory tool subset only. */
-  oauth?: { platform: string };
+  /**
+   * Set for OAuth callers (validated over the binding): directory tool subset,
+   * ChatGPT `securitySchemes`, and `_meta["mcp/www_authenticate"]` on auth failures.
+   */
+  oauth?: { platform: string; metadataUrl: string };
 }
 
 export interface BuiltRequest {
@@ -874,7 +881,15 @@ export function createKingMinosServer(context: ToolContext): McpServer {
         });
         return okText(payload);
       } catch (error) {
-        return toolErrorResult(error);
+        const result = toolErrorResult(error);
+        const status = error instanceof KingMinosApiError ? error.status : 0;
+        if (context.oauth && (status === 401 || status === 403)) {
+          return {
+            ...result,
+            _meta: toolAuthChallengeMeta(context.oauth, status),
+          };
+        }
+        return result;
       }
     };
     server.registerTool(
@@ -884,10 +899,52 @@ export function createKingMinosServer(context: ToolContext): McpServer {
         description: tenantToolDescription(route.tool),
         inputSchema: spec.inputSchema,
         annotations: spec.annotations,
+        ...(context.oauth
+          ? { _meta: { securitySchemes: OAUTH_TOOL_SECURITY_SCHEMES } }
+          : {}),
       },
       handler,
     );
   }
 
+  if (context.oauth) {
+    advertiseTopLevelSecuritySchemes(server);
+  }
   return server;
+}
+
+type RequestHandler = (request: unknown, extra: unknown) => Promise<unknown>;
+
+/**
+ * OpenAI reads `securitySchemes` on the tool descriptor, with
+ * `_meta.securitySchemes` as the mirror for clients that only read `_meta`
+ * (https://developers.openai.com/plugins/reference). The SDK passes only
+ * `_meta` through, so copy it up in the tools/list result. Throws if the SDK
+ * stops exposing the handler, so an upgrade fails the tests, not ChatGPT.
+ */
+function advertiseTopLevelSecuritySchemes(server: McpServer): void {
+  const handlers = (
+    server.server as unknown as {
+      _requestHandlers?: Map<string, RequestHandler>;
+    }
+  )._requestHandlers;
+  const listTools = handlers?.get("tools/list");
+  if (!handlers || !listTools) {
+    throw new Error("MCP SDK tools/list handler not found");
+  }
+  handlers.set("tools/list", async (request, extra) => {
+    const result = (await listTools(request, extra)) as {
+      tools: Array<
+        Record<string, unknown> & { _meta?: Record<string, unknown> }
+      >;
+    };
+    return {
+      ...result,
+      tools: result.tools.map((tool) =>
+        tool._meta?.securitySchemes
+          ? { ...tool, securitySchemes: tool._meta.securitySchemes }
+          : tool,
+      ),
+    };
+  });
 }

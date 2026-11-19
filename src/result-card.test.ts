@@ -309,6 +309,19 @@ describe("result card structuredContent", () => {
     assert.equal(resultCardContent("get_balance", RESOLVE_PAYLOAD), undefined);
   });
 
+  it("titles a description card with the company name when one comes back", () => {
+    const content = resultCardContent("company_description", {
+      capability: "company.description",
+      answer: { outcome: "hit", es_decision: "hit" },
+      result: {
+        company_name: "Acme Corp",
+        company_domain: "acme.com",
+        description: "Acme Corp makes anvils.",
+      },
+    });
+    assert.equal(content?.result.company_name, "Acme Corp");
+  });
+
   it("sends each tool's own row order (company_domain: CRM primary before the live domain)", () => {
     const content = resultCardContent("company_domain", {
       capability: "company.domain",

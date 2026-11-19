@@ -74,7 +74,7 @@ export const RESULT_CARD_FIELDS: Readonly<
   company_b2b_social: ["company_name", "company_domain", "linkedin_url"],
   company_x_account: ["company_name", "company_domain", "x_handle", "x_url"],
   company_icon: ["company_name", "company_domain", "icon_url"],
-  company_description: ["company_domain", "description"],
+  company_description: ["company_name", "company_domain", "description"],
   person_verify_employment: [
     "person.first_name",
     "person.last_name",

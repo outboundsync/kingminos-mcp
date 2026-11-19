@@ -1,0 +1,19 @@
+{
+  "name": "kingminos",
+  "description": "KingMinos by OutboundSync is a B2B data enrichment router. Resolve companies and find work emails, titles, phones and social profiles from Cursor. Lookups spend your workspace's credits; misses are free.",
+  "author": {
+    "name": "OutboundSync"
+  },
+  "homepage": "https://kingminos.com/",
+  "repository": "https://github.com/outboundsync/kingminos-mcp",
+  "keywords": [
+    "data enrichment",
+    "enrichment router",
+    "b2b data",
+    "company data",
+    "contact data",
+    "email verification"
+  ],
+  "logo": "assets/icon.svg",
+  "mcpServers": ".cursor-plugin/mcp.json"
+}

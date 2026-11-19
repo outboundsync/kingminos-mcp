@@ -7,7 +7,9 @@ import { handleFetch } from "./fetch.js";
 import {
   type AuthServerBinding,
   authorizationServerMetadata,
+  bearerChallenge,
   looksLikeOAuthToken,
+  OAUTH_TOOL_SECURITY_SCHEMES,
   oauthSettings,
   oauthToolAllowed,
   resetAuthorizationServerMetadataCache,
@@ -37,6 +39,11 @@ function fakeBinding(
     expiresAt: Date.now() / 1000 + 3600,
     scope: ["capability:*", "billing:read"],
   }),
+  answer: () => Response = () =>
+    new Response(JSON.stringify({ ok: true, capabilities: [] }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }),
 ): FakeBinding {
   const fetched: Request[] = [];
   return {
@@ -46,13 +53,20 @@ function fakeBinding(
       const request =
         typeof input === "string" ? new Request(input, init) : input;
       fetched.push(request);
-      return new Response(JSON.stringify({ ok: true, capabilities: [] }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
+      return answer();
     },
   };
 }
+
+function apiError(status: number, error: string): () => Response {
+  return () =>
+    new Response(JSON.stringify({ error, message: error }), {
+      status,
+      headers: { "content-type": "application/json" },
+    });
+}
+
+const DEFAULT_VALIDATE = fakeBinding().validateToken;
 
 function post(token?: string): Request {
   return new Request("https://mcp.kingminos.com/mcp", {
@@ -308,5 +322,211 @@ describe("MCP OAuth helpers", () => {
     for (const key of ["km_live_x", "osr_x", "kmadm_x", "a::b", "a:b"]) {
       assert.equal(looksLikeOAuthToken(key), false, key);
     }
+  });
+});
+
+interface ListedTool {
+  name: string;
+  securitySchemes?: unknown;
+  _meta?: { securitySchemes?: unknown };
+}
+
+async function rawToolsList(
+  token: string,
+  binding: AuthServerBinding | undefined,
+  env: Record<string, string> = ON,
+): Promise<ListedTool[]> {
+  const response = await handleFetch(post(token), env, {
+    mode: "worker",
+    ...(binding ? { authServer: binding } : {}),
+  });
+  assert.equal(response.status, 200);
+  const body = (await response.json()) as { result: { tools: ListedTool[] } };
+  return body.result.tools;
+}
+
+describe("ChatGPT tool-level auth (OAuth on)", () => {
+  const OAUTH2 = [{ type: "oauth2", scopes: ["capability:*"] }];
+
+  it("declares oauth2 securitySchemes on every tool, top level and in _meta", async () => {
+    const tools = await rawToolsList(OAUTH_TOKEN, fakeBinding());
+    assert.ok(tools.length > 0);
+    for (const tool of tools) {
+      assert.deepEqual(tool.securitySchemes, OAUTH2, tool.name);
+      assert.deepEqual(tool._meta?.securitySchemes, OAUTH2, tool.name);
+    }
+    assert.deepEqual(OAUTH_TOOL_SECURITY_SCHEMES, OAUTH2);
+  });
+
+  it("leaves API-key descriptors unchanged, with OAuth on or off", async () => {
+    for (const env of [ON, {}]) {
+      const tools = await rawToolsList("km_live_example", fakeBinding(), env);
+      assert.equal(tools.length, LIVE_RESOURCE_ROUTES.length);
+      for (const tool of tools) {
+        assert.equal("securitySchemes" in tool, false, tool.name);
+        assert.equal(tool._meta, undefined, tool.name);
+      }
+    }
+  });
+
+  it("puts the WWW-Authenticate challenge in _meta when the API answers 401 or 403", async () => {
+    const cases = [
+      { status: 401, error: "invalid_token" },
+      { status: 403, error: "insufficient_scope" },
+    ];
+    for (const { status, error } of cases) {
+      const binding = fakeBinding(
+        DEFAULT_VALIDATE,
+        apiError(status, "unauthorized"),
+      );
+      const mcp = await client(OAUTH_TOKEN, binding);
+      try {
+        const result = (await mcp.callTool({
+          name: "get_capabilities",
+          arguments: {},
+        })) as { isError?: boolean; _meta?: Record<string, unknown> };
+        assert.equal(result.isError, true);
+        const challenges = result._meta?.["mcp/www_authenticate"];
+        assert.ok(Array.isArray(challenges), String(status));
+        assert.equal(challenges.length, 1);
+        const challenge = challenges[0] as string;
+        assert.match(challenge, /^Bearer /);
+        assert.match(
+          challenge,
+          /resource_metadata="https:\/\/mcp\.kingminos\.com\/\.well-known\/oauth-protected-resource\/mcp"/,
+        );
+        assert.match(challenge, /scope="capability:\*"/);
+        assert.match(challenge, new RegExp(`error="${error}"`));
+        assert.match(challenge, /error_description="[^"]+"/);
+      } finally {
+        await mcp.close();
+      }
+    }
+  });
+
+  it("adds no challenge for non-auth failures or for API-key callers", async () => {
+    const oauthServerError = await client(
+      OAUTH_TOKEN,
+      fakeBinding(DEFAULT_VALIDATE, apiError(400, "bad_request")),
+    );
+    try {
+      const result = (await oauthServerError.callTool({
+        name: "get_capabilities",
+        arguments: {},
+      })) as { isError?: boolean; _meta?: Record<string, unknown> };
+      assert.equal(result.isError, true);
+      assert.equal(result._meta?.["mcp/www_authenticate"], undefined);
+    } finally {
+      await oauthServerError.close();
+    }
+
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      apiError(401, "unauthorized")()) as typeof fetch;
+    const keyCaller = await client("km_live_example", fakeBinding());
+    try {
+      const result = (await keyCaller.callTool({
+        name: "get_capabilities",
+        arguments: {},
+      })) as { isError?: boolean; _meta?: Record<string, unknown> };
+      assert.equal(result.isError, true);
+      assert.equal(result._meta?.["mcp/www_authenticate"], undefined);
+    } finally {
+      globalThis.fetch = realFetch;
+      await keyCaller.close();
+    }
+  });
+
+  it("keeps the HTTP 401 challenge free of error_description", () => {
+    const settings = { metadataUrl: "https://m.example/.well-known/x" };
+    assert.equal(
+      bearerChallenge(settings, "invalid_token"),
+      'Bearer realm="KingMinos", resource_metadata="https://m.example/.well-known/x", scope="capability:*", error="invalid_token"',
+    );
+  });
+});
+
+describe("server card authentication schemes", () => {
+  async function schemes(
+    env: Record<string, string>,
+    binding?: AuthServerBinding,
+  ): Promise<string[] | undefined> {
+    const response = await handleFetch(
+      new Request("https://mcp.kingminos.com/.well-known/mcp/server-card.json"),
+      env,
+      { mode: "worker", ...(binding ? { authServer: binding } : {}) },
+    );
+    const body = (await response.json()) as {
+      authentication?: { schemes?: string[] };
+    };
+    return body.authentication?.schemes;
+  }
+
+  it("adds oauth2 only when OAuth is on with the binding", async () => {
+    assert.deepEqual(await schemes(ON, fakeBinding()), ["bearer", "oauth2"]);
+    assert.deepEqual(await schemes(ON), ["bearer"]);
+    assert.deepEqual(await schemes({}, fakeBinding()), ["bearer"]);
+    assert.deepEqual(await schemes({ OAUTH_ENABLED: "off" }, fakeBinding()), [
+      "bearer",
+    ]);
+  });
+});
+
+describe("OpenAI apps domain challenge", () => {
+  const TOKEN = "oaichal_example_token_123";
+  const challengeRequest = () =>
+    new Request("https://mcp.kingminos.com/.well-known/openai-apps-challenge");
+
+  it("serves the secret as the exact text/plain body in Worker and Node mode", async () => {
+    for (const mode of ["worker", "node"] as const) {
+      const response = await handleFetch(
+        challengeRequest(),
+        { OPENAI_APPS_CHALLENGE: TOKEN },
+        { mode },
+      );
+      assert.equal(response.status, 200, mode);
+      assert.match(response.headers.get("content-type") ?? "", /^text\/plain/);
+      assert.equal(await response.text(), TOKEN, mode);
+    }
+  });
+
+  it("is served whether or not OAuth is on", async () => {
+    const response = await handleFetch(
+      challengeRequest(),
+      { ...ON, OPENAI_APPS_CHALLENGE: TOKEN },
+      { mode: "worker", authServer: fakeBinding() },
+    );
+    assert.equal(await response.text(), TOKEN);
+  });
+
+  it("404s when the secret is unset or blank", async () => {
+    for (const env of [{}, { OPENAI_APPS_CHALLENGE: "   " }]) {
+      const response = await handleFetch(challengeRequest(), env, {
+        mode: "worker",
+      });
+      assert.equal(response.status, 404);
+    }
+  });
+
+  it("never logs the token", async () => {
+    const logged: string[] = [];
+    const realLog = console.log;
+    console.log = (...args: unknown[]) => {
+      logged.push(args.map(String).join(" "));
+    };
+    try {
+      await handleFetch(
+        challengeRequest(),
+        { OPENAI_APPS_CHALLENGE: TOKEN },
+        { mode: "worker" },
+      );
+    } finally {
+      console.log = realLog;
+    }
+    assert.ok(logged.length > 0);
+    assert.equal(
+      logged.some((line) => line.includes(TOKEN)),
+      false,
+    );
   });
 });

@@ -99,12 +99,19 @@ export function healthCard(env: RuntimeEnv = {}): {
   };
 }
 
-export function serverCard(env: RuntimeEnv): {
+/**
+ * `oauth2` is listed only while MCP OAuth is on (`OAUTH_ENABLED=on` plus the
+ * binding); API keys stay `bearer` either way.
+ */
+export function serverCard(
+  env: RuntimeEnv,
+  oauthOn = false,
+): {
   serverInfo: { name: string; version: string };
   endpoint: string;
   transport: string;
   capabilities: { tools: object; resources: object; prompts: object };
-  authentication: { required: true; schemes: ["bearer"] };
+  authentication: { required: true; schemes: Array<"bearer" | "oauth2"> };
   tools: AdvertisedTool[];
   websiteUrl: string;
   documentationUrl: string;
@@ -118,7 +125,10 @@ export function serverCard(env: RuntimeEnv): {
     endpoint: publicMcpUrl(env),
     transport: "streamable-http",
     capabilities: { tools: {}, resources: {}, prompts: {} },
-    authentication: { required: true, schemes: ["bearer"] },
+    authentication: {
+      required: true,
+      schemes: oauthOn ? ["bearer", "oauth2"] : ["bearer"],
+    },
     tools: advertisedTenantTools(),
     websiteUrl: WEBSITE_URL,
     documentationUrl: DOCUMENTATION_URL,
@@ -264,7 +274,10 @@ async function handleMcp(
         bearer: presented,
         apiBaseUrl: apiBaseUrl(env),
         fetchImpl: bindingFetch(oauth.binding),
-        oauth: { platform: validated.props.platform ?? "other" },
+        oauth: {
+          platform: validated.props.platform ?? "other",
+          metadataUrl: oauth.metadataUrl,
+        },
       });
     }
   }
@@ -328,6 +341,28 @@ async function serveMcp(
   }
 }
 
+export const OPENAI_APPS_CHALLENGE_PATH = "/.well-known/openai-apps-challenge";
+
+/**
+ * OpenAI app-submission domain verification
+ * (https://developers.openai.com/apps-sdk/deploy/submission, "Domain
+ * verification details"): the exact portal token as plain text, not JSON.
+ * 404 until the `OPENAI_APPS_CHALLENGE` secret is set. Never logged.
+ */
+function openAiAppsChallenge(env: RuntimeEnv): Response {
+  const token = envString(env, "OPENAI_APPS_CHALLENGE");
+  if (!token) {
+    return jsonResponse(404, { error: "Not found" });
+  }
+  return new Response(token, {
+    status: 200,
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
+}
+
 export async function handleFetch(
   request: Request,
   env?: RuntimeEnv,
@@ -352,13 +387,16 @@ export async function handleFetch(
   if (request.method === "GET" && path === "/health") {
     return jsonResponse(200, healthCard(runtime));
   }
+  if (request.method === "GET" && path === OPENAI_APPS_CHALLENGE_PATH) {
+    return openAiAppsChallenge(runtime);
+  }
+  const oauth = oauthSettings(runtime, options.authServer);
   if (
     request.method === "GET" &&
     path === "/.well-known/mcp/server-card.json"
   ) {
-    return jsonResponse(200, serverCard(runtime));
+    return jsonResponse(200, serverCard(runtime, oauth !== null));
   }
-  const oauth = oauthSettings(runtime, options.authServer);
   if (oauth && request.method === "GET") {
     if (path === PRM_PATH_INSERT || path === PRM_ROOT) {
       return new Response(JSON.stringify(protectedResourceMetadata(oauth)), {

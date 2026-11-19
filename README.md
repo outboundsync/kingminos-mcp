@@ -20,14 +20,15 @@ This Worker must not bind D1 `outboundsync-router`, R2 `outboundsync-router-raw`
 
 Fly is not the production host. `fly.example.toml` / `Dockerfile` are a local Node fallback sample only — not a production config.
 
-| Path                                    | Purpose                                                                                        |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `GET /health`                           | Liveness                                                                                       |
-| `GET /`                                 | Service card                                                                                   |
-| `GET /.well-known/mcp/server-card.json` | MCP server card (advertises `https://mcp.kingminos.com/mcp`, plus `privacy_url` / `terms_url`) |
-| `POST /mcp`                             | Streamable HTTP MCP                                                                            |
-| `OPTIONS /mcp`                          | Advertises `Allow: POST, OPTIONS`                                                              |
-| `GET` / `DELETE /mcp`                   | `405 Method Not Allowed`                                                                       |
+| Path                                     | Purpose                                                                                               |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `GET /health`                            | Liveness                                                                                              |
+| `GET /`                                  | Service card                                                                                          |
+| `GET /.well-known/mcp/server-card.json`  | MCP server card (advertises `https://mcp.kingminos.com/mcp`, plus `privacy_url` / `terms_url`)        |
+| `GET /.well-known/openai-apps-challenge` | OpenAI app domain verification: the `OPENAI_APPS_CHALLENGE` secret as `text/plain`; `404` while unset |
+| `POST /mcp`                              | Streamable HTTP MCP                                                                                   |
+| `OPTIONS /mcp`                           | Advertises `Allow: POST, OPTIONS`                                                                     |
+| `GET` / `DELETE /mcp`                    | `405 Method Not Allowed`                                                                              |
 
 ## Admin tools (admin token only)
 
@@ -183,6 +184,8 @@ Hosted (production):
 ```
 
 Cursor GUI sessions do not inherit shell `.env` files. Export `KINGMINOS_API_KEY` into the GUI environment so `${env:KINGMINOS_API_KEY}` resolves.
+
+The Cursor Marketplace plugin (also Grok Bot **Connect apps**) is in [`.cursor-plugin/`](.cursor-plugin/README.md). It signs in with OAuth only, so it works once MCP OAuth is on in production. Its `auth.CLIENT_ID` is a placeholder until the static Cursor client is registered.
 
 ## Tools
 

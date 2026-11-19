@@ -181,6 +181,34 @@ describe("connected-app tool copy", () => {
     }
   });
 
+  it("lets a name-only LinkedIn or X lookup send hint and country", async () => {
+    const authServer = binding();
+    const client = await connect("usr_1:grant_1:secret", authServer);
+    try {
+      const tools = (await client.listTools()).tools;
+      for (const name of ["company_b2b_social", "company_x_account"]) {
+        const props = tools.find((tool) => tool.name === name)?.inputSchema
+          .properties as Record<string, unknown>;
+        assert.ok(
+          props.hint && props.country,
+          `${name} exposes hint and country`,
+        );
+      }
+      await client.callTool({
+        name: "company_b2b_social",
+        arguments: { name: "Acme", hint: "UK PR agency", country: "GB" },
+      });
+      const body = (await (authServer.sent.at(-1) as Request).json()) as Record<
+        string,
+        unknown
+      >;
+      assert.equal(body.hint, "UK PR agency");
+      assert.equal(body.country, "GB");
+    } finally {
+      await client.close();
+    }
+  });
+
   it("still sends the subject fields to the API", async () => {
     const authServer = binding();
     const client = await connect("usr_1:grant_1:secret", authServer);

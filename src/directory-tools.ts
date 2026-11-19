@@ -47,6 +47,9 @@ const COMPANY = {
   website: "Company website URL.",
   email: "Any work email at the company.",
   name: "Company name.",
+  hint: "With only a company name: context that tells similar names apart, such as its industry or the list it came from (for example UK PR agency). Name-only lookups without it usually come back with no answer.",
+  country:
+    "The company's country as a two-letter code, like GB, to tell similar names apart.",
 };
 
 const PERSON = {
@@ -97,6 +100,7 @@ export const DIRECTORY_TOOL_COPY: Readonly<
       website: COMPANY.website,
       email: COMPANY.email,
       linkedin_url: "The company's LinkedIn page URL, if known.",
+      country: COMPANY.country,
     },
   },
   company_hierarchy: {
@@ -106,24 +110,31 @@ export const DIRECTORY_TOOL_COPY: Readonly<
       website: COMPANY.website,
       email: COMPANY.email,
       name: COMPANY.name,
+      country: COMPANY.country,
     },
   },
   company_b2b_social: {
-    description: "Find a company's LinkedIn page URL.",
+    description:
+      "Find a company's LinkedIn page URL. Works best with its domain, website or a work email; with only a name, also send hint.",
     fields: {
       domain: COMPANY.domain,
       website: COMPANY.website,
       email: COMPANY.email,
       name: COMPANY.name,
+      hint: COMPANY.hint,
+      country: COMPANY.country,
     },
   },
   company_x_account: {
-    description: "Find a company's X (Twitter) account.",
+    description:
+      "Find a company's X (Twitter) account. Works best with its domain, website or a work email; with only a name, also send hint.",
     fields: {
       domain: COMPANY.domain,
       website: COMPANY.website,
       email: COMPANY.email,
       name: COMPANY.name,
+      hint: COMPANY.hint,
+      country: COMPANY.country,
     },
   },
   company_icon: {

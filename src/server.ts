@@ -29,6 +29,15 @@ import {
 import { CAPABILITY_PRICING } from "./pricing.generated.js";
 import { describeWithPrice } from "./pricing.js";
 import {
+  RESULT_CARD_FIELDS,
+  RESULT_CARD_HTML,
+  RESULT_CARD_MIME_TYPE,
+  RESULT_CARD_RESOURCE_META,
+  RESULT_CARD_TOOL_META,
+  RESULT_CARD_URI,
+  resultCardContent,
+} from "./result-card.js";
+import {
   CreateWebhookInput,
   DecideCompanyB2bSocialInput,
   DecideCompanyDescriptionInput,
@@ -75,6 +84,11 @@ export interface ToolContext {
    * ChatGPT `securitySchemes`, and `_meta["mcp/www_authenticate"]` on auth failures.
    */
   oauth?: { platform: string; metadataUrl: string };
+  /**
+   * `MCP_RESULT_CARDS=on`: lookups render the result card (src/result-card.ts).
+   * Ignored unless `oauth` is set, so API-key callers never see it.
+   */
+  resultCards?: boolean;
 }
 
 export interface BuiltRequest {
@@ -858,6 +872,11 @@ export function createKingMinosServer(context: ToolContext): McpServer {
     return server;
   }
 
+  const resultCards = Boolean(context.oauth && context.resultCards);
+  if (resultCards) {
+    registerResultCard(server);
+  }
+
   for (const route of LIVE_RESOURCE_ROUTES) {
     // OAuth connectors get the directory subset; the API refuses the rest for them.
     if (
@@ -872,6 +891,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
     const directoryCopy = context.oauth
       ? DIRECTORY_TOOL_COPY[route.tool]
       : undefined;
+    const card = resultCards && RESULT_CARD_FIELDS[route.tool] !== undefined;
     const handler = async (
       args: Record<string, unknown>,
       extra: { signal?: AbortSignal },
@@ -889,7 +909,12 @@ export function createKingMinosServer(context: ToolContext): McpServer {
           baseUrl: requestBaseUrl,
           ...(context.fetchImpl ? { fetchImpl: context.fetchImpl } : {}),
         });
-        return okText(payload);
+        const structuredContent = card
+          ? resultCardContent(route.tool, payload)
+          : undefined;
+        return structuredContent
+          ? { ...okText(payload), structuredContent }
+          : okText(payload);
       } catch (error) {
         const result = toolErrorResult(error);
         const status = error instanceof KingMinosApiError ? error.status : 0;
@@ -913,7 +938,12 @@ export function createKingMinosServer(context: ToolContext): McpServer {
           : spec.inputSchema,
         annotations: spec.annotations,
         ...(context.oauth
-          ? { _meta: { securitySchemes: OAUTH_TOOL_SECURITY_SCHEMES } }
+          ? {
+              _meta: {
+                securitySchemes: OAUTH_TOOL_SECURITY_SCHEMES,
+                ...(card ? RESULT_CARD_TOOL_META : {}),
+              },
+            }
           : {}),
       },
       handler,
@@ -924,6 +954,30 @@ export function createKingMinosServer(context: ToolContext): McpServer {
     advertiseTopLevelSecuritySchemes(server);
   }
   return server;
+}
+
+/** The result card view, listed only for connected apps with cards on. */
+function registerResultCard(server: McpServer): void {
+  server.registerResource(
+    "result_card",
+    RESULT_CARD_URI,
+    {
+      title: "Lookup result card",
+      description: "Shows one lookup answer as a small card.",
+      mimeType: RESULT_CARD_MIME_TYPE,
+      _meta: RESULT_CARD_RESOURCE_META,
+    },
+    async () => ({
+      contents: [
+        {
+          uri: RESULT_CARD_URI,
+          mimeType: RESULT_CARD_MIME_TYPE,
+          text: RESULT_CARD_HTML,
+          _meta: RESULT_CARD_RESOURCE_META,
+        },
+      ],
+    }),
+  );
 }
 
 type RequestHandler = (request: unknown, extra: unknown) => Promise<unknown>;

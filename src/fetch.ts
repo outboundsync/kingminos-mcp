@@ -35,6 +35,7 @@ import {
   protectedResourceMetadata,
   validateOAuthToken,
 } from "./oauth.js";
+import { resultCardsEnabled } from "./result-card.js";
 import {
   type AdvertisedTool,
   advertisedTenantTools,
@@ -278,6 +279,7 @@ async function handleMcp(
           platform: validated.props.platform ?? "other",
           metadataUrl: oauth.metadataUrl,
         },
+        resultCards: resultCardsEnabled(env),
       });
     }
   }

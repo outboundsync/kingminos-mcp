@@ -27,9 +27,9 @@
   "vars": {
     "KINGMINOS_API_URL": "https://api.kingminos.com",
     "KINGMINOS_MCP_PUBLIC_URL": "https://mcp.kingminos.com/mcp",
-    // MCP OAuth (kingminos-application docs/mcp-oauth-design.md §14). Stays "off"
-    // until the API has OAUTH_ENABLED=on in prod; Harris flips it.
-    "OAUTH_ENABLED": "off",
+    // MCP OAuth (kingminos-application docs/mcp-oauth-design.md §14). On in prod
+    // since 2026-11-19 (API sign-in on, AUTH_SERVER bound); "off" is the kill switch.
+    "OAUTH_ENABLED": "on",
     // Result card for connected apps (src/result-card.ts). Only applies to
     // OAuth callers; "on" to show it.
     "MCP_RESULT_CARDS": "off"

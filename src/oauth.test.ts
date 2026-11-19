@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { LIVE_RESOURCE_ROUTES } from "./catalog.js";
+import { DIRECTORY_HIDDEN_TOOLS } from "./directory-tools.js";
 import { handleFetch } from "./fetch.js";
 import {
   type AuthServerBinding,
@@ -269,8 +270,9 @@ describe("MCP OAuth on /mcp", () => {
       const names = (await mcp.listTools()).tools
         .map((tool) => tool.name)
         .sort();
-      const expected = LIVE_RESOURCE_ROUTES.filter((route) =>
-        oauthToolAllowed(route),
+      const expected = LIVE_RESOURCE_ROUTES.filter(
+        (route) =>
+          oauthToolAllowed(route) && !DIRECTORY_HIDDEN_TOOLS.has(route.tool),
       )
         .map((route) => route.tool)
         .sort();

@@ -181,6 +181,9 @@ export const DIRECTORY_TOOL_COPY: Readonly<
       category: null,
       summary: null,
       details: null,
+      // Required by the API (source always; requested for provider/endpoint requests).
+      source: null,
+      requested: null,
       capability: null,
       run_id: null,
     },

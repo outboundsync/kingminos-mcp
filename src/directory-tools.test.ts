@@ -72,6 +72,20 @@ describe("connected-app tool copy", () => {
     }
   });
 
+  it("keeps every field the real schema requires (a hidden required field makes the tool uncallable)", () => {
+    for (const [tool, copy] of Object.entries(DIRECTORY_TOOL_COPY)) {
+      const full = TOOL_SPECS[tool as keyof typeof TOOL_SPECS].inputSchema;
+      for (const [field, schema] of Object.entries(full)) {
+        if (!schema.isOptional()) {
+          assert.ok(
+            field in (copy?.fields ?? {}),
+            `${tool}.${field} is required but hidden from connected apps`,
+          );
+        }
+      }
+    }
+  });
+
   it("never names a vendor, credits, prices or SFDC, and never steers the model", async () => {
     assert.doesNotMatch(DIRECTORY_INSTRUCTIONS, FORBIDDEN);
     const client = await connect("usr_1:grant_1:secret", binding());

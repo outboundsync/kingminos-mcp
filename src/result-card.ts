@@ -160,6 +160,8 @@ export interface ResultCardContent {
   capability?: string;
   answer: Record<string, unknown>;
   result: Record<string, unknown>;
+  /** Result paths in display order (the tool's RESULT_CARD_FIELDS). */
+  fields: string[];
 }
 
 /**
@@ -193,5 +195,6 @@ export function resultCardContent(
       : {}),
     answer,
     result,
+    fields: [...fields],
   };
 }

@@ -5,6 +5,12 @@ import { isAdminBearer, registerAdminTools } from "./admin-tools.js";
 import { LIVE_RESOURCE_ROUTES, type ToolName } from "./catalog.js";
 import { PRODUCT_NAME, VERSION } from "./config.js";
 import {
+  DIRECTORY_HIDDEN_TOOLS,
+  DIRECTORY_INSTRUCTIONS,
+  DIRECTORY_TOOL_COPY,
+  directoryInputSchema,
+} from "./directory-tools.js";
+import {
   KingMinosApiError,
   remediationFor,
   toolErrorResult,
@@ -830,11 +836,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
     { name: "KingMinos", version: VERSION },
     {
       instructions: context.oauth
-        ? [
-            `${PRODUCT_NAME} is a data enrichment router. Lookups spend the connected workspace's credits; misses are free.`,
-            "Branch on answer.outcome / es_decision — business misses stay successful responses.",
-            "Say SFDC, never SF.",
-          ].join(" ")
+        ? DIRECTORY_INSTRUCTIONS
         : isAdminBearer(context.bearer)
           ? "KingMinos admin tools (admin token): abuse_report and partner_report are read-only D1 reports (JSON or CSV); partner_payout lists pending payouts and can approve-and-pay one (Stripe transfer or credits) or record a manual payout; partner_admin lists partners (with codes and share links), creates a partner + code, adds or deactivates a code. Approving moves money, so get the user's explicit OK for partner, amount and month first."
           : [
@@ -858,10 +860,17 @@ export function createKingMinosServer(context: ToolContext): McpServer {
 
   for (const route of LIVE_RESOURCE_ROUTES) {
     // OAuth connectors get the directory subset; the API refuses the rest for them.
-    if (context.oauth && !oauthToolAllowed(route)) {
+    if (
+      context.oauth &&
+      (!oauthToolAllowed(route) || DIRECTORY_HIDDEN_TOOLS.has(route.tool))
+    ) {
       continue;
     }
     const spec = TOOL_SPECS[route.tool];
+    // Connected apps: plain description + subject inputs only (src/directory-tools.ts).
+    const directoryCopy = context.oauth
+      ? DIRECTORY_TOOL_COPY[route.tool]
+      : undefined;
     const handler = async (
       args: Record<string, unknown>,
       extra: { signal?: AbortSignal },
@@ -896,8 +905,11 @@ export function createKingMinosServer(context: ToolContext): McpServer {
       route.tool,
       {
         title: spec.title,
-        description: tenantToolDescription(route.tool),
-        inputSchema: spec.inputSchema,
+        description:
+          directoryCopy?.description ?? tenantToolDescription(route.tool),
+        inputSchema: directoryCopy
+          ? directoryInputSchema(directoryCopy, spec.inputSchema)
+          : spec.inputSchema,
         annotations: spec.annotations,
         ...(context.oauth
           ? { _meta: { securitySchemes: OAUTH_TOOL_SECURITY_SCHEMES } }

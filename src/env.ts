@@ -6,6 +6,10 @@ export interface RuntimeEnv {
   KINGMINOS_MCP_ALLOWED_ORIGINS?: string;
   KINGMINOS_MCP_PUBLIC_URL?: string;
   KINGMINOS_MCP_ALLOW_ENV_BEARER?: string;
+  /** `"on"` (with the AUTH_SERVER binding) enables MCP OAuth. Anything else = bearer-only. */
+  OAUTH_ENABLED?: string;
+  /** Authorization server issuer. Default https://api.kingminos.com. */
+  OAUTH_ISSUER?: string;
   GIT_SHA?: string;
   PORT?: string;
   HOST?: string;
@@ -18,6 +22,8 @@ const NODE_ENV_KEYS = [
   "KINGMINOS_MCP_ALLOWED_ORIGINS",
   "KINGMINOS_MCP_PUBLIC_URL",
   "KINGMINOS_MCP_ALLOW_ENV_BEARER",
+  "OAUTH_ENABLED",
+  "OAUTH_ISSUER",
   "GIT_SHA",
   "PORT",
   "HOST",
@@ -29,6 +35,8 @@ const WORKER_ENV_KEYS = [
   "KINGMINOS_MCP_ALLOWED_HOSTS",
   "KINGMINOS_MCP_ALLOWED_ORIGINS",
   "KINGMINOS_MCP_PUBLIC_URL",
+  "OAUTH_ENABLED",
+  "OAUTH_ISSUER",
   "GIT_SHA",
 ] as const;
 
@@ -40,6 +48,8 @@ export function processRuntimeEnv(): RuntimeEnv {
     KINGMINOS_MCP_ALLOWED_ORIGINS: process.env.KINGMINOS_MCP_ALLOWED_ORIGINS,
     KINGMINOS_MCP_PUBLIC_URL: process.env.KINGMINOS_MCP_PUBLIC_URL,
     KINGMINOS_MCP_ALLOW_ENV_BEARER: process.env.KINGMINOS_MCP_ALLOW_ENV_BEARER,
+    OAUTH_ENABLED: process.env.OAUTH_ENABLED,
+    OAUTH_ISSUER: process.env.OAUTH_ISSUER,
     GIT_SHA: process.env.GIT_SHA,
     PORT: process.env.PORT,
     HOST: process.env.HOST,

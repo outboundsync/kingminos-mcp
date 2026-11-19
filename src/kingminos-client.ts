@@ -22,6 +22,8 @@ export interface ApiRequestOptions {
   body?: unknown;
   signal?: AbortSignal;
   baseUrl?: string;
+  /** OAuth callers: send over the `AUTH_SERVER` service binding instead of public fetch. */
+  fetchImpl?: (url: string, init: RequestInit) => Promise<Response>;
 }
 
 interface ErrorEnvelope {
@@ -188,7 +190,8 @@ async function once(options: ApiRequestOptions): Promise<unknown> {
   }
 
   try {
-    const response = await fetch(
+    const send = options.fetchImpl ?? fetch;
+    const response = await send(
       joinUrl(options.path, options.query, options.baseUrl),
       {
         method: options.method,

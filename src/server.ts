@@ -15,6 +15,7 @@ import {
   okText,
   requireBearer,
 } from "./kingminos-client.js";
+import { oauthToolAllowed } from "./oauth.js";
 import { CAPABILITY_PRICING } from "./pricing.generated.js";
 import { describeWithPrice } from "./pricing.js";
 import {
@@ -57,6 +58,10 @@ import {
 export interface ToolContext {
   bearer?: string;
   apiBaseUrl?: string;
+  /** OAuth caller: tool traffic goes over the service binding. */
+  fetchImpl?: (url: string, init: RequestInit) => Promise<Response>;
+  /** Set for OAuth callers (validated over the binding): directory tool subset only. */
+  oauth?: { platform: string };
 }
 
 export interface BuiltRequest {
@@ -817,15 +822,21 @@ export function createKingMinosServer(context: ToolContext): McpServer {
   const server = new McpServer(
     { name: "KingMinos", version: VERSION },
     {
-      instructions: isAdminBearer(context.bearer)
-        ? "KingMinos admin tools (admin token): abuse_report and partner_report are read-only D1 reports (JSON or CSV); partner_payout lists pending payouts and can approve-and-pay one (Stripe transfer or credits) or record a manual payout; partner_admin lists partners (with codes and share links), creates a partner + code, adds or deactivates a code. Approving moves money, so get the user's explicit OK for partner, amount and month first."
-        : [
-            `${PRODUCT_NAME} is a data enrichment router wrapping the live API at https://api.kingminos.com.`,
-            "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
-            "Webhook mutations (create/patch/delete/rotate/test/replay) also need confirmation; signing secrets are shown once.",
-            PUT_CREDENTIALS_WARNING,
-            "Say SFDC, never SF. Branch automations on answer.outcome / es_decision — business misses stay HTTP 200.",
-          ].join(" "),
+      instructions: context.oauth
+        ? [
+            `${PRODUCT_NAME} is a data enrichment router. Lookups spend the connected workspace's credits; misses are free.`,
+            "Branch on answer.outcome / es_decision — business misses stay successful responses.",
+            "Say SFDC, never SF.",
+          ].join(" ")
+        : isAdminBearer(context.bearer)
+          ? "KingMinos admin tools (admin token): abuse_report and partner_report are read-only D1 reports (JSON or CSV); partner_payout lists pending payouts and can approve-and-pay one (Stripe transfer or credits) or record a manual payout; partner_admin lists partners (with codes and share links), creates a partner + code, adds or deactivates a code. Approving moves money, so get the user's explicit OK for partner, amount and month first."
+          : [
+              `${PRODUCT_NAME} is a data enrichment router wrapping the live API at https://api.kingminos.com.`,
+              "Confirm with the user before put_credentials, delete_credentials, or delete_subject.",
+              "Webhook mutations (create/patch/delete/rotate/test/replay) also need confirmation; signing secrets are shown once.",
+              PUT_CREDENTIALS_WARNING,
+              "Say SFDC, never SF. Branch automations on answer.outcome / es_decision — business misses stay HTTP 200.",
+            ].join(" "),
     },
   );
 
@@ -839,6 +850,10 @@ export function createKingMinosServer(context: ToolContext): McpServer {
   }
 
   for (const route of LIVE_RESOURCE_ROUTES) {
+    // OAuth connectors get the directory subset; the API refuses the rest for them.
+    if (context.oauth && !oauthToolAllowed(route)) {
+      continue;
+    }
     const spec = TOOL_SPECS[route.tool];
     const handler = async (
       args: Record<string, unknown>,
@@ -855,6 +870,7 @@ export function createKingMinosServer(context: ToolContext): McpServer {
           headers: built.headers,
           signal: extra.signal,
           baseUrl: requestBaseUrl,
+          ...(context.fetchImpl ? { fetchImpl: context.fetchImpl } : {}),
         });
         return okText(payload);
       } catch (error) {

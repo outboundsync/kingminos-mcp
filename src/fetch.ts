@@ -22,6 +22,20 @@ import type { RuntimeEnv } from "./env.js";
 import { envString, mergeRuntimeEnv, workerRuntimeEnv } from "./env.js";
 import { hostnameFromHostHeader, hostnameFromOrigin } from "./hosts.js";
 import {
+  AS_METADATA_PATH,
+  type AuthServerBinding,
+  authorizationServerMetadata,
+  bearerChallenge,
+  bindingFetch,
+  looksLikeOAuthToken,
+  type OAuthSettings,
+  oauthSettings,
+  PRM_PATH_INSERT,
+  PRM_ROOT,
+  protectedResourceMetadata,
+  validateOAuthToken,
+} from "./oauth.js";
+import {
   type AdvertisedTool,
   advertisedTenantTools,
   createKingMinosServer,
@@ -36,6 +50,8 @@ export interface HandleFetchOptions {
   mode?: FetchMode;
   loopbackBound?: boolean;
   allowEnvBearer?: boolean;
+  /** Worker `AUTH_SERVER` service binding (kingminos-api `KingMinosGateway`). */
+  authServer?: AuthServerBinding;
 }
 
 export interface BearerResult {
@@ -213,6 +229,7 @@ async function handleMcp(
   request: Request,
   env: RuntimeEnv,
   options: HandleFetchOptions,
+  oauth: OAuthSettings | null,
 ): Promise<Response> {
   const mode = options.mode ?? "worker";
   if (!hostAllowed(request, env, mode)) {
@@ -222,13 +239,43 @@ async function handleMcp(
     return jsonResponse(403, { error: "Forbidden origin" });
   }
 
+  if (oauth) {
+    const presented = /^Bearer\s+(\S+)\s*$/i.exec(
+      request.headers.get("authorization") ?? "",
+    )?.[1];
+    if (presented && looksLikeOAuthToken(presented)) {
+      let validated: Awaited<ReturnType<typeof validateOAuthToken>>;
+      try {
+        validated = await validateOAuthToken(oauth, presented);
+      } catch {
+        // Never fail open: an auth-server outage is a retryable 503, not a pass.
+        return jsonResponse(503, {
+          error: "Authorization server unavailable",
+          hint: "Try again in a moment.",
+        });
+      }
+      if (!validated) {
+        return challengeResponse(oauth, "invalid_token", {
+          error: "Unauthorized",
+          hint: "Sign in to KingMinos again from your app.",
+        });
+      }
+      return serveMcp(request, {
+        bearer: presented,
+        apiBaseUrl: apiBaseUrl(env),
+        fetchImpl: bindingFetch(oauth.binding),
+        oauth: { platform: validated.props.platform ?? "other" },
+      });
+    }
+  }
+
   const bearer = readTenantBearer(
     request.headers.get("authorization"),
     env,
     options,
   );
   if (!bearer.ok) {
-    return jsonResponse(bearer.status, {
+    const body = {
       error: bearer.body.error,
       hint:
         bearer.body.detail === "malformed"
@@ -236,13 +283,38 @@ async function handleMcp(
           : envBearerAllowed(options, env)
             ? `Send Authorization: Bearer <token> or set ${TENANT_BEARER_ENV}.`
             : "Send Authorization: Bearer <token>.",
-    });
+    };
+    // With OAuth on, the 401 also tells MCP clients where to sign in (RFC 9728).
+    return oauth
+      ? challengeResponse(oauth, undefined, body)
+      : jsonResponse(bearer.status, body);
   }
 
-  const server = createKingMinosServer({
+  return serveMcp(request, {
     bearer: bearer.token,
     apiBaseUrl: apiBaseUrl(env),
   });
+}
+
+function challengeResponse(
+  oauth: OAuthSettings,
+  error: "invalid_token" | undefined,
+  body: unknown,
+): Response {
+  return new Response(JSON.stringify(body), {
+    status: 401,
+    headers: {
+      ...JSON_HEADERS,
+      "www-authenticate": bearerChallenge(oauth, error),
+    },
+  });
+}
+
+async function serveMcp(
+  request: Request,
+  context: Parameters<typeof createKingMinosServer>[0],
+): Promise<Response> {
+  const server = createKingMinosServer(context);
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
@@ -286,6 +358,22 @@ export async function handleFetch(
   ) {
     return jsonResponse(200, serverCard(runtime));
   }
+  const oauth = oauthSettings(runtime, options.authServer);
+  if (oauth && request.method === "GET") {
+    if (path === PRM_PATH_INSERT || path === PRM_ROOT) {
+      return new Response(JSON.stringify(protectedResourceMetadata(oauth)), {
+        status: 200,
+        headers: {
+          ...JSON_HEADERS,
+          "cache-control": "public, max-age=300",
+          "access-control-allow-origin": "*",
+        },
+      });
+    }
+    if (path === AS_METADATA_PATH) {
+      return authorizationServerMetadata(oauth);
+    }
+  }
   if (path === "/mcp") {
     if (request.method === "OPTIONS") {
       return new Response(null, {
@@ -296,7 +384,7 @@ export async function handleFetch(
     if (request.method !== "POST") {
       return methodNotAllowed();
     }
-    return handleMcp(request, runtime, { ...options, mode });
+    return handleMcp(request, runtime, { ...options, mode }, oauth);
   }
 
   return jsonResponse(404, { error: "Not found" });

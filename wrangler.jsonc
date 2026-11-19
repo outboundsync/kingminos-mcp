@@ -28,13 +28,22 @@
     "KINGMINOS_API_URL": "https://api.kingminos.com",
     "KINGMINOS_MCP_PUBLIC_URL": "https://mcp.kingminos.com/mcp",
     // MCP OAuth (kingminos-application docs/mcp-oauth-design.md §14). Stays "off"
-    // in prod until the API's KingMinosGateway is deployed and the AUTH_SERVER
-    // service binding is added here; Harris flips it.
+    // until the API has OAUTH_ENABLED=on in prod; Harris flips it.
     "OAUTH_ENABLED": "off",
     // Result card for connected apps (src/result-card.ts). Only applies to
     // OAuth callers; "on" to show it.
     "MCP_RESULT_CARDS": "off"
   },
+  // OAuth tool traffic and token checks go to the API over this binding
+  // (KingMinosGateway, kingminos-application src/index.ts). Inert while
+  // OAUTH_ENABLED is "off": API keys keep forwarding to the public API.
+  "services": [
+    {
+      "binding": "AUTH_SERVER",
+      "service": "kingminos-api-prod",
+      "entrypoint": "KingMinosGateway"
+    }
+  ],
   // Staging pair for MCP OAuth end-to-end (design §14.9). Deploy with
   // `wrangler deploy --env staging` after kingminos-api-staging is live.
   "env": {

@@ -3,7 +3,7 @@
     "kingminos": {
       "url": "https://mcp.kingminos.com/mcp",
       "auth": {
-        "CLIENT_ID": "REPLACE_WITH_CURSOR_CLIENT_ID",
+        "CLIENT_ID": "o9WWVXLp1M2GPrSo",
         "scopes": ["capability:*", "offline_access"]
       }
     }

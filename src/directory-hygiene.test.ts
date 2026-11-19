@@ -170,7 +170,8 @@ describe("Wave A directory hygiene", () => {
     const auth = manifest.remotes?.[0]?.headers?.find(
       (header) => header.name === "Authorization",
     );
-    assert.equal(auth?.isRequired, true);
+    // OAuth sign-in is the default for registry clients; an API key stays optional.
+    assert.equal(auth?.isRequired, false);
     assert.equal(auth?.isSecret, true);
     assert.ok((manifest.icons?.length ?? 0) >= 1);
   });

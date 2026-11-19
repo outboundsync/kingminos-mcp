@@ -46,7 +46,7 @@
       "vars": {
         "KINGMINOS_API_URL": "https://api-staging.kingminos.com",
         "KINGMINOS_MCP_PUBLIC_URL": "https://mcp-staging.kingminos.com/mcp",
-        "OAUTH_ENABLED": "off",
+        "OAUTH_ENABLED": "on",
         "OAUTH_ISSUER": "https://api-staging.kingminos.com"
       },
       "services": [

@@ -233,6 +233,7 @@ describe("result card structuredContent", () => {
           website: "https://www.acme.com/",
           linkedin_url: "https://www.linkedin.com/company/acme",
         },
+        fields: [...(RESULT_CARD_FIELDS.company_resolve ?? [])],
       });
       assert.doesNotMatch(JSON.stringify(result.structuredContent), FORBIDDEN);
       const [text] = result.content as Array<{ type: string; text: string }>;
@@ -285,6 +286,7 @@ describe("result card structuredContent", () => {
         person: { first_name: "Ada", last_name: "Lovelace" },
         best_phone: { e164: "+14155550100", type: "mobile" },
       },
+      fields: [...(RESULT_CARD_FIELDS.person_phone ?? [])],
     });
   });
 
@@ -299,11 +301,25 @@ describe("result card structuredContent", () => {
         capability: "email.verify",
         answer: { outcome: "zero_hits", es_decision: "miss" },
         result: { status: "unknown" },
+        fields: ["email", "status"],
       },
     );
     assert.equal(resultCardContent("company_resolve", { ok: true }), undefined);
     assert.equal(resultCardContent("company_resolve", "text"), undefined);
     assert.equal(resultCardContent("get_balance", RESOLVE_PAYLOAD), undefined);
+  });
+
+  it("sends each tool's own row order (company_domain: CRM primary before the live domain)", () => {
+    const content = resultCardContent("company_domain", {
+      capability: "company.domain",
+      answer: { outcome: "hit", es_decision: "hit" },
+      result: { company_domain: "acme.io", account_primary_domain: "acme.com" },
+    });
+    const fields = content?.fields ?? [];
+    assert.ok(
+      fields.indexOf("account_primary_domain") <
+        fields.indexOf("company_domain"),
+    );
   });
 });
 

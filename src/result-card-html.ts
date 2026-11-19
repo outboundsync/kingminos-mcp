@@ -169,6 +169,10 @@ a:hover { text-decoration: underline; }
     }
     return out;
   }
+  function rank(order, path) {
+    var i = order.indexOf(path);
+    return i < 0 ? order.length + ORDER.indexOf(path) : i;
+  }
   function humanize(value) {
     return String(value).replace(/_/g, " ");
   }
@@ -217,6 +221,7 @@ a:hover { text-decoration: underline; }
     var answer = data.answer || {};
     var result = data.result || {};
     var capability = data.capability || "";
+    var order = Array.isArray(data.fields) ? data.fields : ORDER;
     var decision = DECISIONS[answer.es_decision];
     if (decision && answer.es_decision === "hit" && CHECKS[capability]) decision = ["Checked", "hit"];
     card.textContent = "";
@@ -250,7 +255,7 @@ a:hover { text-decoration: underline; }
     var rows = flat(result, "", []).filter(function (row) {
       return !HIDDEN[row[0]] && LABELS[row[0]] && row[1] !== title;
     }).sort(function (a, b) {
-      return ORDER.indexOf(a[0]) - ORDER.indexOf(b[0]);
+      return rank(order, a[0]) - rank(order, b[0]);
     }).slice(0, MAX_ROWS);
     if (rows.length) {
       var dl = el("dl");
